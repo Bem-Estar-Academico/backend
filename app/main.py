@@ -5,10 +5,11 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import api_router
 from app.core.config import settings
 from app.core.logging_config import setup_logging
 from app.core.middleware import RequestLoggingMiddleware
+from app.routers.auth import router as auth_router
+from app.routers.users import router as users_router
 
 # Setup logging first
 setup_logging()
@@ -40,8 +41,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API router
-app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(auth_router, prefix=settings.API_V1_STR)
+app.include_router(users_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/")

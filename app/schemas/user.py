@@ -76,3 +76,25 @@ class User(UserBase):
     id: int
     created_at: datetime
     updated_at: datetime
+
+
+class Token(BaseModel):
+    """Schema for authentication token response."""
+
+    access_token: str
+    token_type: str = "bearer"
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                "token_type": "bearer",
+            }
+        }
+    )
+
+
+class TokenData(BaseModel):
+    """Schema for token payload data."""
+
+    email: Optional[str] = None
