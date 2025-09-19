@@ -33,7 +33,7 @@ def setup_logging():
 
     # File handler for all logs (rotating)
     file_handler = logging.handlers.RotatingFileHandler(
-        filename=logs_dir / "restaurant_api.log",
+        filename=logs_dir / "bea_api.log",
         maxBytes=10 * 1024 * 1024,  # 10MB
         backupCount=5,
         encoding="utf-8",
@@ -81,10 +81,6 @@ def setup_logging():
     logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)
     logging.getLogger("sqlalchemy.dialects").setLevel(logging.WARNING)
     logging.getLogger("sqlalchemy.orm").setLevel(logging.WARNING)
-
-    # WebSocket logging
-    websocket_logger = logging.getLogger("app.websocket")
-    websocket_logger.setLevel(logging.INFO)
 
     # API logging
     api_logger = logging.getLogger("app.api")
