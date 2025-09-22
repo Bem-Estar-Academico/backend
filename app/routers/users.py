@@ -1,7 +1,6 @@
 from typing import Any, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
@@ -9,6 +8,7 @@ from app.models.user import User
 from app.routers.auth import get_current_user
 from app.schemas.user import User as UserSchema
 from app.schemas.user import UserType
+from app.services.user_service import UserService
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -30,13 +30,7 @@ async def list_users(
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
-    query = (
-        select(User)
-        .offset(skip)
-        .limit(limit)
-        .where(User.user_type == UserType.SOCIAL_WORKER)
+    users = await UserService.get_users(
+        db, skip=skip, limit=limit, user_type=UserType.SOCIAL_WORKER
     )
-
-    result = await db.execute(query)
-    users = result.scalars().all()
     return users
