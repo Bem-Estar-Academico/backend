@@ -15,10 +15,6 @@ from app.routers.users import router as users_router
 # Setup logging first
 setup_logging()
 logger = logging.getLogger(__name__)
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
-from app.core.config import settings
 
 # Create FastAPI application
 app = FastAPI(
