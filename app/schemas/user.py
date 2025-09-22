@@ -1,19 +1,11 @@
 """User schemas."""
 
-import enum
 from datetime import datetime
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-
-class UserType(enum.Enum):
-    """Enum for user types"""
-
-    COORDINATOR = "coordinator"
-    STUDENT = "student"
-    SOCIAL_WORKER = "social_worker"
-    NTI = "nti"
+from app.models.user import UserType
 
 
 class UserBase(BaseModel):
@@ -37,7 +29,7 @@ class UserCreate(UserBase):
             "example": {
                 "email": "user@example.com",
                 "full_name": "João Silva",
-                "user_type": "student",
+                "user_type": "STUDENT",
                 "password": "securepassword123",
                 "is_active": True,
             }
@@ -65,7 +57,7 @@ class User(UserBase):
                 "id": 1,
                 "email": "user@example.com",
                 "full_name": "João Silva",
-                "user_type": "student",
+                "user_type": "STUDENT",
                 "is_active": True,
                 "created_at": "2025-09-19T10:30:00",
                 "updated_at": "2025-09-19T10:30:00",

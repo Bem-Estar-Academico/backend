@@ -2,6 +2,7 @@
 
 import enum
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Enum, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -9,14 +10,17 @@ from sqlalchemy.sql import func
 
 from app.models.base import Base
 
+if TYPE_CHECKING:
+    from app.models.notice import Notice
+
 
 class UserType(enum.Enum):
     """Enum for user types in the BEA system."""
 
-    COORDINATOR = "coordinator"
-    STUDENT = "student"
-    SOCIAL_WORKER = "social_worker"
-    NTI = "nti"
+    COORDINATOR = "COORDINATOR"
+    STUDENT = "STUDENT"
+    SOCIAL_WORKER = "SOCIAL_WORKER"
+    NTI = "NTI"
 
 
 class User(Base):
