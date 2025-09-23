@@ -6,26 +6,28 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
 
-    secret_key: str = Field(..., env="SECRET_KEY")
-    algorithm: str = Field(default="HS256", env="ALGORITHM")
-    access_token_expire_minutes: int = Field(
+    SECRET_KEY: str = Field(..., env="SECRET_KEY")
+    ALGORITHM: str = Field(default="HS256", env="ALGORITHM")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(
         default=30, env="ACCESS_TOKEN_EXPIRE_MINUTES"
     )
-    database_url: str = Field(..., env="DATABASE_URL")
-    test_database_url: Optional[str] = Field(default=None, env="TEST_DATABASE_URL")
-    environment: str = Field(default="development", env="ENVIRONMENT")
-    app_version: str = Field(default="1.0.0", env="APP_VERSION")
-    redis_url: str = Field(default="redis://localhost:6379/0", env="REDIS_URL")
-    celery_broker_url: str = Field(
+    DATABASE_URL: str = Field(..., env="DATABASE_URL")
+    TEST_DATABASE_URL: Optional[str] = Field(default=None, env="TEST_DATABASE_URL")
+    ENVIRONMENT: str = Field(default="development", env="ENVIRONMENT")
+    APP_VERSION: str = Field(default="1.0.0", env="APP_VERSION")
+    API_V1_STR: str = Field(default="/api/v1", env="API_V1_STR")
+    PROJECT_VERSION: str = Field(default="1.0.0", env="PROJECT_VERSION")
+    REDIS_URL: str = Field(default="redis://localhost:6379/0", env="REDIS_URL")
+    CELERY_BROKER_URL: str = Field(
         default="redis://localhost:6379/0", env="CELERY_BROKER_URL"
     )
-    celery_result_backend: str = Field(
+    CELERY_RESULT_BACKEND: str = Field(
         default="redis://localhost:6379/0", env="CELERY_RESULT_BACKEND"
     )
-    smtp_server: Optional[str] = Field(default=None, env="SMTP_SERVER")
-    smtp_port: Optional[int] = Field(default=587, env="SMTP_PORT")
-    smtp_user: Optional[str] = Field(default=None, env="SMTP_USER")
-    smtp_password: Optional[str] = Field(default=None, env="SMTP_PASSWORD")
+    SMTP_SERVER: Optional[str] = Field(default=None, env="SMTP_SERVER")
+    SMTP_PORT: Optional[int] = Field(default=587, env="SMTP_PORT")
+    SMTP_USER: Optional[str] = Field(default=None, env="SMTP_USER")
+    SMTP_PASSWORD: Optional[str] = Field(default=None, env="SMTP_PASSWORD")
 
     class Config:
         env_file = ".env"
@@ -35,11 +37,11 @@ class Settings(BaseSettings):
 
     @property
     def is_development(self) -> bool:
-        return self.environment.lower() == "development"
+        return self.ENVIRONMENT.lower() == "development"
 
     @property
     def is_production(self) -> bool:
-        return self.environment.lower() == "production"
+        return self.ENVIRONMENT.lower() == "production"
 
 
 settings = Settings()
