@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import JSON, DateTime, ForeignKey, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -11,17 +11,76 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 
+class Document(Base):
+    __tablename__ = "notice_documents"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    notice_id: Mapped[int] = mapped_column(ForeignKey("notices.id"), nullable=False)
+    name: Mapped[str] = mapped_column(
+        String(255), nullable=False, comment="Nome do documento"
+    )
+    file_url: Mapped[str] = mapped_column(
+        String(512), nullable=False, comment="URL do arquivo"
+    )
+    file_type: Mapped[Optional[str]] = mapped_column(
+        String(50), nullable=True, comment="Tipo do arquivo (PDF, DOC, etc.)"
+    )
+    file_size: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True, comment="Tamanho do arquivo em bytes"
+    )
+    uploaded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    notice: Mapped["Notice"] = relationship("Notice", back_populates="documents")
+
+
+class NoticeTeam(Base):
+    __tablename__ = "notice_teams"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    notice_id: Mapped[int] = mapped_column(ForeignKey("notices.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    role: Mapped[str] = mapped_column(
+        String(50), nullable=False, comment="COORDINATOR ou SOCIAL_WORKER"
+    )
+    assigned_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    notice: Mapped["Notice"] = relationship("Notice", back_populates="team_members")
+    user: Mapped["User"] = relationship("User")
+
+
 class Notice(Base):
     __tablename__ = "notices"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[str] = mapped_column(Text, nullable=False)
-    important_dates: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    notice_number: Mapped[str] = mapped_column(
+        String(50), nullable=False, comment="Número do edital (ex: 05/2025)"
+    )
+    year: Mapped[int] = mapped_column(
+        Integer, nullable=False, comment="Ano de vigência"
+    )
     start_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     end_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    document_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
-    coordinator_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    responsible_agency: Mapped[str] = mapped_column(
+        String(255), nullable=False, comment="Órgão responsável"
+    )
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+
+    auxilio_alimentacao: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+    auxilio_moradia: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+    auxilio_creche: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    bolsa_pro_graduando: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -30,6 +89,13 @@ class Notice(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+
+    documents: Mapped[List["Document"]] = relationship(
+        "Document", back_populates="notice", cascade="all, delete-orphan"
+    )
+    team_members: Mapped[List["NoticeTeam"]] = relationship(
+        "NoticeTeam", back_populates="notice", cascade="all, delete-orphan"
     )
 
     coordinator: Mapped["User"] = relationship("User", back_populates="notices")
