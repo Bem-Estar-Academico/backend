@@ -57,10 +57,10 @@ class NoticeBase(BaseModel):
     )
     description: str = Field(..., min_length=1)
 
-    auxilio_alimentacao: bool = False
-    auxilio_moradia: bool = False
-    auxilio_creche: bool = False
-    bolsa_pro_graduando: bool = False
+    food_allowance: bool = False
+    housing_allowance: bool = False
+    daycare_allowance: bool = False
+    graduation_scholarship: bool = False
 
 
 class NoticeCreate(NoticeBase):
@@ -77,10 +77,10 @@ class NoticeUpdate(BaseModel):
     responsible_agency: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = Field(None, min_length=1)
 
-    auxilio_alimentacao: Optional[bool] = None
-    auxilio_moradia: Optional[bool] = None
-    auxilio_creche: Optional[bool] = None
-    bolsa_pro_graduando: Optional[bool] = None
+    food_allowance: Optional[bool] = None
+    housing_allowance: Optional[bool] = None
+    daycare_allowance: Optional[bool] = None
+    graduation_scholarship: Optional[bool] = None
 
 
 class Notice(NoticeBase):

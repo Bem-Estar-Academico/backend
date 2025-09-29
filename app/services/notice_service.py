@@ -58,10 +58,10 @@ class NoticeService:
             end_date=notice_data.end_date,
             responsible_agency=notice_data.responsible_agency,
             description=notice_data.description,
-            auxilio_alimentacao=notice_data.auxilio_alimentacao,
-            auxilio_moradia=notice_data.auxilio_moradia,
-            auxilio_creche=notice_data.auxilio_creche,
-            bolsa_pro_graduando=notice_data.bolsa_pro_graduando,
+            food_allowance=notice_data.food_allowance,
+            housing_allowance=notice_data.housing_allowance,
+            daycare_allowance=notice_data.daycare_allowance,
+            graduation_scholarship=notice_data.graduation_scholarship,
         )
 
         db.add(db_notice)

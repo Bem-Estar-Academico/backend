@@ -70,15 +70,17 @@ class Notice(Base):
     )
     description: Mapped[str] = mapped_column(Text, nullable=False)
 
-    auxilio_alimentacao: Mapped[bool] = mapped_column(
-        Boolean, default=False, nullable=False
+    food_allowance: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, comment="Auxílio Alimentação"
     )
-    auxilio_moradia: Mapped[bool] = mapped_column(
-        Boolean, default=False, nullable=False
+    housing_allowance: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, comment="Auxílio Moradia"
     )
-    auxilio_creche: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    bolsa_pro_graduando: Mapped[bool] = mapped_column(
-        Boolean, default=False, nullable=False
+    daycare_allowance: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, comment="Auxílio Creche"
+    )
+    graduation_scholarship: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, comment="Bolsa Pró-Graduando"
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -97,5 +99,3 @@ class Notice(Base):
     team_members: Mapped[List["NoticeTeam"]] = relationship(
         "NoticeTeam", back_populates="notice", cascade="all, delete-orphan"
     )
-
-    coordinator: Mapped["User"] = relationship("User", back_populates="notices")
