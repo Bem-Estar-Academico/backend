@@ -14,7 +14,7 @@ router = APIRouter(prefix="/notices", tags=["notices"])
 
 
 async def require_coordinator(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.user_type != UserType.COORDINATOR:
+    if current_user.user_type != UserType.COORDINATOR.value:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only coordinators can perform this action",
@@ -79,7 +79,7 @@ async def update_notice(
         )
 
     user_in_team = any(
-        member.user_id == current_user.id and member.role == UserType.COORDINATOR
+        member.user_id == current_user.id and member.role == UserType.COORDINATOR.value
         for member in existing_notice.team_members
     )
 
@@ -108,7 +108,7 @@ async def delete_notice(
         )
 
     user_in_team = any(
-        member.user_id == current_user.id and member.role == UserType.COORDINATOR
+        member.user_id == current_user.id and member.role == "COORDINATOR"
         for member in existing_notice.team_members
     )
 
@@ -141,7 +141,7 @@ async def add_document_to_notice(
         )
 
     user_in_team = any(
-        member.user_id == current_user.id and member.role == UserType.COORDINATOR
+        member.user_id == current_user.id and member.role == "COORDINATOR"
         for member in existing_notice.team_members
     )
 
@@ -163,7 +163,7 @@ async def add_team_member_to_notice(
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
-    if role not in [UserType.COORDINATOR, UserType.SOCIAL_WORKER]:
+    if role not in ["COORDINATOR", "SOCIAL_WORKER"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Role must be COORDINATOR or SOCIAL_WORKER",
@@ -176,7 +176,7 @@ async def add_team_member_to_notice(
         )
 
     user_in_team = any(
-        member.user_id == current_user.id and member.role == UserType.COORDINATOR
+        member.user_id == current_user.id and member.role == "COORDINATOR"
         for member in existing_notice.team_members
     )
 

@@ -53,26 +53,26 @@ class User(Base):
 
     @property
     def is_coordinator(self) -> bool:
-        return self.user_type == UserType.COORDINATOR
+        return self.user_type == UserType.COORDINATOR.value
 
     @property
     def is_student(self) -> bool:
-        return self.user_type == UserType.STUDENT
+        return self.user_type == UserType.STUDENT.value
 
     @property
     def is_social_worker(self) -> bool:
-        return self.user_type == UserType.SOCIAL_WORKER
+        return self.user_type == UserType.SOCIAL_WORKER.value
 
     @property
     def is_nti(self) -> bool:
-        return self.user_type == UserType.NTI
+        return self.user_type == UserType.NTI.value
 
     @property
     def is_staff(self) -> bool:
         return self.user_type in [
-            UserType.COORDINATOR,
-            UserType.SOCIAL_WORKER,
-            UserType.NTI,
+            UserType.COORDINATOR.value,
+            UserType.SOCIAL_WORKER.value,
+            UserType.NTI.value,
         ]
 
     def to_dict(self) -> dict:

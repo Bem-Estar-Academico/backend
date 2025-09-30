@@ -15,7 +15,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 async def require_coordinator(current_user: User = Depends(get_current_user)) -> User:
     """Require user to be a coordinator."""
-    if current_user.user_type != UserType.COORDINATOR:
+    if current_user.user_type != UserType.COORDINATOR.value:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only coordinators can access this resource",
@@ -31,6 +31,6 @@ async def list_users(
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     users = await UserService.get_users(
-        db, skip=skip, limit=limit, user_type=UserType.SOCIAL_WORKER
+        db, skip=skip, limit=limit, user_type=UserType.SOCIAL_WORKER.value
     )
     return users
