@@ -24,18 +24,31 @@ class S3Manager:
         self.bucket_name = settings.S3_BUCKET_NAME
 
     def generate_unique_filename(self, original_filename: str) -> str:
+        import re
+        import unicodedata
+
         file_parts = original_filename.rsplit(".", 1)
         name = file_parts[0]
         extension = file_parts[1] if len(file_parts) > 1 else ""
+
+        name = unicodedata.normalize("NFD", name)
+        name = "".join(c for c in name if unicodedata.category(c) != "Mn")
+
+        name = re.sub(r"[^a-zA-Z0-9\-_.]", "_", name)
+
+        name = re.sub(r"_+", "_", name)
+
+        name = name.strip("_")
+
+        clean_name = name[:50] if name else "file"
 
         now = datetime.now()
         year_month = now.strftime("%Y/%m")
 
         unique_id = str(uuid.uuid4())[:8]
 
-        clean_name = "".join(c for c in name if c.isalnum() or c in "._- ")[:50]
-
         if extension:
+            extension = re.sub(r"[^a-zA-Z0-9]", "", extension)[:10]
             filename = f"{unique_id}_{clean_name}.{extension}"
         else:
             filename = f"{unique_id}_{clean_name}"
