@@ -182,14 +182,25 @@ curl -X POST "http://localhost:8000/api/v1/notices/" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Edital de Bolsas 2024",
-    "description": "Processo seletivo para bolsas...",
-    "start_date": "2024-01-01T00:00:00",
-    "end_date": "2024-12-31T23:59:59",
-    "important_dates": {
-      "inscricoes": "2024-01-15",
-      "resultado": "2024-02-01"
-    }
+    "notice_number": "05/2024", 
+    "year": 2024,
+    "start_date": "2024-01-01",
+    "end_date": "2024-12-31",
+    "responsible_agency": "Pró-Reitoria de Assuntos Estudantis",
+    "description": "Processo seletivo para bolsas de auxílio estudantil...",
+    "food_allowance": true,
+    "housing_allowance": true,
+    "daycare_allowance": false,
+    "graduation_scholarship": true
   }'
+```
+
+### Fazer upload de documento para edital
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/notices/1/documents" \
+  -H "Authorization: Bearer <seu-token>" \
+  -F "file=@/caminho/para/documento.pdf"
 ```
 
 ## 🧪 Desenvolvimento
