@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     SMTP_USER: Optional[str] = Field(default=None, env="SMTP_USER")
     SMTP_PASSWORD: Optional[str] = Field(default=None, env="SMTP_PASSWORD")
 
+    AWS_ACCESS_KEY_ID: str = Field(..., env="AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY: str = Field(..., env="AWS_SECRET_ACCESS_KEY")
+    AWS_REGION: str = Field(default="sa-east-1", env="AWS_REGION")
+    S3_BUCKET_NAME: str = Field(..., env="S3_BUCKET_NAME")
+    S3_ENDPOINT_URL: str = Field(default=None, env="S3_ENDPOINT_URL")
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
