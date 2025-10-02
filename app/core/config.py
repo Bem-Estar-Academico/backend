@@ -31,9 +31,9 @@ class Settings(BaseSettings):
 
     AWS_ACCESS_KEY_ID: str = Field(..., env="AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY: str = Field(..., env="AWS_SECRET_ACCESS_KEY")
-    AWS_REGION: str = Field(default="sa-east-1", env="AWS_REGION")
+    AWS_REGION: str = Field(default="us-east-1", env="AWS_REGION")
     S3_BUCKET_NAME: str = Field(..., env="S3_BUCKET_NAME")
-    S3_ENDPOINT_URL: str = Field(default=None, env="S3_ENDPOINT_URL")
+    S3_ENDPOINT_URL: Optional[str] = Field(default=None, env="S3_ENDPOINT_URL")
 
     class Config:
         env_file = ".env"
