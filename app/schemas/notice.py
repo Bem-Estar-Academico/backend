@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -8,20 +8,23 @@ class DocumentBase(BaseModel):
     name: str = Field(
         ..., min_length=1, max_length=255, description="Nome do documento"
     )
-    file_url: str = Field(
-        ..., min_length=1, max_length=512, description="URL do arquivo"
-    )
     file_type: Optional[str] = Field(None, max_length=50, description="Tipo do arquivo")
     file_size: Optional[int] = Field(None, ge=0, description="Tamanho em bytes")
 
 
 class DocumentCreate(DocumentBase):
+    """Schema for creating a document - file will be uploaded directly"""
+
     pass
 
 
 class Document(DocumentBase):
     id: int
     notice_id: int
+    file_url: str = Field(
+        ..., description="URL assinada do arquivo (válida por tempo limitado)"
+    )
+    file_key: str = Field(..., description="Chave do arquivo no S3")
     uploaded_at: datetime
 
     model_config = {"from_attributes": True}
@@ -34,6 +37,17 @@ class NoticeTeamBase(BaseModel):
 
 class NoticeTeamCreate(NoticeTeamBase):
     pass
+
+
+class NoticeTeamMember(BaseModel):
+    id: int
+    user_id: int
+    role: str
+    assigned_at: datetime
+    user_email: Optional[str] = None
+    user_name: Optional[str] = None
+
+    model_config = {"from_attributes": True}
 
 
 class NoticeTeam(NoticeTeamBase):
@@ -63,9 +77,7 @@ class NoticeBase(BaseModel):
     graduation_scholarship: bool = False
 
 
-class NoticeCreate(NoticeBase):
-    documents: Optional[List[DocumentCreate]] = []
-    team_members: Optional[List[NoticeTeamCreate]] = []
+class NoticeCreate(NoticeBase): ...
 
 
 class NoticeUpdate(BaseModel):
@@ -88,6 +100,6 @@ class Notice(NoticeBase):
     created_at: datetime
     updated_at: datetime
     documents: List[Document] = []
-    team_members: List[NoticeTeam] = []
+    team_members: List[NoticeTeamMember] = []
 
     model_config = {"from_attributes": True}
