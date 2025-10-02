@@ -19,8 +19,8 @@ class Document(Base):
     name: Mapped[str] = mapped_column(
         String(255), nullable=False, comment="Nome do documento"
     )
-    file_url: Mapped[str] = mapped_column(
-        String(512), nullable=False, comment="URL do arquivo"
+    file_key: Mapped[str] = mapped_column(
+        String(512), nullable=False, comment="Chave do arquivo no S3"
     )
     file_type: Mapped[Optional[str]] = mapped_column(
         String(50), nullable=True, comment="Tipo do arquivo (PDF, DOC, etc.)"
@@ -33,6 +33,13 @@ class Document(Base):
     )
 
     notice: Mapped["Notice"] = relationship("Notice", back_populates="documents")
+
+    @property
+    def file_url(self) -> str:
+        """Generate a signed URL for the document."""
+        from app.core.s3_manager import s3_manager
+
+        return s3_manager.generate_presigned_download_url(self.file_key)
 
 
 class NoticeTeam(Base):
