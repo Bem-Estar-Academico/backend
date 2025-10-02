@@ -107,8 +107,28 @@ class NoticeBase(BaseModel):
         ..., min_length=1, max_length=50, description="Número do edital (ex: 05/2025)"
     )
     year: int = Field(..., ge=2000, le=3000, description="Ano de vigência")
-    start_date: datetime
-    end_date: datetime
+
+    registration_start_date: datetime = Field(
+        ..., description="Data de início das inscrições"
+    )
+    registration_end_date: datetime = Field(
+        ..., description="Data de término das inscrições"
+    )
+
+    appeal_start_date: Optional[datetime] = Field(
+        None, description="Data de início da fase de recursos"
+    )
+    appeal_end_date: Optional[datetime] = Field(
+        None, description="Data de término da fase de recursos"
+    )
+
+    preliminary_result_date: Optional[datetime] = Field(
+        None, description="Data de divulgação do resultado preliminar"
+    )
+    final_result_date: Optional[datetime] = Field(
+        None, description="Data de divulgação do resultado final"
+    )
+
     responsible_agency: str = Field(
         ..., min_length=1, max_length=255, description="Órgão responsável"
     )
@@ -127,8 +147,16 @@ class NoticeUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     notice_number: Optional[str] = Field(None, min_length=1, max_length=50)
     year: Optional[int] = Field(None, ge=2020, le=2030)
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
+
+    registration_start_date: Optional[datetime] = None
+    registration_end_date: Optional[datetime] = None
+
+    appeal_start_date: Optional[datetime] = None
+    appeal_end_date: Optional[datetime] = None
+
+    preliminary_result_date: Optional[datetime] = None
+    final_result_date: Optional[datetime] = None
+
     responsible_agency: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = Field(None, min_length=1)
 
@@ -154,8 +182,12 @@ class Notice(NoticeBase):
             title=notice_model.title,
             notice_number=notice_model.notice_number,
             year=notice_model.year,
-            start_date=notice_model.start_date,
-            end_date=notice_model.end_date,
+            registration_start_date=notice_model.registration_start_date,
+            registration_end_date=notice_model.registration_end_date,
+            appeal_start_date=notice_model.appeal_start_date,
+            appeal_end_date=notice_model.appeal_end_date,
+            preliminary_result_date=notice_model.preliminary_result_date,
+            final_result_date=notice_model.final_result_date,
             responsible_agency=notice_model.responsible_agency,
             description=notice_model.description,
             food_allowance=notice_model.food_allowance,

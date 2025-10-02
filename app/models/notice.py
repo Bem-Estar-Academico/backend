@@ -70,8 +70,28 @@ class Notice(Base):
     year: Mapped[int] = mapped_column(
         Integer, nullable=False, comment="Ano de vigência"
     )
-    start_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    end_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+    registration_start_date: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, comment="Data de início das inscrições"
+    )
+    registration_end_date: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, comment="Data de término das inscrições"
+    )
+
+    appeal_start_date: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True, comment="Data de início da fase de recursos"
+    )
+    appeal_end_date: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True, comment="Data de término da fase de recursos"
+    )
+
+    preliminary_result_date: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True, comment="Data de divulgação do resultado preliminar"
+    )
+    final_result_date: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True, comment="Data de divulgação do resultado final"
+    )
+
     responsible_agency: Mapped[str] = mapped_column(
         String(255), nullable=False, comment="Órgão responsável"
     )

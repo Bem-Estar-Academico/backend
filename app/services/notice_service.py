@@ -52,8 +52,12 @@ class NoticeService:
             title=notice_data.title,
             notice_number=notice_data.notice_number,
             year=notice_data.year,
-            start_date=notice_data.start_date,
-            end_date=notice_data.end_date,
+            registration_start_date=notice_data.registration_start_date,
+            registration_end_date=notice_data.registration_end_date,
+            appeal_start_date=notice_data.appeal_start_date,
+            appeal_end_date=notice_data.appeal_end_date,
+            preliminary_result_date=notice_data.preliminary_result_date,
+            final_result_date=notice_data.final_result_date,
             responsible_agency=notice_data.responsible_agency,
             description=notice_data.description,
             food_allowance=notice_data.food_allowance,
@@ -107,8 +111,8 @@ class NoticeService:
                 selectinload(Notice.documents),
                 selectinload(Notice.team_members).selectinload(NoticeTeam.user),
             )
-            .where(Notice.start_date <= current_time)
-            .where(Notice.end_date >= current_time)
+            .where(Notice.registration_start_date <= current_time)
+            .where(Notice.registration_end_date >= current_time)
         )
         return list(result.scalars().all())
 
