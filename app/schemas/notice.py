@@ -39,13 +39,21 @@ class NoticeTeamCreate(NoticeTeamBase):
     pass
 
 
+class UserInfo(BaseModel):
+    id: int
+    email: str
+    full_name: str
+    user_type: str
+
+    model_config = {"from_attributes": True}
+
+
 class NoticeTeamMember(BaseModel):
     id: int
     user_id: int
     role: str
     assigned_at: datetime
-    user_email: Optional[str] = None
-    user_name: Optional[str] = None
+    user: UserInfo
 
     model_config = {"from_attributes": True}
 
