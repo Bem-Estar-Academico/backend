@@ -17,7 +17,7 @@ class NoticeService:
             select(Notice)
             .options(
                 selectinload(Notice.documents),
-                selectinload(Notice.team_members),
+                selectinload(Notice.team_members).selectinload(NoticeTeam.user),
             )
             .where(Notice.id == notice_id)
         )
@@ -34,7 +34,7 @@ class NoticeService:
             select(Notice)
             .options(
                 selectinload(Notice.documents),
-                selectinload(Notice.team_members),
+                selectinload(Notice.team_members).selectinload(NoticeTeam.user),
             )
             .offset(skip)
             .limit(limit)
@@ -47,9 +47,7 @@ class NoticeService:
         return list(result.scalars().all())
 
     @staticmethod
-    async def create_notice(
-        db: AsyncSession, notice_data: NoticeCreate, creator_user_id: int
-    ) -> Notice:
+    async def create_notice(db: AsyncSession, notice_data: NoticeCreate) -> Notice:
         db_notice = Notice(
             title=notice_data.title,
             notice_number=notice_data.notice_number,
@@ -66,36 +64,6 @@ class NoticeService:
 
         db.add(db_notice)
         await db.flush()
-
-        for doc_data in notice_data.documents or []:
-            db_document = Document(
-                notice_id=db_notice.id,
-                name=doc_data.name,
-                file_url=doc_data.file_url,
-                file_type=doc_data.file_type,
-                file_size=doc_data.file_size,
-            )
-            db.add(db_document)
-
-        for team_data in notice_data.team_members or []:
-            db_team_member = NoticeTeam(
-                notice_id=db_notice.id,
-                user_id=team_data.user_id,
-                role=team_data.role,
-            )
-            db.add(db_team_member)
-
-        creator_in_team = any(
-            member.user_id == creator_user_id
-            for member in notice_data.team_members or []
-        )
-        if not creator_in_team:
-            db_creator_team = NoticeTeam(
-                notice_id=db_notice.id,
-                user_id=creator_user_id,
-                role="COORDINATOR",
-            )
-            db.add(db_creator_team)
 
         await db.commit()
         await db.refresh(db_notice)
@@ -137,7 +105,7 @@ class NoticeService:
             select(Notice)
             .options(
                 selectinload(Notice.documents),
-                selectinload(Notice.team_members),
+                selectinload(Notice.team_members).selectinload(NoticeTeam.user),
             )
             .where(Notice.start_date <= current_time)
             .where(Notice.end_date >= current_time)
@@ -150,33 +118,11 @@ class NoticeService:
             select(Notice)
             .options(
                 selectinload(Notice.documents),
-                selectinload(Notice.team_members),
+                selectinload(Notice.team_members).selectinload(NoticeTeam.user),
             )
             .where(Notice.year == year)
         )
         return list(result.scalars().all())
-
-    @staticmethod
-    async def add_document_to_notice(
-        db: AsyncSession, notice_id: int, document_data: dict
-    ) -> Optional[Document]:
-        notice = await NoticeService.get_notice_by_id(db, notice_id)
-        if not notice:
-            return None
-
-        db_document = Document(
-            notice_id=notice_id,
-            name=document_data["name"],
-            file_url=document_data["file_url"],
-            file_type=document_data.get("file_type"),
-            file_size=document_data.get("file_size"),
-        )
-
-        db.add(db_document)
-        await db.commit()
-        await db.refresh(db_document)
-
-        return db_document
 
     @staticmethod
     async def add_team_member_to_notice(
@@ -205,3 +151,69 @@ class NoticeService:
         await db.refresh(db_team_member)
 
         return db_team_member
+
+    @staticmethod
+    async def upload_document_to_notice(
+        db: AsyncSession,
+        notice_id: int,
+        file_content: bytes,
+        filename: str,
+        content_type: str,
+    ) -> Optional[Document]:
+        from app.core.s3_manager import s3_manager
+
+        notice = await NoticeService.get_notice_by_id(db, notice_id)
+        if not notice:
+            return None
+
+        try:
+            file_key = s3_manager.upload_file(file_content, filename, content_type)
+
+            db_document = Document(
+                notice_id=notice_id,
+                name=filename,
+                file_key=file_key,
+                file_type=content_type,
+                file_size=len(file_content),
+            )
+
+            db.add(db_document)
+            await db.commit()
+            await db.refresh(db_document)
+
+            return db_document
+
+        except Exception as e:
+            await db.rollback()
+            raise Exception(f"Error uploading document: {str(e)}")
+
+    @staticmethod
+    async def delete_document(db: AsyncSession, document_id: int) -> bool:
+        from app.core.s3_manager import s3_manager
+
+        result = await db.execute(select(Document).where(Document.id == document_id))
+        document = result.scalar_one_or_none()
+
+        if not document:
+            return False
+
+        s3_manager.delete_file(document.file_key)
+
+        await db.delete(document)
+        await db.commit()
+
+        return True
+
+    @staticmethod
+    async def get_document_download_url(
+        db: AsyncSession, document_id: int, expiration: int = 3600
+    ) -> Optional[str]:
+        from app.core.s3_manager import s3_manager
+
+        result = await db.execute(select(Document).where(Document.id == document_id))
+        document = result.scalar_one_or_none()
+
+        if not document:
+            return None
+
+        return s3_manager.generate_presigned_download_url(document.file_key, expiration)

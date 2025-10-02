@@ -1,11 +1,12 @@
 from typing import Any, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
 from app.models.user import User, UserType
 from app.routers.auth import get_current_user
+from app.schemas.notice import DocumentWithUrl
 from app.schemas.notice import Notice as NoticeSchema
 from app.schemas.notice import NoticeCreate, NoticeUpdate
 from app.services.notice_service import NoticeService
@@ -14,7 +15,7 @@ router = APIRouter(prefix="/notices", tags=["notices"])
 
 
 async def require_coordinator(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.user_type != UserType.COORDINATOR.value:
+    if current_user.user_type != UserType.COORDINATOR:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only coordinators can perform this action",
@@ -30,19 +31,19 @@ async def list_notices(
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     notices = await NoticeService.get_notices(db, skip=skip, limit=limit, year=year)
-    return notices
+    return [NoticeSchema.from_model(notice) for notice in notices]
 
 
 @router.get("/active", response_model=List[NoticeSchema])
 async def get_active_notices(db: AsyncSession = Depends(get_db)) -> Any:
     notices = await NoticeService.get_active_notices(db)
-    return notices
+    return [NoticeSchema.from_model(notice) for notice in notices]
 
 
 @router.get("/year/{year}", response_model=List[NoticeSchema])
 async def get_notices_by_year(year: int, db: AsyncSession = Depends(get_db)) -> Any:
     notices = await NoticeService.get_notices_by_year(db, year)
-    return notices
+    return [NoticeSchema.from_model(notice) for notice in notices]
 
 
 @router.get("/{notice_id}", response_model=NoticeSchema)
@@ -52,7 +53,7 @@ async def get_notice(notice_id: int, db: AsyncSession = Depends(get_db)) -> Any:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
         )
-    return notice
+    return NoticeSchema.from_model(notice)
 
 
 @router.post("/", response_model=NoticeSchema, status_code=status.HTTP_201_CREATED)
@@ -62,7 +63,7 @@ async def create_notice(
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     notice = await NoticeService.create_notice(db, notice_data, current_user.id)
-    return notice
+    return NoticeSchema.from_model(notice)
 
 
 @router.put("/{notice_id}", response_model=NoticeSchema)
@@ -79,7 +80,7 @@ async def update_notice(
         )
 
     user_in_team = any(
-        member.user_id == current_user.id and member.role == UserType.COORDINATOR.value
+        member.user_id == current_user.id and member.role == UserType.COORDINATOR
         for member in existing_notice.team_members
     )
 
@@ -90,7 +91,7 @@ async def update_notice(
         )
 
     notice = await NoticeService.update_notice(db, notice_id, notice_update)
-    return notice
+    return NoticeSchema.from_model(notice)
 
 
 @router.delete(
@@ -108,7 +109,7 @@ async def delete_notice(
         )
 
     user_in_team = any(
-        member.user_id == current_user.id and member.role == "COORDINATOR"
+        member.user_id == current_user.id and member.role == UserType.COORDINATOR
         for member in existing_notice.team_members
     )
 
@@ -127,34 +128,6 @@ async def delete_notice(
     return
 
 
-@router.post("/{notice_id}/documents")
-async def add_document_to_notice(
-    notice_id: int,
-    document_data: dict,
-    current_user: User = Depends(require_coordinator),
-    db: AsyncSession = Depends(get_db),
-) -> Any:
-    existing_notice = await NoticeService.get_notice_by_id(db, notice_id)
-    if not existing_notice:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
-        )
-
-    user_in_team = any(
-        member.user_id == current_user.id and member.role == "COORDINATOR"
-        for member in existing_notice.team_members
-    )
-
-    if not user_in_team:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only add documents to notices where you are a coordinator",
-        )
-
-    document = await NoticeService.add_document_to_notice(db, notice_id, document_data)
-    return document
-
-
 @router.post("/{notice_id}/team")
 async def add_team_member_to_notice(
     notice_id: int,
@@ -163,7 +136,7 @@ async def add_team_member_to_notice(
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
-    if role not in ["COORDINATOR", "SOCIAL_WORKER"]:
+    if role not in [UserType.COORDINATOR.value, UserType.SOCIAL_WORKER.value]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Role must be COORDINATOR or SOCIAL_WORKER",
@@ -173,17 +146,6 @@ async def add_team_member_to_notice(
     if not existing_notice:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
-        )
-
-    user_in_team = any(
-        member.user_id == current_user.id and member.role == "COORDINATOR"
-        for member in existing_notice.team_members
-    )
-
-    if not user_in_team:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only add team members to notices where you are a coordinator",
         )
 
     team_member = await NoticeService.add_team_member_to_notice(
@@ -196,3 +158,53 @@ async def add_team_member_to_notice(
         )
 
     return team_member
+
+
+@router.post("/{notice_id}/documents")
+async def upload_document_to_notice(
+    notice_id: int,
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_coordinator),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    existing_notice = await NoticeService.get_notice_by_id(db, notice_id)
+    if not existing_notice:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
+        )
+
+    if not file.filename:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Filename is required"
+        )
+
+    max_size = 50 * 1024 * 1024  # 50MB
+    file_content = await file.read()
+    if len(file_content) > max_size:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="File size exceeds 50MB limit",
+        )
+
+    try:
+        document = await NoticeService.upload_document_to_notice(
+            db,
+            notice_id,
+            file_content,
+            file.filename,
+            file.content_type or "application/octet-stream",
+        )
+
+        if not document:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to upload document",
+            )
+
+        return DocumentWithUrl.from_model_with_url(document)
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error uploading document: {str(e)}",
+        )

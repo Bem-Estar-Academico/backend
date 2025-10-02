@@ -21,13 +21,33 @@ class DocumentCreate(DocumentBase):
 class Document(DocumentBase):
     id: int
     notice_id: int
-    file_url: str = Field(
-        ..., description="URL assinada do arquivo (válida por tempo limitado)"
-    )
     file_key: str = Field(..., description="Chave do arquivo no S3")
     uploaded_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class DocumentWithUrl(Document):
+    file_url: str = Field(
+        ..., description="URL assinada do arquivo (válida por tempo limitado)"
+    )
+
+    @classmethod
+    def from_model_with_url(cls, document_model):
+        from app.core.s3_manager import s3_manager
+
+        return cls(
+            id=document_model.id,
+            notice_id=document_model.notice_id,
+            name=document_model.name,
+            file_key=document_model.file_key,
+            file_type=document_model.file_type,
+            file_size=document_model.file_size,
+            uploaded_at=document_model.uploaded_at,
+            file_url=s3_manager.generate_presigned_download_url(
+                document_model.file_key
+            ),
+        )
 
 
 class NoticeTeamBase(BaseModel):
@@ -56,6 +76,21 @@ class NoticeTeamMember(BaseModel):
     user: UserInfo
 
     model_config = {"from_attributes": True}
+
+    @classmethod
+    def from_model(cls, team_model):
+        return cls(
+            id=team_model.id,
+            user_id=team_model.user_id,
+            role=team_model.role,
+            assigned_at=team_model.assigned_at,
+            user=UserInfo(
+                id=team_model.user.id,
+                email=team_model.user.email,
+                full_name=team_model.user.full_name,
+                user_type=team_model.user.user_type.value,
+            ),
+        )
 
 
 class NoticeTeam(NoticeTeamBase):
@@ -107,7 +142,33 @@ class Notice(NoticeBase):
     id: int
     created_at: datetime
     updated_at: datetime
-    documents: List[Document] = []
+    documents: List[DocumentWithUrl] = []
     team_members: List[NoticeTeamMember] = []
 
     model_config = {"from_attributes": True}
+
+    @classmethod
+    def from_model(cls, notice_model):
+        return cls(
+            id=notice_model.id,
+            title=notice_model.title,
+            notice_number=notice_model.notice_number,
+            year=notice_model.year,
+            start_date=notice_model.start_date,
+            end_date=notice_model.end_date,
+            responsible_agency=notice_model.responsible_agency,
+            description=notice_model.description,
+            food_allowance=notice_model.food_allowance,
+            housing_allowance=notice_model.housing_allowance,
+            daycare_allowance=notice_model.daycare_allowance,
+            graduation_scholarship=notice_model.graduation_scholarship,
+            created_at=notice_model.created_at,
+            updated_at=notice_model.updated_at,
+            documents=[
+                DocumentWithUrl.from_model_with_url(doc)
+                for doc in notice_model.documents
+            ],
+            team_members=[
+                NoticeTeamMember.from_model(team) for team in notice_model.team_members
+            ],
+        )
