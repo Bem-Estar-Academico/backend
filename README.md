@@ -177,19 +177,34 @@ curl -X POST "http://localhost:8000/api/v1/auth/login" \
 ### Criar edital (requer autenticação)
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/notices/" \
+curl -X POST "http://localhost:8000/notices/" \
   -H "Authorization: Bearer <seu-token>" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Edital de Bolsas 2024",
-    "description": "Processo seletivo para bolsas...",
-    "start_date": "2024-01-01T00:00:00",
-    "end_date": "2024-12-31T23:59:59",
-    "important_dates": {
-      "inscricoes": "2024-01-15",
-      "resultado": "2024-02-01"
-    }
+    "notice_number": "05/2024", 
+    "year": 2024,
+    "registration_start_date": "2024-01-15T00:00:00",
+    "registration_end_date": "2024-02-15T23:59:59",
+    "appeal_start_date": "2024-02-20T00:00:00",
+    "appeal_end_date": "2024-02-25T23:59:59",
+    "preliminary_result_date": "2024-03-01T00:00:00",
+    "final_result_date": "2024-03-15T00:00:00",
+    "responsible_agency": "Pró-Reitoria de Assuntos Estudantis",
+    "description": "Processo seletivo para bolsas de auxílio estudantil...",
+    "food_allowance": true,
+    "housing_allowance": true,
+    "daycare_allowance": false,
+    "graduation_scholarship": true
   }'
+```
+
+### Fazer upload de documento para edital
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/notices/1/documents" \
+  -H "Authorization: Bearer <seu-token>" \
+  -F "file=@/caminho/para/documento.pdf"
 ```
 
 ## 🧪 Desenvolvimento

@@ -51,10 +51,6 @@ class User(Base):
         nullable=False,
     )
 
-    notices: Mapped[list["Notice"]] = relationship(
-        "Notice", back_populates="coordinator"
-    )
-
     @property
     def is_coordinator(self) -> bool:
         return self.user_type == UserType.COORDINATOR
