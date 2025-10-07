@@ -47,6 +47,24 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
+class UserInfo(BaseModel):
+    id: int
+    email: str
+    full_name: str
+    user_type: UserType
+
+    @classmethod
+    def from_model(cls, user_model) -> "UserInfo":
+        return cls(
+            id=user_model.id,
+            email=user_model.email,
+            full_name=user_model.full_name,
+            user_type=user_model.user_type,
+        )
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class User(UserBase):
     """User schema for responses."""
 
