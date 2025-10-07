@@ -63,7 +63,7 @@ async def get_student_registration(
             status_code=403, detail="Sem permissão para ver esta inscrição"
         )
 
-    return StudentRegistrationWithDetails.from_model(registration)
+    return registration
 
 
 @router.get(
@@ -88,12 +88,8 @@ async def get_registrations_by_notice(
         notice_id, status_filter
     )
 
-    registration_details = [
-        StudentRegistrationWithDetails.from_model(reg) for reg in registrations
-    ]
-
     return StudentRegistrationList(
-        registrations=registration_details,
+        registrations=registrations,
         total=total,
     )
 
@@ -104,57 +100,6 @@ async def get_registrations_by_notice(
     summary="Get registrations by student",
     description="Get all registrations for a specific student",
 )
-async def get_registrations_by_student(
-    student_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> StudentRegistrationList:
-    if (
-        current_user.user_type.value == UserType.STUDENT.value
-        and student_id != current_user.id
-        and not current_user.is_staff
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="Sem permissão para ver inscrições de outros estudantes",
-        )
-
-    service = StudentRegistrationService(db)
-    registrations, total = await service.get_registrations_by_student(student_id)
-
-    registration_details = [
-        StudentRegistrationWithDetails.from_model(reg) for reg in registrations
-    ]
-
-    return StudentRegistrationList(
-        registrations=registration_details,
-        total=total,
-    )
-
-
-@router.get(
-    "/my-registrations",
-    response_model=StudentRegistrationList,
-    summary="Get current user registrations",
-    description="Get all registrations for the current authenticated user",
-)
-async def get_my_registrations(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> StudentRegistrationList:
-    service = StudentRegistrationService(db)
-    registrations, total = await service.get_registrations_by_student(current_user.id)
-
-    registration_details = [
-        StudentRegistrationWithDetails.from_model(reg) for reg in registrations
-    ]
-
-    return StudentRegistrationList(
-        registrations=registration_details,
-        total=total,
-    )
-
-
 @router.put(
     "/{registration_id}",
     response_model=StudentRegistrationWithDetails,
@@ -171,7 +116,7 @@ async def update_student_registration(
     registration = await service.update_registration(
         registration_id, registration_data, current_user
     )
-    return StudentRegistrationWithDetails.from_model(registration)
+    return registration
 
 
 @router.delete(
