@@ -32,23 +32,6 @@ class DocumentWithUrl(Document):
         ..., description="URL assinada do arquivo (válida por tempo limitado)"
     )
 
-    @classmethod
-    def from_model_with_url(cls, document_model):
-        from app.core.s3_manager import s3_manager
-
-        return cls(
-            id=document_model.id,
-            notice_id=document_model.notice_id,
-            name=document_model.name,
-            file_key=document_model.file_key,
-            file_type=document_model.file_type,
-            file_size=document_model.file_size,
-            uploaded_at=document_model.uploaded_at,
-            file_url=s3_manager.generate_presigned_download_url(
-                document_model.file_key
-            ),
-        )
-
 
 class NoticeTeamBase(BaseModel):
     user_id: int
@@ -146,7 +129,7 @@ class NoticeCreate(NoticeBase): ...
 class NoticeUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     notice_number: Optional[str] = Field(None, min_length=1, max_length=50)
-    year: Optional[int] = Field(None, ge=2020, le=2030)
+    year: Optional[int] = Field(None, ge=2000, le=3000)
 
     registration_start_date: Optional[datetime] = None
     registration_end_date: Optional[datetime] = None
@@ -170,37 +153,7 @@ class Notice(NoticeBase):
     id: int
     created_at: datetime
     updated_at: datetime
-    documents: List[DocumentWithUrl] = []
-    team_members: List[NoticeTeamMember] = []
+    documents: List[DocumentWithUrl] = Field(default_factory=list)
+    team_members: List[NoticeTeamMember] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
-
-    @classmethod
-    def from_model(cls, notice_model):
-        return cls(
-            id=notice_model.id,
-            title=notice_model.title,
-            notice_number=notice_model.notice_number,
-            year=notice_model.year,
-            registration_start_date=notice_model.registration_start_date,
-            registration_end_date=notice_model.registration_end_date,
-            appeal_start_date=notice_model.appeal_start_date,
-            appeal_end_date=notice_model.appeal_end_date,
-            preliminary_result_date=notice_model.preliminary_result_date,
-            final_result_date=notice_model.final_result_date,
-            responsible_agency=notice_model.responsible_agency,
-            description=notice_model.description,
-            food_allowance=notice_model.food_allowance,
-            housing_allowance=notice_model.housing_allowance,
-            daycare_allowance=notice_model.daycare_allowance,
-            graduation_scholarship=notice_model.graduation_scholarship,
-            created_at=notice_model.created_at,
-            updated_at=notice_model.updated_at,
-            documents=[
-                DocumentWithUrl.from_model_with_url(doc)
-                for doc in notice_model.documents
-            ],
-            team_members=[
-                NoticeTeamMember.from_model(team) for team in notice_model.team_members
-            ],
-        )

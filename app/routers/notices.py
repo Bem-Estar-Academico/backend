@@ -15,7 +15,7 @@ router = APIRouter(prefix="/notices", tags=["notices"])
 
 
 async def require_coordinator(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.user_type != UserType.COORDINATOR:
+    if current_user.user_type != UserType.COORDINATOR.value:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only coordinators can perform this action",
@@ -31,19 +31,19 @@ async def list_notices(
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     notices = await NoticeService.get_notices(db, skip=skip, limit=limit, year=year)
-    return [NoticeSchema.from_model(notice) for notice in notices]
+    return notices
 
 
 @router.get("/active", response_model=List[NoticeSchema])
 async def get_active_notices(db: AsyncSession = Depends(get_db)) -> Any:
     notices = await NoticeService.get_active_notices(db)
-    return [NoticeSchema.from_model(notice) for notice in notices]
+    return notices
 
 
 @router.get("/year/{year}", response_model=List[NoticeSchema])
 async def get_notices_by_year(year: int, db: AsyncSession = Depends(get_db)) -> Any:
     notices = await NoticeService.get_notices_by_year(db, year)
-    return [NoticeSchema.from_model(notice) for notice in notices]
+    return notices
 
 
 @router.get("/{notice_id}", response_model=NoticeSchema)
@@ -53,7 +53,7 @@ async def get_notice(notice_id: int, db: AsyncSession = Depends(get_db)) -> Any:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
         )
-    return NoticeSchema.from_model(notice)
+    return notice
 
 
 @router.post("/", response_model=NoticeSchema, status_code=status.HTTP_201_CREATED)
@@ -62,8 +62,8 @@ async def create_notice(
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
-    notice = await NoticeService.create_notice(db, notice_data, current_user.id)
-    return NoticeSchema.from_model(notice)
+    notice = await NoticeService.create_notice(db, notice_data)
+    return notice
 
 
 @router.put("/{notice_id}", response_model=NoticeSchema)
@@ -80,7 +80,7 @@ async def update_notice(
         )
 
     user_in_team = any(
-        member.user_id == current_user.id and member.role == UserType.COORDINATOR
+        member.user_id == current_user.id and member.role == UserType.COORDINATOR.value
         for member in existing_notice.team_members
     )
 
@@ -91,7 +91,7 @@ async def update_notice(
         )
 
     notice = await NoticeService.update_notice(db, notice_id, notice_update)
-    return NoticeSchema.from_model(notice)
+    return notice
 
 
 @router.delete(
@@ -201,7 +201,7 @@ async def upload_document_to_notice(
                 detail="Failed to upload document",
             )
 
-        return DocumentWithUrl.from_model_with_url(document)
+        return document
 
     except Exception as e:
         raise HTTPException(
