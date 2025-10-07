@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.models.user import UserType
 
@@ -16,6 +16,16 @@ class UserBase(BaseModel):
     user_type: UserType = Field(..., description="Type of user")
     is_active: bool = True
 
+    student_registration: Optional[str] = Field(
+        None, description="Número de matrícula (apenas para estudantes)", max_length=20
+    )
+    cpf: Optional[str] = Field(
+        None,
+        description="CPF (apenas para estudantes)",
+        max_length=14,
+        pattern=r"^\d{3}\.\d{3}\.\d{3}-\d{2}$|^\d{11}$",
+    )
+
 
 class UserCreate(UserBase):
     """Schema for creating a user."""
@@ -23,6 +33,15 @@ class UserCreate(UserBase):
     password: str = Field(
         ..., min_length=8, description="User password (minimum 8 characters)"
     )
+
+    @field_validator("student_registration", "cpf")
+    @classmethod
+    def validate_student_fields(cls, v, info):
+        if v is not None and info.data.get("user_type") != UserType.STUDENT:
+            raise ValueError(
+                "student_registration and cpf can only be provided for students"
+            )
+        return v
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -32,6 +51,8 @@ class UserCreate(UserBase):
                 "user_type": "STUDENT",
                 "password": "securepassword123",
                 "is_active": True,
+                "student_registration": "202301001",
+                "cpf": "123.456.789-00",
             }
         }
     )
@@ -46,12 +67,25 @@ class UserUpdate(BaseModel):
     password: Optional[str] = None
     is_active: Optional[bool] = None
 
+    student_registration: Optional[str] = Field(
+        None, description="Número de matrícula (apenas para estudantes)", max_length=20
+    )
+    cpf: Optional[str] = Field(
+        None,
+        description="CPF (apenas para estudantes)",
+        max_length=14,
+        pattern=r"^\d{3}\.\d{3}\.\d{3}-\d{2}$|^\d{11}$",
+    )
+
 
 class UserInfo(BaseModel):
     id: int
     email: str
     full_name: str
     user_type: UserType
+
+    student_registration: Optional[str] = None
+    cpf: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -68,6 +102,8 @@ class User(UserBase):
                 "full_name": "João Silva",
                 "user_type": "STUDENT",
                 "is_active": True,
+                "student_registration": "202301001",
+                "cpf": "123.456.789-00",
                 "created_at": "2025-09-19T10:30:00",
                 "updated_at": "2025-09-19T10:30:00",
             }
