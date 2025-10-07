@@ -177,7 +177,7 @@ curl -X POST "http://localhost:8000/api/v1/auth/login" \
 ### Criar edital (requer autenticação)
 
 ```bash
-curl -X POST "http://localhost:8000/notices/" \
+curl -X POST "http://localhost:8000/api/v1/notices/" \
   -H "Authorization: Bearer <seu-token>" \
   -H "Content-Type: application/json" \
   -d '{
