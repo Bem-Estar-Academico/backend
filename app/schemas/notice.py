@@ -60,21 +60,6 @@ class NoticeTeamMember(BaseModel):
 
     model_config = {"from_attributes": True}
 
-    @classmethod
-    def from_model(cls, team_model):
-        return cls(
-            id=team_model.id,
-            user_id=team_model.user_id,
-            role=team_model.role,
-            assigned_at=team_model.assigned_at,
-            user=UserInfo(
-                id=team_model.user.id,
-                email=team_model.user.email,
-                full_name=team_model.user.full_name,
-                user_type=team_model.user.user_type.value,
-            ),
-        )
-
 
 class NoticeTeam(NoticeTeamBase):
     id: int
