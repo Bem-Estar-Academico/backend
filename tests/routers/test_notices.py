@@ -1,18 +1,21 @@
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-import pytest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
+import pytest
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.user import UserType
-from app.services.user_service import UserService
+from app.schemas.notice import NoticeCreate, NoticeUpdate
 from app.schemas.user import UserCreate
 from app.services.notice_service import NoticeService
-from app.schemas.notice import NoticeCreate, NoticeUpdate
+from app.services.user_service import UserService
 
 
 @pytest.mark.asyncio
-async def test_list_notices(client: AsyncClient, db_session: AsyncSession, coordinator_token: str):
+async def test_list_notices(
+    client: AsyncClient, db_session: AsyncSession, coordinator_token: str
+):
     """Test that anyone can list notices."""
     notice_data = NoticeCreate(
         title="Test Notice for Listing",
@@ -24,7 +27,9 @@ async def test_list_notices(client: AsyncClient, db_session: AsyncSession, coord
         description="This is a test notice.",
     )
     headers = {"Authorization": f"Bearer {coordinator_token}"}
-    await client.post("/api/v1/notices/", json=notice_data.model_dump(mode='json'), headers=headers)
+    await client.post(
+        "/api/v1/notices/", json=notice_data.model_dump(mode="json"), headers=headers
+    )
 
     response = await client.get("/api/v1/notices/")
     assert response.status_code == 200
@@ -35,7 +40,9 @@ async def test_list_notices(client: AsyncClient, db_session: AsyncSession, coord
 
 
 @pytest.mark.asyncio
-async def test_get_notice_by_id(client: AsyncClient, db_session: AsyncSession, coordinator_token: str):
+async def test_get_notice_by_id(
+    client: AsyncClient, db_session: AsyncSession, coordinator_token: str
+):
     """Test getting a single notice by its ID."""
     notice_data = NoticeCreate(
         title="Test Notice for ID",
@@ -47,7 +54,9 @@ async def test_get_notice_by_id(client: AsyncClient, db_session: AsyncSession, c
         description="This is another test notice.",
     )
     headers = {"Authorization": f"Bearer {coordinator_token}"}
-    create_response = await client.post("/api/v1/notices/", json=notice_data.model_dump(mode='json'), headers=headers)
+    create_response = await client.post(
+        "/api/v1/notices/", json=notice_data.model_dump(mode="json"), headers=headers
+    )
     notice_id = create_response.json()["id"]
 
     response = await client.get(f"/api/v1/notices/{notice_id}")
@@ -65,7 +74,9 @@ async def test_get_notice_not_found(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_create_notice_as_coordinator(client: AsyncClient, coordinator_token: str):
+async def test_create_notice_as_coordinator(
+    client: AsyncClient, coordinator_token: str
+):
     """Test that a coordinator can create a notice."""
     notice_data = NoticeCreate(
         title="Coordinator Notice",
@@ -77,7 +88,9 @@ async def test_create_notice_as_coordinator(client: AsyncClient, coordinator_tok
         description="A notice created by a coordinator.",
     )
     headers = {"Authorization": f"Bearer {coordinator_token}"}
-    response = await client.post("/api/v1/notices/", json=notice_data.model_dump(mode='json'), headers=headers)
+    response = await client.post(
+        "/api/v1/notices/", json=notice_data.model_dump(mode="json"), headers=headers
+    )
     assert response.status_code == 201
     created_notice = response.json()
     assert created_notice["title"] == "Coordinator Notice"
@@ -86,7 +99,9 @@ async def test_create_notice_as_coordinator(client: AsyncClient, coordinator_tok
 
 
 @pytest.mark.asyncio
-async def test_create_notice_as_non_coordinator(client: AsyncClient, social_worker_token: str):
+async def test_create_notice_as_non_coordinator(
+    client: AsyncClient, social_worker_token: str
+):
     """Test that a non-coordinator cannot create a notice."""
     notice_data = NoticeCreate(
         title="Invalid Notice",
@@ -98,12 +113,16 @@ async def test_create_notice_as_non_coordinator(client: AsyncClient, social_work
         description="This notice should not be created.",
     )
     headers = {"Authorization": f"Bearer {social_worker_token}"}
-    response = await client.post("/api/v1/notices/", json=notice_data.model_dump(mode='json'), headers=headers)
+    response = await client.post(
+        "/api/v1/notices/", json=notice_data.model_dump(mode="json"), headers=headers
+    )
     assert response.status_code == 403
 
 
 @pytest.mark.asyncio
-async def test_get_active_notices(client: AsyncClient, db_session: AsyncSession, coordinator_token: str):
+async def test_get_active_notices(
+    client: AsyncClient, db_session: AsyncSession, coordinator_token: str
+):
     """Test that only active notices are returned."""
     headers = {"Authorization": f"Bearer {coordinator_token}"}
     # Active notice
@@ -116,7 +135,11 @@ async def test_get_active_notices(client: AsyncClient, db_session: AsyncSession,
         responsible_agency="Active Agency",
         description="This is an active notice.",
     )
-    await client.post("/api/v1/notices/", json=active_notice_data.model_dump(mode='json'), headers=headers)
+    await client.post(
+        "/api/v1/notices/",
+        json=active_notice_data.model_dump(mode="json"),
+        headers=headers,
+    )
 
     # Inactive notice (in the future)
     future_notice_data = NoticeCreate(
@@ -128,7 +151,11 @@ async def test_get_active_notices(client: AsyncClient, db_session: AsyncSession,
         responsible_agency="Future Agency",
         description="This is a future notice.",
     )
-    await client.post("/api/v1/notices/", json=future_notice_data.model_dump(mode='json'), headers=headers)
+    await client.post(
+        "/api/v1/notices/",
+        json=future_notice_data.model_dump(mode="json"),
+        headers=headers,
+    )
 
     response = await client.get("/api/v1/notices/active")
     assert response.status_code == 200
@@ -140,7 +167,9 @@ async def test_get_active_notices(client: AsyncClient, db_session: AsyncSession,
 
 
 @pytest.mark.asyncio
-async def test_get_notices_by_year(client: AsyncClient, db_session: AsyncSession, coordinator_token: str):
+async def test_get_notices_by_year(
+    client: AsyncClient, db_session: AsyncSession, coordinator_token: str
+):
     """Test filtering notices by year."""
     headers = {"Authorization": f"Bearer {coordinator_token}"}
     notice_2024_data = NoticeCreate(
@@ -152,7 +181,11 @@ async def test_get_notices_by_year(client: AsyncClient, db_session: AsyncSession
         responsible_agency="Agency 2024",
         description="Notice from 2024.",
     )
-    await client.post("/api/v1/notices/", json=notice_2024_data.model_dump(mode='json'), headers=headers)
+    await client.post(
+        "/api/v1/notices/",
+        json=notice_2024_data.model_dump(mode="json"),
+        headers=headers,
+    )
 
     response = await client.get("/api/v1/notices/year/2024")
     assert response.status_code == 200
@@ -163,7 +196,9 @@ async def test_get_notices_by_year(client: AsyncClient, db_session: AsyncSession
 
 
 @pytest.mark.asyncio
-async def test_update_notice_as_coordinator_in_team(client: AsyncClient, coordinator_token: str):
+async def test_update_notice_as_coordinator_in_team(
+    client: AsyncClient, coordinator_token: str
+):
     """Test that a coordinator in the team can update the notice."""
     headers = {"Authorization": f"Bearer {coordinator_token}"}
     notice_data = NoticeCreate(
@@ -175,17 +210,37 @@ async def test_update_notice_as_coordinator_in_team(client: AsyncClient, coordin
         responsible_agency="Update Agency",
         description="Original description.",
     )
-    create_response = await client.post("/api/v1/notices/", json=notice_data.model_dump(mode='json'), headers=headers)
+    create_response = await client.post(
+        "/api/v1/notices/", json=notice_data.model_dump(mode="json"), headers=headers
+    )
     notice_id = create_response.json()["id"]
 
-    update_data = NoticeUpdate(title="Updated Title")
-    response = await client.put(f"/api/v1/notices/{notice_id}", json=update_data.model_dump(mode='json'), headers=headers)
+    update_data = NoticeUpdate(
+        title="Updated Title",
+        notice_number="07/2025",
+        year=2025,
+        registration_start_date=datetime.now(timezone.utc),
+        registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
+        responsible_agency="Update Agency",
+        description="Original description.",
+        food_allowance=True,
+        housing_allowance=False,
+        daycare_allowance=True,
+        graduation_scholarship=False,
+    )
+    response = await client.put(
+        f"/api/v1/notices/{notice_id}",
+        json=update_data.model_dump(mode="json"),
+        headers=headers,
+    )
     assert response.status_code == 200
     assert response.json()["title"] == "Updated Title"
 
 
 @pytest.mark.asyncio
-async def test_delete_notice_as_coordinator_in_team(client: AsyncClient, coordinator_token: str):
+async def test_delete_notice_as_coordinator_in_team(
+    client: AsyncClient, coordinator_token: str
+):
     """Test that a coordinator in the team can delete the notice."""
     headers = {"Authorization": f"Bearer {coordinator_token}"}
     notice_data = NoticeCreate(
@@ -197,10 +252,14 @@ async def test_delete_notice_as_coordinator_in_team(client: AsyncClient, coordin
         responsible_agency="Delete Agency",
         description="This notice will be deleted.",
     )
-    create_response = await client.post("/api/v1/notices/", json=notice_data.model_dump(mode='json'), headers=headers)
+    create_response = await client.post(
+        "/api/v1/notices/", json=notice_data.model_dump(mode="json"), headers=headers
+    )
     notice_id = create_response.json()["id"]
 
-    delete_response = await client.delete(f"/api/v1/notices/{notice_id}", headers=headers)
+    delete_response = await client.delete(
+        f"/api/v1/notices/{notice_id}", headers=headers
+    )
     assert delete_response.status_code == 204
 
     get_response = await client.get(f"/api/v1/notices/{notice_id}")
@@ -208,7 +267,9 @@ async def test_delete_notice_as_coordinator_in_team(client: AsyncClient, coordin
 
 
 @pytest.mark.asyncio
-async def test_add_team_member(client: AsyncClient, db_session: AsyncSession, coordinator_token: str):
+async def test_add_team_member(
+    client: AsyncClient, db_session: AsyncSession, coordinator_token: str
+):
     """Test adding a team member to a notice."""
     headers = {"Authorization": f"Bearer {coordinator_token}"}
     notice_data = NoticeCreate(
@@ -220,7 +281,9 @@ async def test_add_team_member(client: AsyncClient, db_session: AsyncSession, co
         responsible_agency="Team Agency",
         description="A notice for team member tests.",
     )
-    create_response = await client.post("/api/v1/notices/", json=notice_data.model_dump(mode='json'), headers=headers)
+    create_response = await client.post(
+        "/api/v1/notices/", json=notice_data.model_dump(mode="json"), headers=headers
+    )
     notice_id = create_response.json()["id"]
 
     social_worker_password = "swpassword"
@@ -232,7 +295,10 @@ async def test_add_team_member(client: AsyncClient, db_session: AsyncSession, co
     )
     user = await UserService.create_user(db_session, social_worker_data)
 
-    response = await client.post(f"/api/v1/notices/{notice_id}/team?user_id={user.id}&role=SOCIAL_WORKER", headers=headers)
+    response = await client.post(
+        f"/api/v1/notices/{notice_id}/team?user_id={user.id}&role=SOCIAL_WORKER",
+        headers=headers,
+    )
     assert response.status_code == 200
     team_member = response.json()
     assert team_member["user_id"] == user.id
@@ -241,10 +307,14 @@ async def test_add_team_member(client: AsyncClient, db_session: AsyncSession, co
 
 @pytest.mark.asyncio
 @patch("app.core.s3_manager.s3_manager", new_callable=MagicMock)
-async def test_upload_document(mock_s3_manager, client: AsyncClient, coordinator_token: str):
+async def test_upload_document(
+    mock_s3_manager, client: AsyncClient, coordinator_token: str
+):
     """Test uploading a document to a notice."""
     mock_s3_manager.upload_file.return_value = "some_file_key"
-    mock_s3_manager.generate_presigned_download_url.return_value = "http://example.com/some_file_key"
+    mock_s3_manager.generate_presigned_download_url.return_value = (
+        "http://example.com/some_file_key"
+    )
 
     headers = {"Authorization": f"Bearer {coordinator_token}"}
     notice_data = NoticeCreate(
@@ -256,11 +326,15 @@ async def test_upload_document(mock_s3_manager, client: AsyncClient, coordinator
         responsible_agency="Document Agency",
         description="A notice for document upload tests.",
     )
-    create_response = await client.post("/api/v1/notices/", json=notice_data.model_dump(mode='json'), headers=headers)
+    create_response = await client.post(
+        "/api/v1/notices/", json=notice_data.model_dump(mode="json"), headers=headers
+    )
     notice_id = create_response.json()["id"]
 
     files = {"file": ("test_document.txt", b"This is a test document.", "text/plain")}
-    response = await client.post(f"/api/v1/notices/{notice_id}/documents", files=files, headers=headers)
+    response = await client.post(
+        f"/api/v1/notices/{notice_id}/documents", files=files, headers=headers
+    )
 
     assert response.status_code == 200
     document = response.json()

@@ -1,10 +1,10 @@
+import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-import pytest
 
 from app.models.user import UserType
-from app.services.user_service import UserService
 from app.schemas.user import UserCreate
+from app.services.user_service import UserService
 
 
 @pytest.mark.asyncio
@@ -57,7 +57,7 @@ async def test_list_users_as_coordinator(client: AsyncClient, db_session: AsyncS
     token = response.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
     response = await client.get("/api/v1/users/", headers=headers)
-    
+
     assert response.status_code == 200
     users = response.json()
     assert isinstance(users, list)
