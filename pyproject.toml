@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "BEA Backend API"
 authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"
+packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -20,6 +21,7 @@ python-multipart = "^0.0.6"
 celery = "^5.3.0"
 redis = "^5.0.0"
 flower = "^2.0.0"
+boto3 = "^1.40.43"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
@@ -40,3 +42,8 @@ target-version = ['py311']
 [tool.isort]
 profile = "black"
 line_length = 88
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_paths = ["."]
