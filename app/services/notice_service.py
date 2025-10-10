@@ -47,7 +47,9 @@ class NoticeService:
         return list(result.scalars().all())
 
     @staticmethod
-    async def create_notice(db: AsyncSession, notice_data: NoticeCreate) -> Notice:
+    async def create_notice(
+        db: AsyncSession, notice_data: NoticeCreate, created_by_user_id: int
+    ) -> Notice:
         db_notice = Notice(
             title=notice_data.title,
             notice_number=notice_data.notice_number,
@@ -68,6 +70,13 @@ class NoticeService:
 
         db.add(db_notice)
         await db.flush()
+
+        db_team_member = NoticeTeam(
+            notice_id=db_notice.id,
+            user_id=created_by_user_id,
+            role="COORDINATOR",
+        )
+        db.add(db_team_member)
 
         await db.commit()
         await db.refresh(db_notice)
