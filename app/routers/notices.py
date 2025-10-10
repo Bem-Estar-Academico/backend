@@ -8,14 +8,14 @@ from app.models.user import User, UserType
 from app.routers.auth import get_current_user
 from app.schemas.notice import DocumentWithUrl
 from app.schemas.notice import Notice as NoticeSchema
-from app.schemas.notice import NoticeCreate, NoticeUpdate
+from app.schemas.notice import NoticeCreate, NoticeTeamMember, NoticeUpdate
 from app.services.notice_service import NoticeService
 
 router = APIRouter(prefix="/notices", tags=["notices"])
 
 
 async def require_coordinator(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.user_type != UserType.COORDINATOR.value:
+    if current_user.user_type != UserType.COORDINATOR:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only coordinators can perform this action",
@@ -62,7 +62,7 @@ async def create_notice(
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
-    notice = await NoticeService.create_notice(db, notice_data)
+    notice = await NoticeService.create_notice(db, notice_data, current_user.id)
     return notice
 
 
@@ -109,7 +109,7 @@ async def delete_notice(
         )
 
     user_in_team = any(
-        member.user_id == current_user.id and member.role == UserType.COORDINATOR
+        member.user_id == current_user.id and member.role == UserType.COORDINATOR.value
         for member in existing_notice.team_members
     )
 
@@ -128,7 +128,7 @@ async def delete_notice(
     return
 
 
-@router.post("/{notice_id}/team")
+@router.post("/{notice_id}/team", response_model=NoticeTeamMember)
 async def add_team_member_to_notice(
     notice_id: int,
     user_id: int,
@@ -160,7 +160,7 @@ async def add_team_member_to_notice(
     return team_member
 
 
-@router.post("/{notice_id}/documents")
+@router.post("/{notice_id}/documents", response_model=DocumentWithUrl)
 async def upload_document_to_notice(
     notice_id: int,
     file: UploadFile = File(...),
