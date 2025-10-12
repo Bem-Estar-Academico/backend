@@ -6,6 +6,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from app.models.notice import RegistrationStatus
+from app.schemas.notice import NoticeBase
 from app.schemas.user import UserInfo
 
 
@@ -39,7 +40,7 @@ class StudentRegistrationResponse(StudentRegistrationBase):
 
 class StudentRegistrationWithDetails(StudentRegistrationResponse):
     student: UserInfo
-    notice_title: str
+    notice: NoticeBase
 
 
 class StudentRegistrationList(BaseModel):

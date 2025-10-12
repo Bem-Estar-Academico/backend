@@ -1,15 +1,16 @@
 """Tests for the student registration routes."""
 
+from datetime import datetime, timedelta, timezone
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime, timedelta, timezone
 
 from app.models.notice import Notice, StudentRegistration
 from app.models.user import User, UserType
-from app.schemas.user import UserCreate
 from app.schemas.notice import NoticeCreate
+from app.schemas.user import UserCreate
 from tests.conftest import create_user_and_token
 
 
@@ -81,7 +82,7 @@ async def test_create_student_registration(
     # 2. As a student, attempt to register for the notice
     registration_data = {"notice_id": notice_id}
     headers_student = {"Authorization": f"Bearer {student_token}"}
-    
+
     response = await client.post(
         "/api/v1/registrations/",
         json=registration_data,
@@ -90,7 +91,7 @@ async def test_create_student_registration(
 
     # This assertion will fail. Expected 201, but will get 500 Internal Server Error.
     assert response.status_code == 201
-    
+
     registration = response.json()
     assert registration["notice_id"] == notice_id
     assert registration["status"] == "PENDING"
@@ -131,7 +132,7 @@ async def test_get_student_registration_fails_due_to_schema_bug(
 
     # This assertion will fail. Expected 200, but will get 500 Internal Server Error.
     assert response.status_code == 200
-    
+
     data = response.json()
     assert data["id"] == registration.id
-    assert data["notice_title"] == notice_instance.title
+    assert data["notice"]["title"] == notice_instance.title
