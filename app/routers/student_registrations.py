@@ -17,7 +17,7 @@ from app.schemas.student_registration import (
 from app.schemas.user import UserType
 from app.services.student_registration_service import StudentRegistrationService
 
-router = APIRouter()
+router = APIRouter(prefix="/student-registrations", tags=["student-registrations"])
 
 
 @router.post(
