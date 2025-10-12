@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import HTTPException
-from sqlalchemy import and_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -101,20 +101,23 @@ class StudentRegistrationService:
         if status:
             query = query.where(StudentRegistration.status == status)
 
-        count_query = select(StudentRegistration).where(
-            StudentRegistration.notice_id == notice_id
+        count_query = (
+            select(func.count())
+            .select_from(StudentRegistration)
+            .where(StudentRegistration.notice_id == notice_id)
         )
+
         if status:
             count_query = count_query.where(StudentRegistration.status == status)
 
         count_result = await self.db.execute(count_query)
-        total = len(count_result.scalars().all())
+        total = count_result.scalar_one()
 
         query = query.order_by(StudentRegistration.registration_date.desc())
         result = await self.db.execute(query)
         registrations = result.scalars().all()
 
-        return list(registrations), total
+        return registrations, total
 
     async def get_registrations_by_student(
         self,
@@ -127,20 +130,22 @@ class StudentRegistrationService:
                 selectinload(StudentRegistration.notice),
             )
             .where(StudentRegistration.student_id == student_id)
+            .order_by(StudentRegistration.registration_date.desc())
         )
 
-        count_query = select(StudentRegistration).where(
-            StudentRegistration.student_id == student_id
+        count_query = (
+            select(func.count())
+            .select_from(StudentRegistration)
+            .where(StudentRegistration.student_id == student_id)
         )
 
         count_result = await self.db.execute(count_query)
-        total = len(count_result.scalars().all())
+        total = count_result.scalar_one()
 
-        query = query.order_by(StudentRegistration.registration_date.desc())
         result = await self.db.execute(query)
         registrations = result.scalars().all()
 
-        return list(registrations), total
+        return registrations, total
 
     async def update_registration(
         self,
