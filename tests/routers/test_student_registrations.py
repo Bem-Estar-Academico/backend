@@ -84,7 +84,7 @@ async def test_create_student_registration(
     headers_student = {"Authorization": f"Bearer {student_token}"}
 
     response = await client.post(
-        "/api/v1/registrations/",
+        "/api/v1/student-registrations/",
         json=registration_data,
         headers=headers_student,
     )
@@ -126,7 +126,7 @@ async def test_get_student_registration_fails_due_to_schema_bug(
     # 3. Attempt to fetch the registration
     headers = {"Authorization": f"Bearer {student_token}"}
     response = await client.get(
-        f"/api/v1/registrations/{registration.id}",
+        f"/api/v1/student-registrations/{registration.id}",
         headers=headers,
     )
 
