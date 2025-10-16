@@ -16,6 +16,7 @@ class StudentRegistrationBase(BaseModel):
 
 class StudentRegistrationCreate(StudentRegistrationBase):
     notice_id: int = Field(..., description="ID do edital")
+    
 
 
 class StudentRegistrationUpdate(BaseModel):

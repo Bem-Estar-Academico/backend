@@ -83,9 +83,9 @@ async def get_registrations_by_notice(
             status_code=403, detail="Sem permissão para ver inscrições de editais"
         )
 
-    service = StudentRegistrationService(db)
-    registrations, total = await service.get_registrations_by_notice(
-        notice_id, status_filter
+    
+    registrations, total = await StudentRegistrationService.get_registrations_by_notice(
+        db, notice_id, status_filter
     )
 
     return StudentRegistrationList(
@@ -113,10 +113,8 @@ async def get_registrations_by_student(
         raise HTTPException(
             status_code=403, detail="Sem permissão para ver inscrições de outros alunos"
         )
-
-    service = StudentRegistrationService(db)
-    registrations, total = await service.get_registrations_by_student(student_id)
-
+        
+    registrations, total = await StudentRegistrationService.get_registrations_by_student(db, student_id)
     return StudentRegistrationList(
         registrations=registrations,
         total=total,

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import HTTPException
 from sqlalchemy import and_, func, select
@@ -15,11 +15,9 @@ from app.schemas.student_registration import (
 
 
 class StudentRegistrationService:
-    def __init__(self, db: AsyncSession):
-        self.db = db
-
+    @staticmethod
     async def create_registration(
-        self,
+        db: AsyncSession,
         registration_data: StudentRegistrationCreate,
         student: User,
     ) -> StudentRegistration:
@@ -30,7 +28,7 @@ class StudentRegistrationService:
             )
 
         notice_query = select(Notice).where(Notice.id == registration_data.notice_id)
-        notice_result = await self.db.execute(notice_query)
+        notice_result = await db.execute(notice_query)
         notice = notice_result.scalar_one_or_none()
 
         if not notice:
@@ -48,7 +46,7 @@ class StudentRegistrationService:
                 StudentRegistration.notice_id == registration_data.notice_id,
             )
         )
-        existing_result = await self.db.execute(existing_query)
+        existing_result = await db.execute(existing_query)
         existing_registration = existing_result.scalar_one_or_none()
 
         if existing_registration:
@@ -63,16 +61,16 @@ class StudentRegistrationService:
             status=RegistrationStatus.PENDING,
         )
 
-        self.db.add(registration)
-        await self.db.commit()
-        await self.db.refresh(registration)
+        db.add(registration)
+        await db.commit()
+        await db.refresh(registration)
 
         return registration
 
+    @staticmethod
     async def get_registration_by_id(
-        self, registration_id: int
+        db: AsyncSession, registration_id: int
     ) -> Optional[StudentRegistration]:
-
         query = (
             select(StudentRegistration)
             .options(
@@ -81,11 +79,12 @@ class StudentRegistrationService:
             )
             .where(StudentRegistration.id == registration_id)
         )
-        result = await self.db.execute(query)
+        result = await db.execute(query)
         return result.scalar_one_or_none()
 
+    @staticmethod
     async def get_registrations_by_notice(
-        self,
+        db: AsyncSession,
         notice_id: int,
         status: Optional[RegistrationStatus] = None,
     ) -> tuple[list[StudentRegistration], int]:
@@ -110,17 +109,18 @@ class StudentRegistrationService:
         if status:
             count_query = count_query.where(StudentRegistration.status == status)
 
-        count_result = await self.db.execute(count_query)
+        count_result = await db.execute(count_query)
         total = count_result.scalar_one()
 
         query = query.order_by(StudentRegistration.registration_date.desc())
-        result = await self.db.execute(query)
+        result = await db.execute(query)
         registrations = result.scalars().all()
 
         return registrations, total
 
+    @staticmethod
     async def get_registrations_by_student(
-        self,
+        db: AsyncSession,
         student_id: int,
     ) -> tuple[list[StudentRegistration], int]:
         query = (
@@ -139,21 +139,24 @@ class StudentRegistrationService:
             .where(StudentRegistration.student_id == student_id)
         )
 
-        count_result = await self.db.execute(count_query)
+        count_result = await db.execute(count_query)
         total = count_result.scalar_one()
 
-        result = await self.db.execute(query)
+        result = await db.execute(query)
         registrations = result.scalars().all()
 
         return registrations, total
 
+    @staticmethod
     async def update_registration(
-        self,
+        db: AsyncSession,
         registration_id: int,
         registration_data: StudentRegistrationUpdate,
         current_user: User,
     ) -> StudentRegistration:
-        registration = await self.get_registration_by_id(registration_id)
+        registration = await StudentRegistrationService.get_registration_by_id(
+            db, registration_id
+        )
         if not registration:
             raise HTTPException(status_code=404, detail="Inscrição não encontrada")
 
@@ -182,18 +185,20 @@ class StudentRegistrationService:
         if registration_data.notes is not None:
             registration.notes = registration_data.notes
 
-        await self.db.commit()
-        await self.db.refresh(registration)
+        await db.commit()
+        await db.refresh(registration)
 
         return registration
 
+    @staticmethod
     async def delete_registration(
-        self,
+        db: AsyncSession,
         registration_id: int,
         current_user: User,
     ) -> bool:
-
-        registration = await self.get_registration_by_id(registration_id)
+        registration = await StudentRegistrationService.get_registration_by_id(
+            db, registration_id
+        )
         if not registration:
             raise HTTPException(status_code=404, detail="Inscrição não encontrada")
 
@@ -208,13 +213,14 @@ class StudentRegistrationService:
                 status_code=403, detail="Sem permissão para deletar inscrições"
             )
 
-        await self.db.delete(registration)
-        await self.db.commit()
+        await db.delete(registration)
+        await db.commit()
 
         return True
 
+    @staticmethod
     async def get_student_registration_for_notice(
-        self,
+        db: AsyncSession,
         student_id: int,
         notice_id: int,
     ) -> Optional[StudentRegistration]:
@@ -231,5 +237,5 @@ class StudentRegistrationService:
                 )
             )
         )
-        result = await self.db.execute(query)
+        result = await db.execute(query)
         return result.scalar_one_or_none()
