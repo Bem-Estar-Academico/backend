@@ -63,7 +63,7 @@ async def get_student_registration(
             status_code=403, detail="Sem permissão para ver esta inscrição"
         )
 
-    return registration
+    return StudentRegistrationWithDetails.from_model(registration)
 
 
 @router.get(
@@ -83,13 +83,16 @@ async def get_registrations_by_notice(
             status_code=403, detail="Sem permissão para ver inscrições de editais"
         )
 
-    
     registrations, total = await StudentRegistrationService.get_registrations_by_notice(
         db, notice_id, status_filter
     )
 
+    registration_details = [
+        StudentRegistrationWithDetails.from_model(reg) for reg in registrations
+    ]
+
     return StudentRegistrationList(
-        registrations=registrations,
+        registrations=registration_details,
         total=total,
     )
 
@@ -113,10 +116,17 @@ async def get_registrations_by_student(
         raise HTTPException(
             status_code=403, detail="Sem permissão para ver inscrições de outros alunos"
         )
-        
-    registrations, total = await StudentRegistrationService.get_registrations_by_student(db, student_id)
+
+    registrations, total = (
+        await StudentRegistrationService.get_registrations_by_student(db, student_id)
+    )
+
+    registration_details = [
+        StudentRegistrationWithDetails.from_model(reg) for reg in registrations
+    ]
+
     return StudentRegistrationList(
-        registrations=registrations,
+        registrations=registration_details,
         total=total,
     )
 
@@ -137,7 +147,7 @@ async def update_student_registration(
     registration = await service.update_registration(
         registration_id, registration_data, current_user
     )
-    return registration
+    return StudentRegistrationWithDetails.from_model(registration)
 
 
 @router.delete(
