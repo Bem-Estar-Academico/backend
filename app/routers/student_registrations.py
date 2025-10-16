@@ -32,8 +32,7 @@ async def create_student_registration(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> StudentRegistrationResponse:
-    service = StudentRegistrationService(db)
-    registration = await service.create_registration(registration_data, current_user)
+    registration = await StudentRegistrationService.create_registration(db, registration_data, current_user)
     return StudentRegistrationResponse.model_validate(registration)
 
 
@@ -48,8 +47,7 @@ async def get_student_registration(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> StudentRegistrationWithDetails:
-    service = StudentRegistrationService(db)
-    registration = await service.get_registration_by_id(registration_id)
+    registration = await StudentRegistrationService.get_registration_by_id(db, registration_id)
 
     if not registration:
         raise HTTPException(status_code=404, detail="Inscrição não encontrada")
@@ -78,6 +76,7 @@ async def get_registrations_by_notice(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> StudentRegistrationList:
+
     if not current_user.is_staff:
         raise HTTPException(
             status_code=403, detail="Sem permissão para ver inscrições de editais"
@@ -143,9 +142,8 @@ async def update_student_registration(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> StudentRegistrationWithDetails:
-    service = StudentRegistrationService(db)
-    registration = await service.update_registration(
-        registration_id, registration_data, current_user
+    registration = await StudentRegistrationService.update_registration(
+        db, registration_id, registration_data, current_user
     )
     return StudentRegistrationWithDetails.from_model(registration)
 
@@ -161,5 +159,4 @@ async def delete_student_registration(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    service = StudentRegistrationService(db)
-    await service.delete_registration(registration_id, current_user)
+    await StudentRegistrationService.delete_registration(db, registration_id, current_user)
