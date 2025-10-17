@@ -47,6 +47,9 @@ class StudentRegistrationResponse(StudentRegistrationBase):
 class StudentRegistrationWithDetails(StudentRegistrationResponse):
     student: UserInfo
     notice: NoticeInfo
+    documents_count: int = Field(
+        ..., description="Quantidade de documentos enviados pelo estudante"
+    )
 
     @classmethod
     def from_model(cls, registration_model) -> "StudentRegistrationWithDetails":
@@ -66,6 +69,9 @@ class StudentRegistrationWithDetails(StudentRegistrationResponse):
                 notice_number=registration_model.notice.notice_number,
                 year=registration_model.notice.year,
             ),
+            # TODO: Implementar contagem real de documentos por estudante
+            # Atualmente usando valor mockado fixo
+            documents_count=3,  # Valor mockado por enquanto
         )
 
 
