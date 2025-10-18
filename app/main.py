@@ -27,6 +27,14 @@ app = FastAPI(
 logger.info(f"Starting BEA API v1.0.0")
 logger.info(f"Environment: {settings.ENVIRONMENT}")
 
+# CORS setup
+app.add_middleware(CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Add request logging middleware
 app.add_middleware(RequestLoggingMiddleware)
 
