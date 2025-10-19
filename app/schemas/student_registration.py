@@ -6,18 +6,8 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from app.models.notice import RegistrationStatus
-<<<<<<< HEAD
 from app.schemas.notice import NoticeInfo
-=======
->>>>>>> 6a2b645527aadda9bd8a203952a213e0755124e6
 from app.schemas.user import UserInfo
-
-
-class NoticeInfo(BaseModel):
-    id: int
-    title: str
-    notice_number: str
-    year: int
 
 
 class StudentRegistrationBase(BaseModel):
@@ -26,15 +16,11 @@ class StudentRegistrationBase(BaseModel):
 
 class StudentRegistrationCreate(StudentRegistrationBase):
     notice_id: int = Field(..., description="ID do edital")
-<<<<<<< HEAD
     status: RegistrationStatus = Field(
         RegistrationStatus.PENDING, description="Status da inscrição"
     )
-    
-=======
 
 
->>>>>>> 6a2b645527aadda9bd8a203952a213e0755124e6
 class StudentRegistrationUpdate(BaseModel):
     status: Optional[RegistrationStatus] = Field(
         None, description="Status da inscrição"
@@ -58,8 +44,6 @@ class StudentRegistrationResponse(StudentRegistrationBase):
 class StudentRegistrationWithDetails(StudentRegistrationResponse):
     student: UserInfo
     notice: NoticeInfo
-<<<<<<< HEAD
-=======
     documents_count: int = Field(
         ..., description="Quantidade de documentos enviados pelo estudante"
     )
@@ -76,17 +60,11 @@ class StudentRegistrationWithDetails(StudentRegistrationResponse):
             created_at=registration_model.created_at,
             updated_at=registration_model.updated_at,
             student=UserInfo.model_validate(registration_model.student),
-            notice=NoticeInfo(
-                id=registration_model.notice.id,
-                title=registration_model.notice.title,
-                notice_number=registration_model.notice.notice_number,
-                year=registration_model.notice.year,
-            ),
+            notice=NoticeInfo.model_validate(registration_model.notice),
             # TODO: Implementar contagem real de documentos por estudante
             # Atualmente usando valor mockado fixo
             documents_count=3,  # Valor mockado por enquanto
         )
->>>>>>> 6a2b645527aadda9bd8a203952a213e0755124e6
 
 
 class StudentRegistrationList(BaseModel):

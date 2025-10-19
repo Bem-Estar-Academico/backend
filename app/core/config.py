@@ -13,7 +13,6 @@ class Settings(BaseSettings):
         default=30, env="ACCESS_TOKEN_EXPIRE_MINUTES"
     )
     DATABASE_URL: str = Field(..., env="DATABASE_URL")
-    PYTEST_DATABASE_URL: Optional[str] = Field(default=None, env="PYTEST_DATABASE_URL")
     ENVIRONMENT: str = Field(default="development", env="ENVIRONMENT")
     APP_VERSION: str = Field(default="1.0.0", env="APP_VERSION")
     API_V1_STR: str = Field(default="/api/v1", env="API_V1_STR")
