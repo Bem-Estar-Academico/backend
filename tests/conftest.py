@@ -21,7 +21,6 @@ def event_loop():
     yield loop
     loop.close()
 
-
 @pytest.fixture(scope="session", autouse=True)
 def setup_database(event_loop):
     """

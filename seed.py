@@ -27,32 +27,32 @@ MIN_REGISTRATIONS_PER_NOTICE = 15
 fake = Faker("pt_BR")
 
 
-# async def clean_database(db: AsyncSession):
-#     """Deletes existing data from relevant tables before seeding."""
-#     print("\nLimpando o banco de dados...")
-#     try:
-#         await db.execute(
-#             text("TRUNCATE TABLE student_registrations RESTART IDENTITY CASCADE;")
-#         )
-#         print("  - Tabela 'student_registrations' limpa.")
+async def clean_database(db: AsyncSession):
+    """Deletes existing data from relevant tables before seeding."""
+    print("\nLimpando o banco de dados...")
+    try:
+        await db.execute(
+            text("TRUNCATE TABLE student_registrations RESTART IDENTITY CASCADE;")
+        )
+        print("  - Tabela 'student_registrations' limpa.")
 
-#         await db.execute(text("TRUNCATE TABLE notice_teams RESTART IDENTITY CASCADE;"))
-#         print("  - Tabela 'notice_teams' limpa.")
+        await db.execute(text("TRUNCATE TABLE notice_teams RESTART IDENTITY CASCADE;"))
+        print("  - Tabela 'notice_teams' limpa.")
 
-#         await db.execute(
-#             text("TRUNCATE TABLE notice_documents RESTART IDENTITY CASCADE;")
-#         )
-#         print("  - Tabela 'notice_documents' limpa.")
+        await db.execute(
+            text("TRUNCATE TABLE notice_documents RESTART IDENTITY CASCADE;")
+        )
+        print("  - Tabela 'notice_documents' limpa.")
 
-#         await db.execute(text("TRUNCATE TABLE notices RESTART IDENTITY CASCADE;"))
-#         print("  - Tabela 'notices' limpa.")
-#         await db.execute(text("DELETE FROM users WHERE user_type = 'STUDENT';"))
-#         print("  - Usuários do tipo 'STUDENT' deletados.")
-#         await db.commit()
-#         print("Limpeza concluída com sucesso.")
-#     except Exception as e:
-#         print(f"Erro durante a limpeza do banco de dados: {e}")
-#         await db.rollback()
+        await db.execute(text("TRUNCATE TABLE notices RESTART IDENTITY CASCADE;"))
+        print("  - Tabela 'notices' limpa.")
+        await db.execute(text("DELETE FROM users WHERE user_type = 'STUDENT';"))
+        print("  - Usuários do tipo 'STUDENT' deletados.")
+        await db.commit()
+        print("Limpeza concluída com sucesso.")
+    except Exception as e:
+        print(f"Erro durante a limpeza do banco de dados: {e}")
+        await db.rollback()
 
 
 async def create_random_student(db: AsyncSession) -> dict | None:
