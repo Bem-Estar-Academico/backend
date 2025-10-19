@@ -17,10 +17,10 @@ if TYPE_CHECKING:
 class UserType(enum.Enum):
     """Enum for user types in the BEA system."""
 
-    COORDINATOR = "COORDINATOR"
-    STUDENT = "STUDENT"
-    SOCIAL_WORKER = "SOCIAL_WORKER"
     NTI = "NTI"
+    STUDENT = "STUDENT"
+    COORDINATOR = "COORDINATOR"
+    SOCIAL_WORKER = "SOCIAL_WORKER"
 
 
 class User(Base):

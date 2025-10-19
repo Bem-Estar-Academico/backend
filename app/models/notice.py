@@ -13,11 +13,11 @@ if TYPE_CHECKING:
 
 
 class RegistrationStatus(enum.Enum):
-    PENDING = "PENDING"  # Aguardando análise
-    APPROVED = "APPROVED"  # Aprovada
-    REJECTED = "REJECTED"  # Rejeitada
-    CANCELLED = "CANCELLED"  # Cancelada pelo estudante
-
+    PENDING = "PENDENTE"  # Aguardando análise
+    APPROVED = "DEFERIDO"  # Aprovada
+    REJECTED = "INDEFERIDO"  # Rejeitada
+    CANCELLED = "CANCELADO"  # Cancelada pelo estudante
+    APPEAL = "RECURSO"  # Em fase de recurso
 
 class Document(Base):
     __tablename__ = "notice_documents"

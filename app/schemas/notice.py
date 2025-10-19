@@ -111,6 +111,12 @@ class NoticeBase(BaseModel):
 class NoticeCreate(NoticeBase): ...
 
 
+class NoticeInfo(NoticeBase):
+    id: int
+
+    model_config = {"from_attributes": True}
+
+
 class NoticeUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     notice_number: Optional[str] = Field(None, min_length=1, max_length=50)
