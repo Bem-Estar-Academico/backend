@@ -27,38 +27,32 @@ MIN_REGISTRATIONS_PER_NOTICE = 15
 fake = Faker("pt_BR")
 
 
-async def clean_database(db: AsyncSession):
-    """Deletes existing data from relevant tables before seeding."""
-    print("\nLimpando o banco de dados...")
+# async def clean_database(db: AsyncSession):
+#     """Deletes existing data from relevant tables before seeding."""
+#     print("\nLimpando o banco de dados...")
+#     try:
+#         await db.execute(
+#             text("TRUNCATE TABLE student_registrations RESTART IDENTITY CASCADE;")
+#         )
+#         print("  - Tabela 'student_registrations' limpa.")
 
-    # A ordem é importante para evitar problemas com chaves estrangeiras.
-    # Usar TRUNCATE é eficiente e reseta os contadores de ID.
-    try:
-        await db.execute(
-            text("TRUNCATE TABLE student_registrations RESTART IDENTITY CASCADE;")
-        )
-        print("  - Tabela 'student_registrations' limpa.")
+#         await db.execute(text("TRUNCATE TABLE notice_teams RESTART IDENTITY CASCADE;"))
+#         print("  - Tabela 'notice_teams' limpa.")
 
-        await db.execute(text("TRUNCATE TABLE notice_teams RESTART IDENTITY CASCADE;"))
-        print("  - Tabela 'notice_teams' limpa.")
+#         await db.execute(
+#             text("TRUNCATE TABLE notice_documents RESTART IDENTITY CASCADE;")
+#         )
+#         print("  - Tabela 'notice_documents' limpa.")
 
-        await db.execute(
-            text("TRUNCATE TABLE notice_documents RESTART IDENTITY CASCADE;")
-        )
-        print("  - Tabela 'notice_documents' limpa.")
-
-        await db.execute(text("TRUNCATE TABLE notices RESTART IDENTITY CASCADE;"))
-        print("  - Tabela 'notices' limpa.")
-
-        # Deleta apenas os estudantes, mantendo coordenadores e outros tipos de usuário.
-        await db.execute(text("DELETE FROM users WHERE user_type = 'STUDENT';"))
-        print("  - Usuários do tipo 'STUDENT' deletados.")
-
-        await db.commit()
-        print("Limpeza concluída com sucesso.")
-    except Exception as e:
-        print(f"Erro durante a limpeza do banco de dados: {e}")
-        await db.rollback()
+#         await db.execute(text("TRUNCATE TABLE notices RESTART IDENTITY CASCADE;"))
+#         print("  - Tabela 'notices' limpa.")
+#         await db.execute(text("DELETE FROM users WHERE user_type = 'STUDENT';"))
+#         print("  - Usuários do tipo 'STUDENT' deletados.")
+#         await db.commit()
+#         print("Limpeza concluída com sucesso.")
+#     except Exception as e:
+#         print(f"Erro durante a limpeza do banco de dados: {e}")
+#         await db.rollback()
 
 
 async def create_random_student(db: AsyncSession) -> dict | None:
@@ -83,7 +77,6 @@ async def create_random_student(db: AsyncSession) -> dict | None:
             "registration": user.student_registration,
         }
     except ValueError as e:
-        # Silenciosamente ignora erros de estudantes duplicados durante o seed
         return None
 
 
@@ -130,12 +123,12 @@ async def create_random_registration(
         )
         initial_status = registration.status.name
 
-        if random.random() < 0.8:  # 80% de chance de mudar o status
+        if random.random() < 0.8:
             possible_new_statuses = [
                 RegistrationStatus.APPROVED,
                 RegistrationStatus.REJECTED,
             ]
-            if random.random() < 0.2:  # 20% das atualizações são cancelamentos
+            if random.random() < 0.2:
                 possible_new_statuses.append(RegistrationStatus.CANCELLED)
 
             new_status = random.choice(possible_new_statuses)
@@ -169,7 +162,7 @@ async def main():
 
     db: AsyncSession = SessionLocal()
     try:
-        await clean_database(db)
+        # await clean_database(db)
 
         print("\nCriando usuário coordenador...")
         coordinator_data = UserCreate(
