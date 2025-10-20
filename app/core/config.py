@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Optional
 
 from pydantic import Field
@@ -12,7 +13,6 @@ class Settings(BaseSettings):
         default=30, env="ACCESS_TOKEN_EXPIRE_MINUTES"
     )
     DATABASE_URL: str = Field(..., env="DATABASE_URL")
-    TEST_DATABASE_URL: Optional[str] = Field(default=None, env="TEST_DATABASE_URL")
     ENVIRONMENT: str = Field(default="development", env="ENVIRONMENT")
     APP_VERSION: str = Field(default="1.0.0", env="APP_VERSION")
     API_V1_STR: str = Field(default="/api/v1", env="API_V1_STR")
@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     S3_ENDPOINT_URL: Optional[str] = Field(default=None, env="S3_ENDPOINT_URL")
 
     class Config:
-        env_file = ".env"
+        env_file = Path(__file__).parent.parent.parent / ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
         extra = "ignore"

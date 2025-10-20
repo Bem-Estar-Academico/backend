@@ -6,8 +6,8 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
-from app.models.base import Base  # Correct Base import
-from app.models import user, notice  # Explicitly import models
+from app.models.base import Base
+from app.models import user, notice
 from app.models.user import UserType
 from app.schemas.user import UserCreate
 from app.services.user_service import UserService
@@ -20,7 +20,6 @@ def event_loop():
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
-
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_database(event_loop):

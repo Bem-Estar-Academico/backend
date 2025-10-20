@@ -2,7 +2,7 @@
 
 import enum
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, DateTime, Enum, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -17,10 +17,10 @@ if TYPE_CHECKING:
 class UserType(enum.Enum):
     """Enum for user types in the BEA system."""
 
-    COORDINATOR = "COORDINATOR"
-    STUDENT = "STUDENT"
-    SOCIAL_WORKER = "SOCIAL_WORKER"
     NTI = "NTI"
+    STUDENT = "STUDENT"
+    COORDINATOR = "COORDINATOR"
+    SOCIAL_WORKER = "SOCIAL_WORKER"
 
 
 class User(Base):
@@ -37,6 +37,20 @@ class User(Base):
         Enum(UserType),
         nullable=False,
         comment="Type of user: coordinator, student, social_worker, or nti",
+    )
+    student_registration: Mapped[Optional[str]] = mapped_column(
+        String(20),
+        nullable=True,
+        unique=True,
+        index=True,
+        comment="Número de matrícula do estudante (apenas para user_type=STUDENT)",
+    )
+    cpf: Mapped[Optional[str]] = mapped_column(
+        String(14),
+        nullable=True,
+        unique=True,
+        index=True,
+        comment="CPF do estudante (apenas para user_type=STUDENT)",
     )
 
     hashed_password: Mapped[str] = mapped_column(Text, nullable=False)
@@ -77,7 +91,7 @@ class User(Base):
 
     def to_dict(self) -> dict:
         """Convert user to dictionary."""
-        return {
+        data = {
             "id": self.id,
             "email": self.email,
             "full_name": self.full_name,
@@ -86,3 +100,13 @@ class User(Base):
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
         }
+
+        if self.is_student:
+            data.update(
+                {
+                    "student_registration": self.student_registration,
+                    "cpf": self.cpf,
+                }
+            )
+
+        return data

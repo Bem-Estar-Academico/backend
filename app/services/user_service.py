@@ -47,6 +47,23 @@ class UserService:
         if existing_user:
             raise ValueError("Email already registered")
 
+        if user_data.user_type == UserType.STUDENT.value:
+            if user_data.student_registration:
+                existing_registration = await db.execute(
+                    select(User).where(
+                        User.student_registration == user_data.student_registration
+                    )
+                )
+                if existing_registration.scalar_one_or_none():
+                    raise ValueError("Student registration already exists")
+
+            if user_data.cpf:
+                existing_cpf = await db.execute(
+                    select(User).where(User.cpf == user_data.cpf)
+                )
+                if existing_cpf.scalar_one_or_none():
+                    raise ValueError("CPF already registered")
+
         hashed_password = get_password_hash(user_data.password)
 
         db_user = User(
@@ -54,6 +71,12 @@ class UserService:
             full_name=user_data.full_name,
             user_type=user_data.user_type,
             hashed_password=hashed_password,
+            student_registration=(
+                user_data.student_registration
+                if user_data.user_type == UserType.STUDENT
+                else None
+            ),
+            cpf=user_data.cpf if user_data.user_type == UserType.STUDENT else None,
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc),
         )

@@ -10,6 +10,7 @@ from app.core.logging_config import setup_logging
 from app.core.middleware import RequestLoggingMiddleware
 from app.routers.auth import router as auth_router
 from app.routers.notices import router as notices_router
+from app.routers.student_registrations import router as student_registrations_router
 from app.routers.users import router as users_router
 
 # Setup logging first
@@ -26,6 +27,14 @@ app = FastAPI(
 logger.info(f"Starting BEA API v1.0.0")
 logger.info(f"Environment: {settings.ENVIRONMENT}")
 
+# CORS setup
+app.add_middleware(CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Add request logging middleware
 app.add_middleware(RequestLoggingMiddleware)
 
@@ -41,6 +50,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(users_router, prefix=settings.API_V1_STR)
 app.include_router(notices_router, prefix=settings.API_V1_STR)
+app.include_router(student_registrations_router, prefix=f"{settings.API_V1_STR}")
 
 
 @app.get("/")

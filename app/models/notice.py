@@ -1,7 +1,8 @@
+import enum
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -10,6 +11,13 @@ from app.models.base import Base
 if TYPE_CHECKING:
     from app.models.user import User
 
+
+class RegistrationStatus(enum.Enum):
+    PENDING = "PENDENTE"  # Aguardando análise
+    APPROVED = "DEFERIDO"  # Aprovada
+    REJECTED = "INDEFERIDO"  # Rejeitada
+    CANCELLED = "CANCELADO"  # Cancelada pelo estudante
+    APPEAL = "RECURSO"  # Em fase de recurso
 
 class Document(Base):
     __tablename__ = "notice_documents"
@@ -134,3 +142,33 @@ class Notice(Base):
     team_members: Mapped[List["NoticeTeam"]] = relationship(
         "NoticeTeam", back_populates="notice", cascade="all, delete-orphan"
     )
+    registrations: Mapped[List["StudentRegistration"]] = relationship(
+        "StudentRegistration", back_populates="notice", cascade="all, delete-orphan"
+    )
+
+
+class StudentRegistration(Base):
+    __tablename__ = "student_registrations"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    student_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    notice_id: Mapped[int] = mapped_column(ForeignKey("notices.id"), nullable=False)
+    status: Mapped[RegistrationStatus] = mapped_column(
+        Enum(RegistrationStatus), default=RegistrationStatus.PENDING, nullable=False
+    )
+    registration_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    student: Mapped["User"] = relationship("User", foreign_keys=[student_id])
+    notice: Mapped["Notice"] = relationship("Notice", back_populates="registrations")
