@@ -22,7 +22,7 @@ from app.services.user_service import UserService
 NUM_STUDENTS = 50
 NUM_NOTICES = 10
 MAX_REGISTRATIONS_PER_NOTICE = 30
-MIN_REGISTRATIONS_PER_NOTICE = 15 
+MIN_REGISTRATIONS_PER_NOTICE = 15
 
 fake = Faker("pt_BR")
 
@@ -74,9 +74,13 @@ async def create_random_student(db: AsyncSession) -> dict | None:
             "id": user.id,
             "name": user.full_name,
             "email": user.email,
-            "registration": user.student_registration,
+            "registration": user_data.student_registration,
         }
     except ValueError as e:
+        # usuário já existe ou outra validação — ignoramos esse registro
+        return None
+    except Exception as e:
+        print(f"Erro criando estudante: {e}")
         return None
 
 
@@ -123,6 +127,7 @@ async def create_random_registration(
         )
         initial_status = registration.status.name
 
+        # simula atualizações de status
         if random.random() < 0.8:
             possible_new_statuses = [
                 RegistrationStatus.APPROVED,
@@ -150,8 +155,24 @@ async def create_random_registration(
 
         return True, initial_status
 
-    except Exception:
+    except Exception as e:
+        # log útil para depuração
+        # print(f"Falha ao criar/atualizar inscrição (student_id={student_id}, notice_id={notice_id}): {e}")
         return False, "Failed"
+
+
+async def ensure_min_students(db: AsyncSession, student_ids: list[int], min_needed: int) -> list[int]:
+    """Garante que a lista de student_ids tenha pelo menos min_needed elementos.
+    Cria estudantes extras se necessário (até conseguir). Retorna a lista atualizada."""
+    while len(student_ids) < min_needed:
+        created = await create_random_student(db)
+        if created:
+            student_ids.append(created["id"])
+            print(f"  - Estudante extra criado para cumprir mínimo: {created['name']} (ID {created['id']})")
+        else:
+            # se por algum motivo criar falhar repetidamente, tentamos novamente
+            print("  - Tentativa de criar estudante extra falhou; tentando novamente...")
+    return student_ids
 
 
 async def main():
@@ -201,11 +222,13 @@ async def main():
         student_ids = [student.id for student in students]
         print(f"Total de estudantes no banco agora: {len(student_ids)}")
 
+        # Se houver menos estudantes que o mínimo necessário, criamos extras
         if len(student_ids) < MIN_REGISTRATIONS_PER_NOTICE:
             print(
-                f"\nAviso: Não há estudantes suficientes ({len(student_ids)}) para garantir o mínimo de {MIN_REGISTRATIONS_PER_NOTICE} inscrições por edital."
+                f"\nMenos estudantes do que o mínimo por edital ({len(student_ids)} < {MIN_REGISTRATIONS_PER_NOTICE}). Criando estudantes extras..."
             )
-            return
+            student_ids = await ensure_min_students(db, student_ids, MIN_REGISTRATIONS_PER_NOTICE)
+            print(f"Agora há {len(student_ids)} estudantes disponíveis.")
 
         print(f"\nCriando {NUM_NOTICES} editais...")
         notice_ids = []
@@ -214,32 +237,99 @@ async def main():
             notice_ids.append(notice_info)
             print(f"  [{i+1:02d}/{NUM_NOTICES}] {notice_info['title']}")
 
-        print("\nCriando inscrições de estudantes com status variados...")
+        print("\nCriando inscrições de estudantes com status variados (garantindo mínimo por edital)...")
         total_registrations = 0
-        status_counts = {}
+        status_counts: dict[str, int] = {}
 
         for notice_info in notice_ids:
-            num_registrations = random.randint(
-                MIN_REGISTRATIONS_PER_NOTICE, MAX_REGISTRATIONS_PER_NOTICE
-            )
-            selected_student_ids = random.sample(
-                student_ids, min(num_registrations, len(student_ids))
-            )
+            target_num = random.randint(MIN_REGISTRATIONS_PER_NOTICE, MAX_REGISTRATIONS_PER_NOTICE)
 
+            # garantimos ao menos MIN_REGISTRATIONS_PER_NOTICE inscrições bem-sucedidas
+            registered_ids = set()  # evita duplas inscrições no mesmo edital
             registrations_in_notice_count = 0
-            for student_id in selected_student_ids:
+
+            # copia embaralhada do pool de estudantes
+            pool = student_ids.copy()
+            random.shuffle(pool)
+            pool_index = 0
+
+            # função auxiliar para obter próximo candidato (cria estudante novo se acabar pool)
+            async def next_candidate():
+                nonlocal pool, pool_index, student_ids
+                if pool_index >= len(pool):
+                    # criar estudante extra e adicionar no pool
+                    created = await create_random_student(db)
+                    if created:
+                        student_ids.append(created["id"])
+                        pool.append(created["id"])
+                        print(f"    + Estudante extra criado para edital {notice_info['notice_number']} (ID {created['id']})")
+                    # continue; se criação falhar, a pool pode permanecer vazia -> lida pelo código chamador
+                candidate = None
+                # avançar até achar um candidato não registrado
+                while pool_index < len(pool):
+                    cand = pool[pool_index]
+                    pool_index += 1
+                    if cand not in registered_ids:
+                        candidate = cand
+                        break
+                return candidate
+
+            # Primeiro, garanta o mínimo
+            while registrations_in_notice_count < MIN_REGISTRATIONS_PER_NOTICE:
+                candidate = await next_candidate()
+                if candidate is None:
+                    # se não houver candidate (criação falhou repetidamente), tenta criar explicitamente mais estudantes
+                    created = await create_random_student(db)
+                    if created:
+                        student_ids.append(created["id"])
+                        pool.append(created["id"])
+                        print(f"    + Criado estudante extra (fallback) ID {created['id']}")
+                        continue
+                    else:
+                        # situação improvável: continua tentando, mas prevenimos loop infinito com pequeno sleep
+                        print("    ! Não foi possível obter candidato para inscrição no momento; tentando novamente...")
+                        await asyncio.sleep(0.1)
+                        continue
+
                 success, final_status = await create_random_registration(
-                    db, notice_info["id"], student_id, coordinator
+                    db, notice_info["id"], candidate, coordinator
                 )
                 if success:
+                    registered_ids.add(candidate)
                     registrations_in_notice_count += 1
-                    status_counts[final_status] = (
-                        status_counts.get(final_status, 0) + 1
-                    )
+                    status_counts[final_status] = status_counts.get(final_status, 0) + 1
+                else:
+                    # falha: apenas registra e tenta outro candidato
+                    print(f"    - Falha ao criar inscrição (student_id={candidate}) para o edital {notice_info['notice_number']} — tentando próximo.")
+
+            # Se quisermos gerar inscrições adicionais até target_num, fazemos agora
+            while registrations_in_notice_count < target_num:
+                candidate = await next_candidate()
+                if candidate is None:
+                    # tenta criar mais estudantes
+                    created = await create_random_student(db)
+                    if created:
+                        student_ids.append(created["id"])
+                        pool.append(created["id"])
+                        continue
+                    else:
+                        await asyncio.sleep(0.05)
+                        continue
+
+                success, final_status = await create_random_registration(
+                    db, notice_info["id"], candidate, coordinator
+                )
+                if success:
+                    registered_ids.add(candidate)
+                    registrations_in_notice_count += 1
+                    status_counts[final_status] = status_counts.get(final_status, 0) + 1
+                else:
+                    # em caso de falha, seguimos tentando até completar target_num ou até não haver candidatos razoáveis
+                    continue
 
             total_registrations += registrations_in_notice_count
             print(
-                f"  Edital {notice_info['notice_number']:<10}: {registrations_in_notice_count} inscrições criadas"
+                f"  Edital {notice_info['notice_number']:<10}: {registrations_in_notice_count} inscrições criadas (mínimo garantido: {MIN_REGISTRATIONS_PER_NOTICE})"
             )
 
         print(f"\nTotal de inscrições criadas: {total_registrations}")
