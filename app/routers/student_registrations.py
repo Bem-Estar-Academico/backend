@@ -8,7 +8,7 @@ from app.models.notice import RegistrationStatus
 from app.models.user import User
 from app.routers.auth import get_current_user
 from app.schemas.student_registration import (
-    StudentRegistrationCreate,
+    StudentRegistrationBase,
     StudentRegistrationList,
     StudentRegistrationResponse,
     StudentRegistrationUpdate,
@@ -21,19 +21,20 @@ router = APIRouter(prefix="/student-registrations", tags=["student-registrations
 
 
 @router.post(
-    "/",
+    "/{notice_id}",
     response_model=StudentRegistrationResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create student registration",
     description="Create a new registration for a student in a notice",
 )
 async def create_student_registration(
-    registration_data: StudentRegistrationCreate,
+    notice_id: int,
+    registration_data: StudentRegistrationBase,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> StudentRegistrationResponse:
     registration = await StudentRegistrationService.create_registration(
-        db, registration_data, current_user
+        notice_id, db, registration_data, current_user
     )
     return StudentRegistrationResponse.model_validate(registration)
 

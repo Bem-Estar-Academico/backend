@@ -14,13 +14,6 @@ class StudentRegistrationBase(BaseModel):
     answer: Optional[dict] = Field(None, description="Observações sobre a inscrição")
 
 
-class StudentRegistrationCreate(StudentRegistrationBase):
-    notice_id: int = Field(..., description="ID do edital")
-    status: RegistrationStatus = Field(
-        RegistrationStatus.PENDING, description="Status da inscrição"
-    )
-
-
 class StudentRegistrationUpdate(BaseModel):
     status: Optional[RegistrationStatus] = Field(
         None, description="Status da inscrição"
@@ -63,7 +56,7 @@ class StudentRegistrationWithDetails(StudentRegistrationResponse):
             notice=NoticeInfo.model_validate(registration_model.notice),
             # TODO: Implementar contagem real de documentos por estudante
             # Atualmente usando valor mockado fixo
-            documents_count=3,  # Valor mockado por enquanto
+            documents_count=30,  # Valor mockado por enquanto
         )
 
 

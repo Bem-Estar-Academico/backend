@@ -1,10 +1,9 @@
 """User repository."""
 
-from typing import List, Optional
+from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.core.security import get_password_hash, verify_password
 from app.models.user import User

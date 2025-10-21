@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.models.notice import Notice, RegistrationStatus, StudentRegistration
 from app.models.user import User, UserType
 from app.schemas.student_registration import (
-    StudentRegistrationCreate,
+    StudentRegistrationBase,
     StudentRegistrationUpdate,
 )
 
@@ -17,8 +17,9 @@ from app.schemas.student_registration import (
 class StudentRegistrationService:
     @staticmethod
     async def create_registration(
+        notice_id: int,
         db: AsyncSession,
-        registration_data: StudentRegistrationCreate,
+        registration_data: StudentRegistrationBase,
         student: User,
     ) -> StudentRegistration:
         if student.user_type != UserType.STUDENT:
@@ -27,7 +28,7 @@ class StudentRegistrationService:
                 detail="Apenas estudantes podem se inscrever em editais",
             )
 
-        notice_query = select(Notice).where(Notice.id == registration_data.notice_id)
+        notice_query = select(Notice).where(Notice.id == notice_id)
         notice_result = await db.execute(notice_query)
         notice = notice_result.scalar_one_or_none()
 
@@ -43,7 +44,7 @@ class StudentRegistrationService:
         existing_query = select(StudentRegistration).where(
             and_(
                 StudentRegistration.student_id == student.id,
-                StudentRegistration.notice_id == registration_data.notice_id,
+                StudentRegistration.notice_id == notice_id,
             )
         )
         existing_result = await db.execute(existing_query)
@@ -56,7 +57,7 @@ class StudentRegistrationService:
 
         registration = StudentRegistration(
             student_id=student.id,
-            notice_id=registration_data.notice_id,
+            notice_id=notice_id,
             answer=registration_data.answer,
             status=RegistrationStatus.PENDING,
         )

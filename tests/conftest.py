@@ -1,5 +1,5 @@
 import asyncio
-from typing import AsyncGenerator, Generator
+from typing import AsyncGenerator
 
 import pytest
 from httpx import AsyncClient
@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
 from app.models.base import Base
-from app.models import user, notice
 from app.models.user import UserType
 from app.schemas.user import UserCreate
 from app.services.user_service import UserService

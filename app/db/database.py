@@ -5,14 +5,12 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.core.config import settings
 
-# Create async engine
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=False,  # Disable SQL query logging to console
+    echo=False,
     future=True,
 )
 
-# Create session factory
 AsyncSessionLocal = async_sessionmaker(
     engine,
     class_=AsyncSession,
