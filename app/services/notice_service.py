@@ -52,7 +52,6 @@ class NoticeService:
     ) -> Notice:
         db_notice = Notice(
             title=notice_data.title,
-            notice_number=notice_data.notice_number,
             year=notice_data.year,
             registration_start_date=notice_data.registration_start_date,
             registration_end_date=notice_data.registration_end_date,
@@ -60,7 +59,6 @@ class NoticeService:
             appeal_end_date=notice_data.appeal_end_date,
             preliminary_result_date=notice_data.preliminary_result_date,
             final_result_date=notice_data.final_result_date,
-            responsible_agency=notice_data.responsible_agency,
             description=notice_data.description,
             food_allowance=notice_data.food_allowance,
             housing_allowance=notice_data.housing_allowance,
@@ -161,7 +159,13 @@ class NoticeService:
 
         db.add(db_team_member)
         await db.commit()
-        await db.refresh(db_team_member)
+
+        result = await db.execute(
+            select(NoticeTeam)
+            .options(selectinload(NoticeTeam.user))
+            .where(NoticeTeam.id == db_team_member.id)
+        )
+        db_team_member = result.scalar_one()
 
         return db_team_member
 

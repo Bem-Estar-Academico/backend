@@ -28,9 +28,10 @@ async def list_users(
     skip: int = 0,
     limit: int = 100,
     current_user: User = Depends(require_coordinator),
+    user_type: UserType = UserType.SOCIAL_WORKER,
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     users = await UserService.get_users(
-        db, skip=skip, limit=limit, user_type=UserType.SOCIAL_WORKER
+        db, skip=skip, limit=limit, user_type=user_type
     )
     return users
