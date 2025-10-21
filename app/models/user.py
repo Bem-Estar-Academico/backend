@@ -38,7 +38,7 @@ class User(Base):
         nullable=False,
         comment="Type of user: coordinator, student, social_worker, or nti",
     )
-    student_registration: Mapped[Optional[str]] = mapped_column(
+    registration_number: Mapped[Optional[str]] = mapped_column(
         String(20),
         nullable=True,
         unique=True,
@@ -104,7 +104,7 @@ class User(Base):
         if self.is_student:
             data.update(
                 {
-                    "student_registration": self.student_registration,
+                    "registration_number": self.registration_number,
                     "cpf": self.cpf,
                 }
             )

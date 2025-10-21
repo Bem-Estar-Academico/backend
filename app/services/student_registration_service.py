@@ -34,7 +34,7 @@ class StudentRegistrationService:
         if not notice:
             raise HTTPException(status_code=404, detail="Edital não encontrado")
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         if now < notice.registration_start_date or now > notice.registration_end_date:
             raise HTTPException(
                 status_code=400, detail="Período de inscrições não está ativo"
@@ -57,7 +57,7 @@ class StudentRegistrationService:
         registration = StudentRegistration(
             student_id=student.id,
             notice_id=registration_data.notice_id,
-            notes=registration_data.notes,
+            answer=registration_data.answer,
             status=RegistrationStatus.PENDING,
         )
 
@@ -182,8 +182,8 @@ class StudentRegistrationService:
 
         if registration_data.status is not None:
             registration.status = registration_data.status
-        if registration_data.notes is not None:
-            registration.notes = registration_data.notes
+        if registration_data.answer is not None:
+            registration.answer = registration_data.answer
 
         await db.commit()
         await db.refresh(registration)

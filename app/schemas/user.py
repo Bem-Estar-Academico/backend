@@ -16,7 +16,7 @@ class UserBase(BaseModel):
     user_type: UserType = Field(..., description="Type of user")
     is_active: bool = True
 
-    student_registration: Optional[str] = Field(
+    registration_number: Optional[str] = Field(
         None, description="Número de matrícula (apenas para estudantes)", max_length=20
     )
     cpf: Optional[str] = Field(
@@ -34,12 +34,12 @@ class UserCreate(UserBase):
         ..., min_length=8, description="User password (minimum 8 characters)"
     )
 
-    @field_validator("student_registration", "cpf")
+    @field_validator("registration_number", "cpf")
     @classmethod
     def validate_student_fields(cls, v, info):
         if v is not None and info.data.get("user_type") != UserType.STUDENT:
             raise ValueError(
-                "student_registration and cpf can only be provided for students"
+                "registration_number and cpf can only be provided for students"
             )
         return v
 
@@ -51,7 +51,7 @@ class UserCreate(UserBase):
                 "user_type": "STUDENT",
                 "password": "securepassword123",
                 "is_active": True,
-                "student_registration": "202301001",
+                "registration_number": "202301001",
                 "cpf": "123.456.789-00",
             }
         }
@@ -67,7 +67,7 @@ class UserUpdate(BaseModel):
     password: Optional[str] = None
     is_active: Optional[bool] = None
 
-    student_registration: Optional[str] = Field(
+    registration_number: Optional[str] = Field(
         None, description="Número de matrícula (apenas para estudantes)", max_length=20
     )
     cpf: Optional[str] = Field(
@@ -84,7 +84,7 @@ class UserInfo(BaseModel):
     full_name: str
     user_type: UserType
 
-    student_registration: Optional[str] = None
+    registration_number: Optional[str] = None
     cpf: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -102,7 +102,7 @@ class User(UserBase):
                 "full_name": "João Silva",
                 "user_type": "STUDENT",
                 "is_active": True,
-                "student_registration": "202301001",
+                "registration_number": "202301001",
                 "cpf": "123.456.789-00",
                 "created_at": "2025-09-19T10:30:00",
                 "updated_at": "2025-09-19T10:30:00",

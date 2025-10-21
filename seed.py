@@ -80,7 +80,7 @@ class DataProvider:
 
     def get_registration(self, notice_id: int) -> StudentRegistrationCreate:
         """Gera uma nova inscrição em edital."""
-        return StudentRegistrationCreate(notice_id=notice_id, notes=self.fake.sentence())
+        return StudentRegistrationCreate(notice_id=notice_id, answer=self.fake.sentence())
 
 
 class Seeder:

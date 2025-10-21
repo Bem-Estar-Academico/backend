@@ -139,7 +139,7 @@ async def get_registrations_by_student(
     "/{registration_id}",
     response_model=StudentRegistrationWithDetails,
     summary="Update student registration",
-    description="Update a student registration (status, notes, etc.)",
+    description="Update a student registration (status, answer, etc.)",
 )
 async def update_student_registration(
     registration_id: int,

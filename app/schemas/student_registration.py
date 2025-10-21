@@ -11,7 +11,7 @@ from app.schemas.user import UserInfo
 
 
 class StudentRegistrationBase(BaseModel):
-    notes: Optional[str] = Field(None, description="Observações sobre a inscrição")
+    answer: Optional[dict] = Field(None, description="Observações sobre a inscrição")
 
 
 class StudentRegistrationCreate(StudentRegistrationBase):
@@ -25,7 +25,7 @@ class StudentRegistrationUpdate(BaseModel):
     status: Optional[RegistrationStatus] = Field(
         None, description="Status da inscrição"
     )
-    notes: Optional[str] = Field(None, description="Observações sobre a inscrição")
+    answer: Optional[dict] = Field(None, description="Observações sobre a inscrição")
 
 
 class StudentRegistrationResponse(StudentRegistrationBase):
@@ -56,7 +56,7 @@ class StudentRegistrationWithDetails(StudentRegistrationResponse):
             notice_id=registration_model.notice_id,
             status=registration_model.status,
             registration_date=registration_model.registration_date,
-            notes=registration_model.notes,
+            answer=registration_model.answer,
             created_at=registration_model.created_at,
             updated_at=registration_model.updated_at,
             student=UserInfo.model_validate(registration_model.student),
