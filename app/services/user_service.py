@@ -69,6 +69,7 @@ class UserService:
         db_user = User(
             email=user_data.email,
             full_name=user_data.full_name,
+            user_type=user_data.user_type,
             hashed_password=hashed_password,
             registration_number=(
                 user_data.registration_number
