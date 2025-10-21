@@ -62,8 +62,14 @@ async def create_notice(
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
-    notice = await NoticeService.create_notice(db, notice_data, current_user.id)
-    return notice
+    try:
+        notice = await NoticeService.create_notice(db, notice_data, current_user.id)
+        return notice
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 
 @router.put("/{notice_id}", response_model=NoticeSchema)
@@ -128,19 +134,13 @@ async def delete_notice(
     return
 
 
-@router.post("/{notice_id}/team", response_model=NoticeTeamMember)
+@router.post("/{notice_id}/team/{user_id}", response_model=NoticeTeamMember)
 async def add_team_member_to_notice(
     notice_id: int,
     user_id: int,
-    role: str,
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
-    if role not in [UserType.COORDINATOR.value, UserType.SOCIAL_WORKER.value]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Role must be COORDINATOR or SOCIAL_WORKER",
-        )
 
     existing_notice = await NoticeService.get_notice_by_id(db, notice_id)
     if not existing_notice:
@@ -149,7 +149,7 @@ async def add_team_member_to_notice(
         )
 
     team_member = await NoticeService.add_team_member_to_notice(
-        db, notice_id, user_id, role
+        db, notice_id, user_id
     )
     if not team_member:
         raise HTTPException(
