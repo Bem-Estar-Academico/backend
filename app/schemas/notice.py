@@ -71,16 +71,13 @@ class NoticeTeam(NoticeTeamBase):
 
 class NoticeBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
-    notice_number: str = Field(
-        ..., min_length=1, max_length=50, description="Número do edital (ex: 05/2025)"
-    )
     year: int = Field(..., ge=2000, le=3000, description="Ano de vigência")
 
     registration_start_date: datetime = Field(
         ..., description="Data de início das inscrições"
     )
-    registration_end_date: datetime = Field(
-        ..., description="Data de término das inscrições"
+    registration_end_date: Optional[datetime] = Field(
+        None, description="Data de término das inscrições"
     )
 
     appeal_start_date: Optional[datetime] = Field(
@@ -97,9 +94,6 @@ class NoticeBase(BaseModel):
         None, description="Data de divulgação do resultado final"
     )
 
-    responsible_agency: str = Field(
-        ..., min_length=1, max_length=255, description="Órgão responsável"
-    )
     description: str = Field(..., min_length=1)
 
     food_allowance: bool = False
@@ -119,7 +113,6 @@ class NoticeInfo(NoticeBase):
 
 class NoticeUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=255)
-    notice_number: Optional[str] = Field(None, min_length=1, max_length=50)
     year: Optional[int] = Field(None, ge=2000, le=3000)
 
     registration_start_date: Optional[datetime] = None
@@ -131,7 +124,6 @@ class NoticeUpdate(BaseModel):
     preliminary_result_date: Optional[datetime] = None
     final_result_date: Optional[datetime] = None
 
-    responsible_agency: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = Field(None, min_length=1)
 
     food_allowance: Optional[bool] = None

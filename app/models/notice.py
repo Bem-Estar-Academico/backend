@@ -72,19 +72,19 @@ class Notice(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
-    notice_number: Mapped[str] = mapped_column(
-        String(50), nullable=False, comment="Número do edital (ex: 05/2025)"
-    )
+
     year: Mapped[int] = mapped_column(
         Integer, nullable=False, comment="Ano de vigência"
     )
 
     registration_start_date: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, comment="Data de início das inscrições"
-    )
-    registration_end_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
+        comment="Data de início das inscrições"
+    )
+    registration_end_date: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
         comment="Data de término das inscrições",
     )
     appeal_start_date: Mapped[Optional[datetime]] = mapped_column(
@@ -108,9 +108,6 @@ class Notice(Base):
         comment="Data de divulgação do resultado final",
     )
 
-    responsible_agency: Mapped[str] = mapped_column(
-        String(255), nullable=False, comment="Órgão responsável"
-    )
     description: Mapped[str] = mapped_column(Text, nullable=False)
 
     food_allowance: Mapped[bool] = mapped_column(
