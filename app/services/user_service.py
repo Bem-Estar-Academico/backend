@@ -48,10 +48,10 @@ class UserService:
             raise ValueError("Email already registered")
 
         if user_data.user_type == UserType.STUDENT.value:
-            if user_data.student_registration:
+            if user_data.registration_number:
                 existing_registration = await db.execute(
                     select(User).where(
-                        User.student_registration == user_data.student_registration
+                        User.registration_number == user_data.registration_number
                     )
                 )
                 if existing_registration.scalar_one_or_none():
@@ -69,10 +69,9 @@ class UserService:
         db_user = User(
             email=user_data.email,
             full_name=user_data.full_name,
-            user_type=user_data.user_type,
             hashed_password=hashed_password,
-            student_registration=(
-                user_data.student_registration
+            registration_number=(
+                user_data.registration_number
                 if user_data.user_type == UserType.STUDENT
                 else None
             ),

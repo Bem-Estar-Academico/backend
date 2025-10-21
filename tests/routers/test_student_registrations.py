@@ -46,7 +46,7 @@ async def student_user(db_session: AsyncSession) -> User:
         full_name="Test Student",
         user_type=UserType.STUDENT,
         password="studentpassword",
-        student_registration="20240001",
+        registration_number="20240001",
         cpf="111.222.333-44",
     )
     created_user = await UserService.create_user(db_session, user_data)
@@ -65,7 +65,7 @@ async def other_student_user(db_session: AsyncSession) -> User:
         full_name="Other Student",
         user_type=UserType.STUDENT,
         password="otherpassword",
-        student_registration="20249999",
+        registration_number="20249999",
         cpf="999.888.777-66",
     )
     created_user = await UserService.create_user(db_session, user_data)
