@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -156,7 +156,7 @@ class StudentRegistration(Base):
     registration_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    answer: Mapped[Optional[dict]] = mapped_column(
+    answer: Mapped[Optional[Dict[str, Any]]] = mapped_column(
         JSON,
         nullable=True,
         comment="answer está aqui!!!",

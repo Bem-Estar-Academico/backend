@@ -88,7 +88,7 @@ class StudentRegistrationService:
         db: AsyncSession,
         notice_id: int,
         status: Optional[RegistrationStatus] = None,
-    ) -> tuple[list[StudentRegistration], int]:
+    ) -> tuple[List[StudentRegistration], int]:
         query = (
             select(StudentRegistration)
             .options(
@@ -123,7 +123,7 @@ class StudentRegistrationService:
     async def get_registrations_by_student(
         db: AsyncSession,
         student_id: int,
-    ) -> tuple[list[StudentRegistration], int]:
+    ) -> tuple[List[StudentRegistration], int]:
         query = (
             select(StudentRegistration)
             .options(

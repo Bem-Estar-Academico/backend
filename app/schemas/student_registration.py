@@ -1,24 +1,24 @@
 """Schemas for student registration."""
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any, Dict
 
 from pydantic import BaseModel, Field
 
-from app.models.notice import RegistrationStatus
+from app.models.notice import RegistrationStatus, StudentRegistration
 from app.schemas.notice import NoticeInfo
 from app.schemas.user import UserInfo
 
 
 class StudentRegistrationBase(BaseModel):
-    answer: Optional[dict] = Field(None, description="Observações sobre a inscrição")
+    answer: Optional[Dict[str, Any]] = Field(None, description="Observações sobre a inscrição")
 
 
 class StudentRegistrationUpdate(BaseModel):
     status: Optional[RegistrationStatus] = Field(
         None, description="Status da inscrição"
     )
-    answer: Optional[dict] = Field(None, description="Observações sobre a inscrição")
+    answer: Optional[Dict[str, Any]] = Field(None, description="Observações sobre a inscrição")
 
 
 class StudentRegistrationResponse(StudentRegistrationBase):
@@ -42,7 +42,7 @@ class StudentRegistrationWithDetails(StudentRegistrationResponse):
     )
 
     @classmethod
-    def from_model(cls, registration_model) -> "StudentRegistrationWithDetails":
+    def from_model(cls, registration_model: StudentRegistration) -> "StudentRegistrationWithDetails":
         return cls(
             id=registration_model.id,
             student_id=registration_model.student_id,

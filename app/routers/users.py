@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,7 +30,7 @@ async def list_users(
     current_user: User = Depends(require_coordinator),
     user_type: UserType = UserType.SOCIAL_WORKER,
     db: AsyncSession = Depends(get_db),
-) -> Any:
+) -> List[UserSchema]:
     users = await UserService.get_users(
         db, skip=skip, limit=limit, user_type=user_type
     )

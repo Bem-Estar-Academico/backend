@@ -86,8 +86,6 @@ async def get_registrations_by_notice(
         raise HTTPException(
             status_code=403, detail="Sem permissão para ver inscrições de editais"
         )
-    print(current_user)
-    
     registrations, total = await StudentRegistrationService.get_registrations_by_notice(
         db, notice_id, status_filter
     )

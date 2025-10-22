@@ -1,11 +1,9 @@
 """User schemas."""
 
+from typing import Optional
 from datetime import datetime
-from typing import List, Optional
-
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
-
 from app.models.user import UserType
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, ValidationInfo
 
 
 class UserBase(BaseModel):
@@ -36,12 +34,12 @@ class UserCreate(UserBase):
 
     @field_validator("registration_number", "cpf")
     @classmethod
-    def validate_student_fields(cls, v, info):
-        if v is not None and info.data.get("user_type") != UserType.STUDENT:
+    def validate_student_fields(cls, value: Optional[str], validation_info: ValidationInfo):
+        if value is not None and validation_info.data.get("user_type") != UserType.STUDENT:
             raise ValueError(
                 "registration_number and cpf can only be provided for students"
             )
-        return v
+        return value
 
     model_config = ConfigDict(
         json_schema_extra={

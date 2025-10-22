@@ -2,7 +2,7 @@
 Authentication router for user login, registration, and token management.
 """
 
-from typing import Any
+from typing import Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -40,7 +40,7 @@ async def get_current_user(
 )
 async def register_user(
     user_data: UserCreate, db: AsyncSession = Depends(get_db)
-) -> Any:
+) -> UserSchema:
     try:
         user = await AuthService.register_user(db, user_data)
         return user
@@ -51,7 +51,7 @@ async def register_user(
 @router.post("/login", response_model=Token)
 async def login_user(
     form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)
-) -> Any:
+) -> Token:
     user = await AuthService.authenticate_user(
         db, form_data.username, form_data.password
     )
@@ -68,10 +68,10 @@ async def login_user(
 
 
 @router.get("/me", response_model=UserSchema)
-async def get_current_user_info(current_user: User = Depends(get_current_user)) -> Any:
+async def get_current_user_info(current_user: User = Depends(get_current_user)) -> UserSchema:
     return current_user
 
 
 @router.get("/verify-token")
-async def verify_token(current_user: User = Depends(get_current_user)) -> Any:
+async def verify_token(current_user: User = Depends(get_current_user)) -> Dict[str, Any]:
     return {"message": "Token is valid", "user_id": current_user.id}

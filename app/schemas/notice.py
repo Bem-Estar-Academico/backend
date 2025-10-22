@@ -1,6 +1,5 @@
 from datetime import datetime
-from typing import Dict, List, Optional
-
+from typing import List, Optional, cast
 from pydantic import BaseModel, Field
 
 
@@ -136,7 +135,11 @@ class Notice(NoticeBase):
     id: int
     created_at: datetime
     updated_at: datetime
-    documents: List[DocumentWithUrl] = Field(default_factory=list)
-    team_members: List[NoticeTeamMember] = Field(default_factory=list)
+    documents: List[DocumentWithUrl] = Field(
+        default_factory=lambda: cast(List[DocumentWithUrl], [])
+    )
+    team_members: List[NoticeTeamMember] = Field(
+        default_factory=lambda: cast(List[NoticeTeamMember], [])
+    )
 
     model_config = {"from_attributes": True}

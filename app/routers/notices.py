@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,25 +29,25 @@ async def list_notices(
     limit: int = 100,
     year: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
-) -> Any:
+) -> List[NoticeSchema]:
     notices = await NoticeService.get_notices(db, skip=skip, limit=limit, year=year)
     return notices
 
 
 @router.get("/active", response_model=List[NoticeSchema])
-async def get_active_notices(db: AsyncSession = Depends(get_db)) -> Any:
+async def get_active_notices(db: AsyncSession = Depends(get_db)) -> List[NoticeSchema]:
     notices = await NoticeService.get_active_notices(db)
     return notices
 
 
 @router.get("/year/{year}", response_model=List[NoticeSchema])
-async def get_notices_by_year(year: int, db: AsyncSession = Depends(get_db)) -> Any:
+async def get_notices_by_year(year: int, db: AsyncSession = Depends(get_db)) -> List[NoticeSchema]:
     notices = await NoticeService.get_notices_by_year(db, year)
     return notices
 
 
 @router.get("/{notice_id}", response_model=NoticeSchema)
-async def get_notice(notice_id: int, db: AsyncSession = Depends(get_db)) -> Any:
+async def get_notice(notice_id: int, db: AsyncSession = Depends(get_db)) -> NoticeSchema:
     notice = await NoticeService.get_notice_by_id(db, notice_id)
     if not notice:
         raise HTTPException(
@@ -61,7 +61,7 @@ async def create_notice(
     notice_data: NoticeCreate,
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
-) -> Any:
+) -> NoticeSchema:
     notice = await NoticeService.create_notice(db, notice_data, current_user.id)
     return notice
 
@@ -72,7 +72,7 @@ async def update_notice(
     notice_update: NoticeUpdate,
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
-) -> Any:
+) -> NoticeSchema:
     existing_notice = await NoticeService.get_notice_by_id(db, notice_id)
     if not existing_notice:
         raise HTTPException(
@@ -101,7 +101,7 @@ async def delete_notice(
     notice_id: int,
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
-) -> Any:
+) -> None:
     existing_notice = await NoticeService.get_notice_by_id(db, notice_id)
     if not existing_notice:
         raise HTTPException(
@@ -135,7 +135,7 @@ async def add_team_member_to_notice(
     role: str,
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
-) -> Any:
+) -> NoticeTeamMember:
     if role not in [UserType.COORDINATOR.value, UserType.SOCIAL_WORKER.value]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -166,7 +166,7 @@ async def upload_document_to_notice(
     file: UploadFile = File(...),
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
-) -> Any:
+) -> DocumentWithUrl:
     existing_notice = await NoticeService.get_notice_by_id(db, notice_id)
     if not existing_notice:
         raise HTTPException(
