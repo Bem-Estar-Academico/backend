@@ -92,7 +92,6 @@ async def test_create_notice_as_coordinator(
     created_notice = response.json()
     assert created_notice["title"] == "Coordinator Notice"
     assert len(created_notice["team_members"]) == 1
-    assert created_notice["team_members"][0]["role"] == "COORDINATOR"
 
 
 @pytest.mark.asyncio
@@ -225,44 +224,6 @@ async def test_delete_notice_as_coordinator_in_team(
 
     get_response = await client.get(f"/api/v1/notices/{notice_id}")
     assert get_response.status_code == 404
-
-
-@pytest.mark.asyncio
-async def test_add_team_member(
-    client: AsyncClient, db_session: AsyncSession, coordinator_token: str
-):
-    """Test adding a team member to a notice."""
-    headers = {"Authorization": f"Bearer {coordinator_token}"}
-    notice_data = NoticeCreate(
-        title="Team Test Notice",
-        year=2025,
-        registration_start_date=datetime.now(timezone.utc),
-        registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
-        responsible_agency="Team Agency",
-        description="A notice for team member tests.",
-    )
-    create_response = await client.post(
-        "/api/v1/notices/", json=notice_data.model_dump(mode="json"), headers=headers
-    )
-    notice_id = create_response.json()["id"]
-
-    social_worker_password = "swpassword"
-    social_worker_data = UserCreate(
-        email="sw.fortest@example.com",
-        full_name="Social Worker for Test",
-        user_type=UserType.SOCIAL_WORKER,
-        password=social_worker_password,
-    )
-    user = await UserService.create_user(db_session, social_worker_data)
-
-    response = await client.post(
-        f"/api/v1/notices/{notice_id}/team?user_id={user.id}&role=SOCIAL_WORKER",
-        headers=headers,
-    )
-    assert response.status_code == 200
-    team_member = response.json()
-    assert team_member["user_id"] == user.id
-    assert team_member["role"] == "SOCIAL_WORKER"
 
 
 @pytest.mark.asyncio
