@@ -25,11 +25,12 @@ if TYPE_CHECKING:
 
 class RegistrationStatus(enum.Enum):
     """Enumeration for the possible statuses of a student's registration for a notice."""
-    PENDING = "PENDENTE"  # Aguardando análise
-    APPROVED = "DEFERIDO"  # Aprovada
-    REJECTED = "INDEFERIDO"  # Rejeitada
-    CANCELLED = "CANCELADO"  # Cancelada pelo estudante
-    APPEAL = "RECURSO"  # Em fase de recurso
+    PENDING = "PENDING"  # Aguardando análise
+    APPROVED = "APPROVED"  # Aprovada
+    REJECTED = "REJECTED"  # Rejeitada
+    CANCELLED = "CANCELLED"  # Cancelada pelo estudante
+    APPEAL = "APPEAL"  # Em fase de recurso
+    REVIEW = "REVIEW" # Em análise
 
 class Document(Base):
     """
