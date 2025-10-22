@@ -18,7 +18,6 @@ async def notice_instance(db_session: AsyncSession) -> Notice:
     """Create a notice directly in the DB."""
     notice = Notice(
         title="Notice for Get Test",
-        notice_number="12/2025",
         year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=1),
@@ -92,7 +91,6 @@ async def test_create_student_registration(
     """Test creating a student registration successfully."""
     notice_data = NoticeCreate(
         title="Notice for Registration Test",
-        notice_number="11/2025",
         year=2025,
         registration_start_date=datetime.now(timezone.utc) - timedelta(days=1),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=1),

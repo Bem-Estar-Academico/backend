@@ -19,7 +19,6 @@ async def test_list_notices(
     """Test that anyone can list notices."""
     notice_data = NoticeCreate(
         title="Test Notice for Listing",
-        notice_number="01/2025",
         year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
@@ -46,7 +45,6 @@ async def test_get_notice_by_id(
     """Test getting a single notice by its ID."""
     notice_data = NoticeCreate(
         title="Test Notice for ID",
-        notice_number="02/2025",
         year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
@@ -80,7 +78,6 @@ async def test_create_notice_as_coordinator(
     """Test that a coordinator can create a notice."""
     notice_data = NoticeCreate(
         title="Coordinator Notice",
-        notice_number="03/2025",
         year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
@@ -105,7 +102,6 @@ async def test_create_notice_as_non_coordinator(
     """Test that a non-coordinator cannot create a notice."""
     notice_data = NoticeCreate(
         title="Invalid Notice",
-        notice_number="04/2025",
         year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
@@ -128,7 +124,6 @@ async def test_get_active_notices(
     # Active notice
     active_notice_data = NoticeCreate(
         title="Active Notice",
-        notice_number="05/2025",
         year=2025,
         registration_start_date=datetime.now(timezone.utc) - timedelta(days=1),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=1),
@@ -144,7 +139,6 @@ async def test_get_active_notices(
     # Inactive notice (in the future)
     future_notice_data = NoticeCreate(
         title="Future Notice",
-        notice_number="06/2025",
         year=2025,
         registration_start_date=datetime.now(timezone.utc) + timedelta(days=5),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
@@ -174,7 +168,6 @@ async def test_get_notices_by_year(
     headers = {"Authorization": f"Bearer {coordinator_token}"}
     notice_2024_data = NoticeCreate(
         title="Notice 2024",
-        notice_number="01/2024",
         year=2024,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
@@ -203,7 +196,6 @@ async def test_update_notice_as_coordinator_in_team(
     headers = {"Authorization": f"Bearer {coordinator_token}"}
     notice_data = NoticeCreate(
         title="Update Test Notice",
-        notice_number="07/2025",
         year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
@@ -217,7 +209,6 @@ async def test_update_notice_as_coordinator_in_team(
 
     update_data = NoticeUpdate(
         title="Updated Title",
-        notice_number="07/2025",
         year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
@@ -245,7 +236,6 @@ async def test_delete_notice_as_coordinator_in_team(
     headers = {"Authorization": f"Bearer {coordinator_token}"}
     notice_data = NoticeCreate(
         title="Delete Test Notice",
-        notice_number="08/2025",
         year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
@@ -274,7 +264,6 @@ async def test_add_team_member(
     headers = {"Authorization": f"Bearer {coordinator_token}"}
     notice_data = NoticeCreate(
         title="Team Test Notice",
-        notice_number="09/2025",
         year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
@@ -319,7 +308,6 @@ async def test_upload_document(
     headers = {"Authorization": f"Bearer {coordinator_token}"}
     notice_data = NoticeCreate(
         title="Document Test Notice",
-        notice_number="10/2025",
         year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
