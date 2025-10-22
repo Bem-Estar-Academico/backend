@@ -2,17 +2,13 @@
 
 import enum
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional, Dict
+from typing import Optional, Dict
 
 from sqlalchemy import Boolean, DateTime, Enum, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from app.models.base import Base
-
-if TYPE_CHECKING:
-    from app.models.notice import Notice
-
 
 class UserType(enum.Enum):
     """Enum for user types in the BEA system."""
@@ -89,9 +85,9 @@ class User(Base):
             UserType.NTI,
         ]
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, object]:
         """Convert user to dictionary."""
-        data = {
+        data: Dict[str, object] = {
             "id": self.id,
             "email": self.email,
             "full_name": self.full_name,
