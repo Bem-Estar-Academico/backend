@@ -34,7 +34,7 @@ class StudentRegistrationService:
         if not notice:
             raise HTTPException(status_code=404, detail="Edital não encontrado")
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         if now < notice.registration_start_date or now > notice.registration_end_date:
             raise HTTPException(
                 status_code=400, detail="Período de inscrições não está ativo"
