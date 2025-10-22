@@ -153,18 +153,6 @@ class NoticeService:
         return list(result.scalars().all())
 
     @staticmethod
-    async def get_notices_by_year(db: AsyncSession, year: int) -> List[Notice]:
-        result = await db.execute(
-            select(Notice)
-            .options(
-                selectinload(Notice.documents),
-                selectinload(Notice.team_members).selectinload(NoticeTeam.user),
-            )
-            .where(Notice.year == year)
-        )
-        return list(result.scalars().all())
-
-    @staticmethod
     async def add_team_member_to_notice(
         db: AsyncSession, notice_id: int, user_id: int
     ) -> Optional[NoticeTeam]:
