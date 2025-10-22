@@ -94,9 +94,7 @@ class NoticeTeam(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     notice_id: Mapped[int] = mapped_column(ForeignKey("notices.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    role: Mapped[str] = mapped_column(
-        String(50), nullable=False, comment="COORDINATOR ou SOCIAL_WORKER"
-    )
+
     assigned_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -134,10 +132,6 @@ class Notice(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
-
-    year: Mapped[int] = mapped_column(
-        Integer, nullable=False, comment="Ano de vigência"
-    )
 
     registration_start_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

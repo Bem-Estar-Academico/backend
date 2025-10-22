@@ -73,12 +73,6 @@ class NoticeTeamBase(BaseModel):
         role (str): The role of the user in the team (e.g., 'COORDINATOR', 'SOCIAL_WORKER').
     """
     user_id: int
-    role: str = Field(..., description="COORDINATOR ou SOCIAL_WORKER")
-
-
-class NoticeTeamCreate(NoticeTeamBase):
-    """Schema for assigning a user as a team member to a notice."""
-    pass
 
 
 class UserInfo(BaseModel):
@@ -112,7 +106,6 @@ class NoticeTeamMember(BaseModel):
     """
     id: int
     user_id: int
-    role: str
     assigned_at: datetime
     user: UserInfo
 
@@ -155,7 +148,6 @@ class NoticeBase(BaseModel):
         graduation_scholarship (bool): Flag for graduation scholarship availability (default False).
     """
     title: str = Field(..., min_length=1, max_length=255)
-    year: int = Field(..., ge=2000, le=3000, description="Ano de vigência")
 
     registration_start_date: datetime = Field(
         ..., description="Data de início das inscrições"
@@ -187,8 +179,10 @@ class NoticeBase(BaseModel):
 
 
 class NoticeCreate(NoticeBase):
-    """Schema for creating a new notice. Extends `NoticeBase` without adding new fields."""
-    ...
+    team_members: Optional[List[int]] = Field(
+        default_factory=list,
+        description="Membros da equipe a serem atribuídos ao edital"
+    )
 
 
 class NoticeInfo(NoticeBase):
@@ -213,7 +207,6 @@ class NoticeUpdate(BaseModel):
         # ... All other fields from NoticeBase are Optional[type]
     """
     title: Optional[str] = Field(None, min_length=1, max_length=255)
-    year: Optional[int] = Field(None, ge=2000, le=3000)
 
     registration_start_date: Optional[datetime] = None
     registration_end_date: Optional[datetime] = None
