@@ -35,11 +35,6 @@ class DocumentWithUrl(Document):
 
 class NoticeTeamBase(BaseModel):
     user_id: int
-    role: str = Field(..., description="COORDINATOR ou SOCIAL_WORKER")
-
-
-class NoticeTeamCreate(NoticeTeamBase):
-    pass
 
 
 class UserInfo(BaseModel):
@@ -54,7 +49,6 @@ class UserInfo(BaseModel):
 class NoticeTeamMember(BaseModel):
     id: int
     user_id: int
-    role: str
     assigned_at: datetime
     user: UserInfo
 
@@ -71,7 +65,6 @@ class NoticeTeam(NoticeTeamBase):
 
 class NoticeBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
-    year: int = Field(..., ge=2000, le=3000, description="Ano de vigência")
 
     registration_start_date: datetime = Field(
         ..., description="Data de início das inscrições"
@@ -102,7 +95,11 @@ class NoticeBase(BaseModel):
     graduation_scholarship: bool = False
 
 
-class NoticeCreate(NoticeBase): ...
+class NoticeCreate(NoticeBase):
+    team_members: Optional[List[int]] = Field(
+        default_factory=list,
+        description="Membros da equipe a serem atribuídos ao edital"
+    )
 
 
 class NoticeInfo(NoticeBase):
@@ -113,7 +110,6 @@ class NoticeInfo(NoticeBase):
 
 class NoticeUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=255)
-    year: Optional[int] = Field(None, ge=2000, le=3000)
 
     registration_start_date: Optional[datetime] = None
     registration_end_date: Optional[datetime] = None

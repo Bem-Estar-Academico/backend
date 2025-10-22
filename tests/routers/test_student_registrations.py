@@ -18,12 +18,11 @@ async def notice_instance(db_session: AsyncSession) -> Notice:
     """Create a notice directly in the DB."""
     notice = Notice(
         title="Notice for Get Test",
-        notice_number="12/2025",
-        year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=1),
-        responsible_agency="Test Agency",
         description="A notice for get test.",
+        # Corrigido: Removidos os campos 'year' e 'responsible_agency'
+        # que não existem no modelo Notice.
     )
     db_session.add(notice)
     await db_session.commit()
@@ -92,12 +91,11 @@ async def test_create_student_registration(
     """Test creating a student registration successfully."""
     notice_data = NoticeCreate(
         title="Notice for Registration Test",
-        notice_number="11/2025",
-        year=2025,
         registration_start_date=datetime.now(timezone.utc) - timedelta(days=1),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=1),
-        responsible_agency="Test Agency",
         description="A notice to test student registration.",
+        # Corrigido: Removidos os campos 'year' e 'responsible_agency'
+        # que não existem no modelo Notice (e presumivelmente no NoticeCreate).
     )
     headers_coord = {"Authorization": f"Bearer {coordinator_token}"}
     create_notice_response = await client.post(

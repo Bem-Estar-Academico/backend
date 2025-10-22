@@ -39,13 +39,6 @@ async def get_active_notices(db: AsyncSession = Depends(get_db)) -> Any:
     notices = await NoticeService.get_active_notices(db)
     return notices
 
-
-@router.get("/year/{year}", response_model=List[NoticeSchema])
-async def get_notices_by_year(year: int, db: AsyncSession = Depends(get_db)) -> Any:
-    notices = await NoticeService.get_notices_by_year(db, year)
-    return notices
-
-
 @router.get("/{notice_id}", response_model=NoticeSchema)
 async def get_notice(notice_id: int, db: AsyncSession = Depends(get_db)) -> Any:
     notice = await NoticeService.get_notice_by_id(db, notice_id)
@@ -62,8 +55,14 @@ async def create_notice(
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
-    notice = await NoticeService.create_notice(db, notice_data, current_user.id)
-    return notice
+    try:
+        notice = await NoticeService.create_notice(db, notice_data, current_user.id)
+        return notice
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 
 @router.put("/{notice_id}", response_model=NoticeSchema)
@@ -77,17 +76,6 @@ async def update_notice(
     if not existing_notice:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
-        )
-
-    user_in_team = any(
-        member.user_id == current_user.id and member.role == UserType.COORDINATOR.value
-        for member in existing_notice.team_members
-    )
-
-    if not user_in_team:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only update notices where you are a coordinator",
         )
 
     notice = await NoticeService.update_notice(db, notice_id, notice_update)
@@ -108,17 +96,6 @@ async def delete_notice(
             status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
         )
 
-    user_in_team = any(
-        member.user_id == current_user.id and member.role == UserType.COORDINATOR.value
-        for member in existing_notice.team_members
-    )
-
-    if not user_in_team:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only delete notices where you are a coordinator",
-        )
-
     success = await NoticeService.delete_notice(db, notice_id)
     if not success:
         raise HTTPException(
@@ -128,19 +105,13 @@ async def delete_notice(
     return
 
 
-@router.post("/{notice_id}/team", response_model=NoticeTeamMember)
+@router.post("/{notice_id}/team/{user_id}", response_model=NoticeTeamMember)
 async def add_team_member_to_notice(
     notice_id: int,
     user_id: int,
-    role: str,
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
-    if role not in [UserType.COORDINATOR.value, UserType.SOCIAL_WORKER.value]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Role must be COORDINATOR or SOCIAL_WORKER",
-        )
 
     existing_notice = await NoticeService.get_notice_by_id(db, notice_id)
     if not existing_notice:
@@ -149,7 +120,7 @@ async def add_team_member_to_notice(
         )
 
     team_member = await NoticeService.add_team_member_to_notice(
-        db, notice_id, user_id, role
+        db, notice_id, user_id
     )
     if not team_member:
         raise HTTPException(

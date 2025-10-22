@@ -182,8 +182,6 @@ curl -X POST "http://localhost:8000/api/v1/notices/" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Edital de Bolsas 2024",
-    "notice_number": "05/2024", 
-    "year": 2024,
     "registration_start_date": "2024-01-15T00:00:00",
     "registration_end_date": "2024-02-15T23:59:59",
     "appeal_start_date": "2024-02-20T00:00:00",
