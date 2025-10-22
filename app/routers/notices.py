@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,19 +29,19 @@ async def list_notices(
     limit: int = 100,
     year: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
-) -> List[NoticeSchema]:
+) -> Sequence[NoticeSchema]:
     notices = await NoticeService.get_notices(db, skip=skip, limit=limit, year=year)
     return notices
 
 
 @router.get("/active", response_model=List[NoticeSchema])
-async def get_active_notices(db: AsyncSession = Depends(get_db)) -> List[NoticeSchema]:
+async def get_active_notices(db: AsyncSession = Depends(get_db)) -> Sequence[NoticeSchema]:
     notices = await NoticeService.get_active_notices(db)
     return notices
 
 
 @router.get("/year/{year}", response_model=List[NoticeSchema])
-async def get_notices_by_year(year: int, db: AsyncSession = Depends(get_db)) -> List[NoticeSchema]:
+async def get_notices_by_year(year: int, db: AsyncSession = Depends(get_db)) -> Sequence[NoticeSchema]:
     notices = await NoticeService.get_notices_by_year(db, year)
     return notices
 

@@ -63,8 +63,7 @@ async def login_user(
         )
 
     access_token = AuthService.create_access_token_for_user(user)
-
-    return {"access_token": access_token, "token_type": "bearer"}
+    return Token(access_token=access_token, token_type="bearer")
 
 
 @router.get("/me", response_model=UserSchema)

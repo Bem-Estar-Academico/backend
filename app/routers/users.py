@@ -34,4 +34,4 @@ async def list_users(
     users = await UserService.get_users(
         db, skip=skip, limit=limit, user_type=user_type
     )
-    return users
+    return [UserSchema.model_validate(u, from_attributes=True) for u in users]
