@@ -14,14 +14,38 @@ from app.schemas.user import UserCreate, UserType, UserUpdate
 
 
 class UserService:
+    """
+    Service class responsible for managing user accounts, including CRUD operations,
+    password hashing, and authentication logic.
+    """
 
     @staticmethod
     async def get_user_by_id(db: AsyncSession, user_id: int) -> Optional[User]:
+        """
+        Retrieves a single user by their unique ID.
+
+        Args:
+            db (AsyncSession): The asynchronous database session.
+            user_id (int): The ID of the user to retrieve.
+
+        Returns:
+            Optional[User]: The User object, or None if not found.
+        """
         result = await db.execute(select(User).where(User.id == user_id))
         return result.scalar_one_or_none()
 
     @staticmethod
     async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
+        """
+        Retrieves a single user by their email address.
+
+        Args:
+            db (AsyncSession): The asynchronous database session.
+            email (str): The email of the user to retrieve.
+
+        Returns:
+            Optional[User]: The User object, or None if not found.
+        """
         result = await db.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
 
@@ -32,6 +56,18 @@ class UserService:
         limit: int = 100,
         user_type: Optional[UserType] = None,
     ) -> List[User]:
+        """
+        Retrieves a list of users with pagination and optional filtering by user type.
+
+        Args:
+            db (AsyncSession): The asynchronous database session.
+            skip (int): The number of records to skip (for pagination).
+            limit (int): The maximum number of records to return.
+            user_type (Optional[UserType]): Optional filter by user type (e.g., STUDENT, COORDINATOR).
+
+        Returns:
+            List[User]: A list of User objects.
+        """
         query = select(User).offset(skip).limit(limit)
 
         if user_type:
@@ -42,12 +78,26 @@ class UserService:
 
     @staticmethod
     async def create_user(db: AsyncSession, user_data: UserCreate) -> User:
+        """
+        Creates a new user, performing validation checks for email, registration number, and CPF uniqueness.
+        Hashes the password before storing it.
+
+        Args:
+            db (AsyncSession): The asynchronous database session.
+            user_data (UserCreate): Pydantic schema with the new user's data.
+
+        Returns:
+            User: The newly created User object.
+
+        Raises:
+            ValueError: If the email, registration number (for students), or CPF (for students) is already registered.
+        """
         existing_user = await UserService.get_user_by_email(db, user_data.email)
 
         if existing_user:
             raise ValueError("Email already registered")
 
-        if user_data.user_type == UserType.STUDENT.value:
+        if user_data.user_type == UserType.STUDENT:
             if user_data.registration_number:
                 existing_registration = await db.execute(
                     select(User).where(
@@ -91,6 +141,17 @@ class UserService:
     async def update_user(
         db: AsyncSession, user_id: int, user_update: UserUpdate
     ) -> Optional[User]:
+        """
+        Updates an existing user's data. Automatically hashes a new password if provided.
+
+        Args:
+            db (AsyncSession): The asynchronous database session.
+            user_id (int): The ID of the user to update.
+            user_update (UserUpdate): Pydantic schema with the fields to update (only non-None fields are used).
+
+        Returns:
+            Optional[User]: The updated User object, or None if the user was not found.
+        """
         user = await UserService.get_user_by_id(db, user_id)
         if not user:
             return None
@@ -114,6 +175,16 @@ class UserService:
 
     @staticmethod
     async def delete_user(db: AsyncSession, user_id: int) -> bool:
+        """
+        Deletes a user record by its ID.
+
+        Args:
+            db (AsyncSession): The asynchronous database session.
+            user_id (int): The ID of the user to delete.
+
+        Returns:
+            bool: True if the user was deleted, False if the user was not found.
+        """
         user = await UserService.get_user_by_id(db, user_id)
         if not user:
             return False
@@ -124,6 +195,16 @@ class UserService:
 
     @staticmethod
     async def activate_user(db: AsyncSession, user_id: int) -> Optional[User]:
+        """
+        Sets the `is_active` status of a user to True.
+
+        Args:
+            db (AsyncSession): The asynchronous database session.
+            user_id (int): The ID of the user to activate.
+
+        Returns:
+            Optional[User]: The activated User object, or None if the user was not found.
+        """
         user = await UserService.get_user_by_id(db, user_id)
         if not user:
             return None
@@ -140,6 +221,17 @@ class UserService:
     async def authenticate_user(
         db: AsyncSession, email: str, password: str
     ) -> Optional[User]:
+        """
+        Authenticates a user by email and password.
+
+        Args:
+            db (AsyncSession): The asynchronous database session.
+            email (str): The user's email address.
+            password (str): The user's plain text password.
+
+        Returns:
+            Optional[User]: The User object if authentication is successful, otherwise None.
+        """
         user = await UserService.get_user_by_email(db, email)
         if not user or not verify_password(password, user.hashed_password):
             return None
@@ -147,5 +239,15 @@ class UserService:
 
     @staticmethod
     async def is_user_active(db: AsyncSession, user_id: int) -> bool:
+        """
+        Checks if a user is currently marked as active.
+
+        Args:
+            db (AsyncSession): The asynchronous database session.
+            user_id (int): The ID of the user.
+
+        Returns:
+            bool: True if the user exists and is active, False otherwise.
+        """
         user = await UserService.get_user_by_id(db, user_id)
         return user.is_active if user else False

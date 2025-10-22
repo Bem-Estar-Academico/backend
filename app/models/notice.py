@@ -1,3 +1,14 @@
+"""Module for defining notice-related models."""
+
+"""
+This module defines several SQLAlchemy models related to notices, including:
+- `RegistrationStatus`: An enumeration for the status of student registrations.
+- `Document`: Represents documents associated with a notice.
+- `NoticeTeam`: Represents team members assigned to a specific notice.
+- `Notice`: The main model for notices, containing details about various allowances and dates.
+- `StudentRegistration`: Represents a student's registration for a notice.
+"""
+
 import enum
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
@@ -13,6 +24,7 @@ if TYPE_CHECKING:
 
 
 class RegistrationStatus(enum.Enum):
+    """Enumeration for the possible statuses of a student's registration for a notice."""
     PENDING = "PENDENTE"  # Aguardando análise
     APPROVED = "DEFERIDO"  # Aprovada
     REJECTED = "INDEFERIDO"  # Rejeitada
@@ -20,6 +32,18 @@ class RegistrationStatus(enum.Enum):
     APPEAL = "RECURSO"  # Em fase de recurso
 
 class Document(Base):
+    """
+    Represents a document associated with a notice.
+
+    Attributes:
+        id (int): Primary key of the document.
+        notice_id (int): Foreign key to the associated notice.
+        name (str): Name of the document.
+        file_key (str): S3 key for the stored file.
+        file_type (Optional[str]): Type of the file (e.g., PDF, DOC).
+        file_size (Optional[int]): Size of the file in bytes.
+        uploaded_at (datetime): Timestamp when the document was uploaded.
+    """
     __tablename__ = "notice_documents"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -51,6 +75,19 @@ class Document(Base):
 
 
 class NoticeTeam(Base):
+    """
+    Represents a team member assigned to a specific notice.
+
+    This model links users (coordinators or social workers) to notices,
+    defining their role within the context of that notice.
+
+    Attributes:
+        id (int): Primary key of the notice team entry.
+        notice_id (int): Foreign key to the associated notice.
+        user_id (int): Foreign key to the assigned user.
+        role (str): The role of the user in the notice (e.g., 'COORDINATOR', 'SOCIAL_WORKER').
+        assigned_at (datetime): Timestamp when the user was assigned to the notice.
+    """
     __tablename__ = "notice_teams"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -68,6 +105,30 @@ class NoticeTeam(Base):
 
 
 class Notice(Base):
+    """
+    Represents a notice (edital) in the system.
+
+    This model stores all details related to a public notice, including its
+    timeline, available allowances, and associated documents and team members.
+
+    Attributes:
+        id (int): Primary key of the notice.
+        title (str): The title of the notice.
+        year (int): The year the notice is valid for.
+        registration_start_date (datetime): The start date for student registrations.
+        registration_end_date (Optional[datetime]): The end date for student registrations.
+        appeal_start_date (Optional[datetime]): The start date for the appeal phase.
+        appeal_end_date (Optional[datetime]): The end date for the appeal phase.
+        preliminary_result_date (Optional[datetime]): The date for the preliminary results announcement.
+        final_result_date (Optional[datetime]): The date for the final results announcement.
+        description (str): A detailed description of the notice.
+        food_allowance (bool): Indicates if food allowance is offered.
+        housing_allowance (bool): Indicates if housing allowance is offered.
+        daycare_allowance (bool): Indicates if daycare allowance is offered.
+        graduation_scholarship (bool): Indicates if a graduation scholarship is offered.
+        created_at (datetime): Timestamp of when the notice was created.
+        updated_at (datetime): Timestamp of the last update to the notice.
+    """
     __tablename__ = "notices"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -145,6 +206,22 @@ class Notice(Base):
 
 
 class StudentRegistration(Base):
+    """
+    Represents a student's registration for a specific notice.
+
+    This model tracks the status of a student's application to a notice,
+    including their submitted answers and relevant timestamps.
+
+    Attributes:
+        id (int): Primary key of the student registration.
+        student_id (int): Foreign key to the registering student (User).
+        notice_id (int): Foreign key to the notice being registered for.
+        status (RegistrationStatus): The current status of the registration (e.g., PENDING, APPROVED).
+        registration_date (datetime): The date and time when the student registered.
+        answer (Optional[Dict[str, Any]]): A JSON field storing the student's answers to the notice questions.
+        created_at (datetime): Timestamp of when the registration was created.
+        updated_at (datetime): Timestamp of the last update to the registration.
+    """
     __tablename__ = "student_registrations"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
