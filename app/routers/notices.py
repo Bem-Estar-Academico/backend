@@ -78,17 +78,6 @@ async def update_notice(
             status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
         )
 
-    user_in_team = any(
-        member.user_id == current_user.id and member. == UserType.COORDINATOR.value
-        for member in existing_notice.team_members
-    )
-
-    if not user_in_team:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only update notices where you are a coordinator",
-        )
-
     notice = await NoticeService.update_notice(db, notice_id, notice_update)
     return notice
 
