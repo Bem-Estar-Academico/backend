@@ -226,7 +226,6 @@ class NoticeService:
             db (AsyncSession): The asynchronous database session.
             notice_id (int): The ID of the notice.
             user_id (int): The ID of the user to be added.
-            role (str): The role of the user (e.g., 'COORDINATOR').
 
         Returns:
             Optional[NoticeTeam]: The newly created NoticeTeam assignment, or None if the notice
