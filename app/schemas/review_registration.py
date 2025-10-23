@@ -22,7 +22,7 @@ class ReviewRegistrationBase(BaseModel):
         ivs (float): Income Verification Score (IVS) or other numerical evaluation metric.
     """
     review: dict[str, Any] = Field(..., description="Conteúdo da avaliação em formato JSON")
-    ivs: float = Field(..., ge=0, description="Índice de vulnerabilidade economica (IVS)")
+    ivs: float = Field(..., ge=0, description="Índice de vulnerabilidade econômica (IVS)")
 
 
 class ReviewRegistrationCreate(ReviewRegistrationBase):
