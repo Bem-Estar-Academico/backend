@@ -186,7 +186,10 @@ class NoticeBase(BaseModel):
 
 class NoticeCreate(NoticeBase):
     """Schema for creating a new notice. Extends `NoticeBase` without adding new fields."""
-    ...
+    team_members: List[int] = Field(
+        default_factory=lambda: cast(List[int], []),
+        description="Lista de IDs dos membros da equipe atribuídos ao edital",
+    )
 
 
 class NoticeInfo(NoticeBase):

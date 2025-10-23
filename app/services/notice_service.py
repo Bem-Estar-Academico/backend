@@ -109,13 +109,11 @@ class NoticeService:
 
         db.add(db_notice)
         await db.flush() # Flush to get db_notice.id
-
         db_team_member = NoticeTeam(
             notice_id=db_notice.id,
             user_id=created_by_user_id,
         )
         db.add(db_team_member)
-
         if notice_data.team_members:
             for team_member_id in notice_data.team_members:
                 if team_member_id != created_by_user_id:

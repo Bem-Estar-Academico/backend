@@ -61,7 +61,6 @@ class StudentRegistrationService:
                 status_code=403,
                 detail="Apenas estudantes podem se inscrever em editais",
             )
-
         notice_query = select(Notice).where(Notice.id == notice_id)
         notice_result = await db.execute(notice_query)
         notice = notice_result.scalar_one_or_none()
@@ -88,7 +87,6 @@ class StudentRegistrationService:
         )
         existing_result = await db.execute(existing_query)
         existing_registration = existing_result.scalar_one_or_none()
-
         if existing_registration:
             raise HTTPException(
                 status_code=400, detail="Estudante já inscrito neste edital"
@@ -100,7 +98,6 @@ class StudentRegistrationService:
             answer=registration_data.answer,
             status=RegistrationStatus.PENDING,
         )
-
         db.add(registration)
         await db.commit()
         await db.refresh(registration)
@@ -130,7 +127,9 @@ class StudentRegistrationService:
             .where(StudentRegistration.id == registration_id)
         )
         result = await db.execute(query)
-        return result.scalar_one_or_none()
+        data = result.scalar_one_or_none()
+
+        return data
 
     @staticmethod
     async def get_registrations_by_notice(

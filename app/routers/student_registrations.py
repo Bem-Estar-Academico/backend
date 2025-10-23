@@ -23,6 +23,7 @@ from app.schemas.student_registration import (
     StudentRegistrationResponse,
     StudentRegistrationUpdate,
     StudentRegistrationWithDetails,
+    StudentRegistrationCreate,
 )
 from app.schemas.user import UserType
 from app.services.review_registration_service import ReviewRegistrationService
@@ -31,7 +32,6 @@ from app.services.student_registration_service import StudentRegistrationService
 router = APIRouter(prefix="/student-registrations", tags=["student-registrations"])
 
 @router.post(
-    "/{notice_id}",
     "/{notice_id}",
     response_model=StudentRegistrationResponse,
     status_code=status.HTTP_201_CREATED,
@@ -104,7 +104,6 @@ async def get_student_registration(
         raise HTTPException(
             status_code=403, detail="Sem permissão para ver esta inscrição"
         )
-
     return StudentRegistrationWithDetails.from_model(registration)
 
 
@@ -315,7 +314,7 @@ async def create_review_registration(
         ReviewRegistrationResponse: The newly created student registration.
     """
     registration = await ReviewRegistrationService.create_review(
-        db, current_user, student_registration_id, review_data
+        db=db, social_worker=current_user, student_registration_id=student_registration_id, review_data=review_data
     )
     return ReviewRegistrationResponse.model_validate(registration)
 

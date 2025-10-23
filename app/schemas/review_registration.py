@@ -30,8 +30,7 @@ class ReviewRegistrationCreate(ReviewRegistrationBase):
     Schema for creating a new review registration record.
     We need the IDs to link the review upon creation.
     """
-    social_worker_id: int = Field(..., description="ID do assistente social que criou a revisão")
-    student_registration_id: int = Field(..., description="ID da inscrição do estudante que está sendo revisada")
+    pass
 
 
 class ReviewRegistrationUpdate(BaseModel):

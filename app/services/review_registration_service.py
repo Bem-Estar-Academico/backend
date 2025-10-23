@@ -47,10 +47,10 @@ class ReviewRegistrationService:
             HTTPException: If the user is not a social worker, the payload ID does not match,
                            the registration does not exist, or a review already exists.
         """
-        if social_worker.user_type != UserType.SOCIAL_WORKER:
+        if not social_worker.is_staff:
             raise HTTPException(
                 status_code=403,
-                detail="Only social workers can create reviews.",
+                detail="Only staff can create reviews.",
             )
 
         registration = await StudentRegistrationService.get_registration_by_id(
@@ -72,8 +72,9 @@ class ReviewRegistrationService:
                 detail="A review for this registration already exists.",
             )
 
-        db_review = ReviewRegistrationModel(**review_data.model_dump())
-
+        db_review = ReviewRegistrationModel(**review_data.model_dump(), 
+                                            social_worker_id=social_worker.id,
+                                            student_registration_id=student_registration_id)
         db.add(db_review)
         await db.commit()
         await db.refresh(db_review)
@@ -193,7 +194,7 @@ class ReviewRegistrationService:
         """
         review = await ReviewRegistrationService.get_review_by_id(db, review_id)
         if not review:
-            return False
+            return False    
 
         if current_user.user_type != UserType.COORDINATOR:
             raise HTTPException(
