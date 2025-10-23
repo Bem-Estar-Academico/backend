@@ -23,13 +23,6 @@ class StudentRegistrationService:
     permission checks and validation against notice periods.
     """
 
-    """
-    Service class responsible for managing student registrations for notices (editais).
-
-    Handles creation, retrieval, updating, and deletion of registrations, including
-    permission checks and validation against notice periods.
-    """
-
     @staticmethod
     async def create_registration(
         notice_id: int,
