@@ -305,7 +305,6 @@ class StudentRegistrationService:
                     status_code=403,
                     detail="Você só pode deletar suas próprias inscrições",
                 )
-        # Assuming that 'is_staff' is an attribute available on User for Coordinator/SocialWorker roles
         elif not current_user.is_staff:
             raise HTTPException(
                 status_code=403, detail="Sem permissão para deletar inscrições"
