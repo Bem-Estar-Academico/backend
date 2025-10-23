@@ -21,6 +21,7 @@ class StudentRegistrationBase(BaseModel):
     """
     answer: Optional[Dict[str, Any]] = Field(None, description="Observações sobre a inscrição")
 
+class StudentRegistrationCreate(StudentRegistrationBase):...
 
 class StudentRegistrationUpdate(BaseModel):
     """
