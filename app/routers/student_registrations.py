@@ -16,7 +16,7 @@ from app.models.user import User
 from app.db.database import get_db
 from app.routers.auth import get_current_user
 from app.models.registration import RegistrationStatus
-from app.schemas.review_registration import (ReviewRegistrationCreate, ReviewRegistrationResponse, ReviewRegistrationResponseWithDetails)
+from app.schemas.review_registration import (ReviewRegistrationCreate, ReviewRegistrationResponse, ReviewRegistrationResponseWithDetails, ReviewRegistrationUpdate)
 from app.schemas.student_registration import (
     StudentRegistrationCreate,
     StudentRegistrationList,
@@ -340,3 +340,97 @@ async def get_review_registration(
         )
 
     return ReviewRegistrationResponseWithDetails.from_model(registration)
+
+
+@router.get(
+    "/reviews/{review_id}",
+    response_model=ReviewRegistrationResponseWithDetails,
+    summary="Get a review by ID",
+    description="Get a specific review by its ID.",
+)
+async def get_review_registration_by_id(
+    review_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ReviewRegistrationResponseWithDetails:
+    """
+    Retrieves a review by its ID.
+
+    Args:
+        review_id (int): The ID of the review to retrieve.
+        current_user (User): The authenticated user.
+        db (AsyncSession): The database session.
+
+    Returns:
+        ReviewRegistrationResponseWithDetails: The review with details.
+    """
+    review = await ReviewRegistrationService.get_review_by_id(db, review_id)
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+
+    is_owner = review.student_registration.student_id == current_user.id
+    is_reviewer = review.social_worker_id == current_user.id
+    is_coordinator = current_user.user_type == UserType.COORDINATOR
+
+    if not is_owner and not is_reviewer and not is_coordinator:
+        raise HTTPException(
+            status_code=403, detail="Not enough permissions to view this review."
+        )
+
+    return ReviewRegistrationResponseWithDetails.from_model(review)
+
+
+@router.put(
+    "/reviews/{review_id}",
+    response_model=ReviewRegistrationResponse,
+    summary="Update a review",
+    description="Update an existing review by its ID.",
+)
+async def update_review_registration(
+    review_id: int,
+    review_data: ReviewRegistrationUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ReviewRegistrationResponse:
+    """
+    Updates a review by its ID.
+
+    Args:
+        review_id (int): The ID of the review to update.
+        review_data (ReviewRegistrationUpdate): The data to update the review with.
+        current_user (User): The authenticated user.
+        db (AsyncSession): The database session.
+
+    Returns:
+        ReviewRegistrationResponse: The updated review.
+    """
+    updated_review = await ReviewRegistrationService.update_review(
+        db, review_id, review_data, current_user
+    )
+    if not updated_review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return ReviewRegistrationResponse.model_validate(updated_review)
+
+
+@router.delete(
+    "/reviews/{review_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a review",
+    description="Delete an existing review by its ID.",
+)
+async def delete_review_registration(
+    review_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """
+    Deletes a review by its ID.
+
+    Args:
+        review_id (int): The ID of the review to delete.
+        current_user (User): The authenticated user.
+        db (AsyncSession): The database session.
+    """
+    deleted = await ReviewRegistrationService.delete_review(db, review_id, current_user)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Review not found")
