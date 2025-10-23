@@ -231,7 +231,7 @@ class StudentRegistration(Base):
     answer: Mapped[Optional[Dict[str, Any]]] = mapped_column(
         JSON,
         nullable=True,
-        comment="answer está aqui!!!",
+        comment="Stores student answers to notice-specific questions in JSON format",
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
