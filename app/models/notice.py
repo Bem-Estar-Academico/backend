@@ -103,7 +103,6 @@ class Notice(Base):
     Attributes:
         id (int): Primary key of the notice.
         title (str): The title of the notice.
-        year (int): The year the notice is valid for.
         registration_start_date (datetime): The start date for student registrations.
         registration_end_date (Optional[datetime]): The end date for student registrations.
         appeal_start_date (Optional[datetime]): The start date for the appeal phase.

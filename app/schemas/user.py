@@ -71,6 +71,10 @@ class UserCreate(UserBase):
         Returns:
             Optional[str]: The validated field value.
         """
+        if value is None and validation_info.data.get("user_type") == UserType.STUDENT:
+            raise ValueError(
+                "registration_number and cpf should be provided for students"
+            )
         if value is not None and validation_info.data.get("user_type") != UserType.STUDENT:
             raise ValueError(
                 "registration_number and cpf can only be provided for students"

@@ -6,7 +6,8 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.notice import Notice, RegistrationStatus, StudentRegistration
+from app.models.notice import Notice
+from app.models.registration import RegistrationStatus, StudentRegistration
 from app.models.user import User, UserType
 from app.schemas.notice import NoticeCreate
 from app.schemas.user import UserCreate
@@ -21,8 +22,6 @@ async def notice_instance(db_session: AsyncSession) -> Notice:
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=1),
         description="A notice for get test.",
-        # Corrigido: Removidos os campos 'year' e 'responsible_agency'
-        # que não existem no modelo Notice.
     )
     db_session.add(notice)
     await db_session.commit()
@@ -91,7 +90,6 @@ async def test_create_student_registration(
     """Test creating a student registration successfully."""
     notice_data = NoticeCreate(
         title="Notice for Registration Test",
-        year=2025,
         registration_start_date=datetime.now(timezone.utc) - timedelta(days=1),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=1),
         description="A notice to test student registration.",
