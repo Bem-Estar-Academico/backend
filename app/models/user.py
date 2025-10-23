@@ -9,13 +9,17 @@ properties.
 
 import enum
 from datetime import datetime
-from typing import Optional, Dict
+from typing import TYPE_CHECKING, List, Optional, Dict
 
 from sqlalchemy import Boolean, DateTime, Enum, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.review import ReviewRegistrationModel
+
 
 class UserType(enum.Enum):
     """Enum for user types in the BEA system."""
@@ -84,6 +88,10 @@ class User(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+
+    reviews: Mapped[List["ReviewRegistrationModel"]] = relationship(
+        "ReviewRegistrationModel", back_populates="social_worker"
     )
 
     @property

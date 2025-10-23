@@ -2,8 +2,8 @@ import uuid
 from datetime import datetime
 from typing import Dict, Optional
 
-import boto3
-from botocore.exceptions import ClientError, NoCredentialsError
+import boto3 # type: ignore
+from botocore.exceptions import ClientError, NoCredentialsError # type: ignore
 
 from app.core.config import settings
 
@@ -20,7 +20,7 @@ class S3Manager:
         if settings.S3_ENDPOINT_URL:
             client_args["endpoint_url"] = settings.S3_ENDPOINT_URL
 
-        self.s3_client = boto3.client("s3", **client_args)
+        self.s3_client = boto3.client("s3", **client_args) # type: ignore
         self.bucket_name = settings.S3_BUCKET_NAME
 
     def generate_unique_filename(self, original_filename: str) -> str:
@@ -59,7 +59,7 @@ class S3Manager:
         try:
             unique_filename = self.generate_unique_filename(filename)
 
-            self.s3_client.put_object(
+            self.s3_client.put_object( # type: ignore
                 Bucket=self.bucket_name,
                 Key=unique_filename,
                 Body=file_content,
@@ -76,42 +76,42 @@ class S3Manager:
         self, file_key: str, expiration: int = 3600
     ) -> str:
         try:
-            url = self.s3_client.generate_presigned_url(
+            url = self.s3_client.generate_presigned_url( # type: ignore
                 "get_object",
                 Params={"Bucket": self.bucket_name, "Key": file_key},
                 ExpiresIn=expiration,
             )
-            return url
+            return url # type: ignore
 
         except (ClientError, NoCredentialsError) as e:
             raise Exception(f"Error generating presigned download URL: {str(e)}")
 
     def delete_file(self, file_key: str) -> bool:
         try:
-            self.s3_client.delete_object(Bucket=self.bucket_name, Key=file_key)
+            self.s3_client.delete_object(Bucket=self.bucket_name, Key=file_key) # type: ignore
             return True
 
         except ClientError as e:
             print(f"Error deleting file from S3: {str(e)}")
             return False
 
-    def get_file_info(self, file_key: str) -> Optional[Dict]:
+    def get_file_info(self, file_key: str) -> Optional[Dict]: # type: ignore
         try:
-            response = self.s3_client.head_object(Bucket=self.bucket_name, Key=file_key)
+            response = self.s3_client.head_object(Bucket=self.bucket_name, Key=file_key) # type: ignore
 
             return {
-                "size": response.get("ContentLength"),
-                "content_type": response.get("ContentType"),
-                "last_modified": response.get("LastModified"),
-                "etag": response.get("ETag", "").strip('"'),
-            }
+                "size": response.get("ContentLength"), # type: ignore
+                "content_type": response.get("ContentType"), # type: ignore
+                "last_modified": response.get("LastModified"),# type: ignore
+                "etag": response.get("ETag", "").strip('"'),# type: ignore
+            } # type: ignore
 
         except ClientError:
             return None
 
     def verify_file_exists(self, file_key: str) -> bool:
         try:
-            self.s3_client.head_object(Bucket=self.bucket_name, Key=file_key)
+            self.s3_client.head_object(Bucket=self.bucket_name, Key=file_key)# type: ignore
             return True
         except ClientError:
             return False

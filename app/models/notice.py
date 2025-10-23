@@ -9,27 +9,18 @@ This module defines several SQLAlchemy models related to notices, including:
 - `StudentRegistration`: Represents a student's registration for a notice.
 """
 
-import enum
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, JSON
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.models.base import Base
+from app.models.registration import StudentRegistration
 
 if TYPE_CHECKING:
     from app.models.user import User
-
-
-class RegistrationStatus(enum.Enum):
-    """Enumeration for the possible statuses of a student's registration for a notice."""
-    PENDING = "PENDENTE"  # Aguardando análise
-    APPROVED = "DEFERIDO"  # Aprovada
-    REJECTED = "INDEFERIDO"  # Rejeitada
-    CANCELLED = "CANCELADO"  # Cancelada pelo estudante
-    APPEAL = "RECURSO"  # Em fase de recurso
 
 class Document(Base):
     """
@@ -203,50 +194,3 @@ class Notice(Base):
     registrations: Mapped[List["StudentRegistration"]] = relationship(
         "StudentRegistration", back_populates="notice", cascade="all, delete-orphan"
     )
-
-
-class StudentRegistration(Base):
-    """
-    Represents a student's registration for a specific notice.
-
-    This model tracks the status of a student's application to a notice,
-    including their submitted answers and relevant timestamps.
-
-    Attributes:
-        id (int): Primary key of the student registration.
-        student_id (int): Foreign key to the registering student (User).
-        notice_id (int): Foreign key to the notice being registered for.
-        status (RegistrationStatus): The current status of the registration (e.g., PENDING, APPROVED).
-        registration_date (datetime): The date and time when the student registered.
-        answer (Optional[Dict[str, Any]]): A JSON field storing the student's answers to the notice questions.
-        created_at (datetime): Timestamp of when the registration was created.
-        updated_at (datetime): Timestamp of the last update to the registration.
-    """
-    __tablename__ = "student_registrations"
-
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    student_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    notice_id: Mapped[int] = mapped_column(ForeignKey("notices.id"), nullable=False)
-    status: Mapped[RegistrationStatus] = mapped_column(
-        Enum(RegistrationStatus), default=RegistrationStatus.PENDING, nullable=False
-    )
-    registration_date: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-    answer: Mapped[Optional[Dict[str, Any]]] = mapped_column(
-        JSON,
-        nullable=True,
-        comment="answer está aqui!!!",
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
-    )
-
-    student: Mapped["User"] = relationship("User", foreign_keys=[student_id])
-    notice: Mapped["Notice"] = relationship("Notice", back_populates="registrations")

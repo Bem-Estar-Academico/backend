@@ -6,10 +6,11 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.notice import Notice, RegistrationStatus, StudentRegistration
+from app.models.notice import Notice
+from app.models.registration import RegistrationStatus, StudentRegistration
 from app.models.user import User, UserType
 from app.schemas.student_registration import (
-    StudentRegistrationBase,
+    StudentRegistrationCreate,
     StudentRegistrationUpdate,
 )
 
@@ -26,7 +27,7 @@ class StudentRegistrationService:
     async def create_registration(
         notice_id: int,
         db: AsyncSession,
-        registration_data: StudentRegistrationBase,
+        registration_data: StudentRegistrationCreate,
         student: User,
     ) -> StudentRegistration:
         """
@@ -38,7 +39,7 @@ class StudentRegistrationService:
         Args:
             notice_id (int): The ID of the notice to register for.
             db (AsyncSession): The asynchronous database session.
-            registration_data (StudentRegistrationBase): Data containing registration answers/observations.
+            registration_data (StudentRegistrationCreate): Data containing registration answers/observations.
             student (User): The authenticated student user attempting to register.
 
         Returns:
