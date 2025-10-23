@@ -6,7 +6,7 @@ It also includes endpoints for managing documents and team members associated wi
 and enforces role-based access control for certain operations.
 """
 
-from typing import Any, List, Optional, Sequence
+from typing import List, Optional, Sequence
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -82,6 +82,23 @@ async def get_active_notices(db: AsyncSession = Depends(get_db)) -> Sequence[Not
     """
     notices = await NoticeService.get_active_notices(db)
     return notices
+
+
+@router.get("/year/{year}", response_model=List[NoticeSchema])
+async def get_notices_by_year(year: int, db: AsyncSession = Depends(get_db)) -> Sequence[NoticeSchema]:
+    """
+    Retrieves a list of notices for a specific year.
+
+    Args:
+        year (int): The year to filter notices by.
+        db (AsyncSession): The database session.
+
+    Returns:
+        Sequence[NoticeSchema]: A list of notice objects for the specified year.
+    """
+    notices = await NoticeService.get_notices_by_year(db, year)
+    return notices
+
 
 @router.get("/{notice_id}", response_model=NoticeSchema)
 async def get_notice(notice_id: int, db: AsyncSession = Depends(get_db)) -> NoticeSchema:
@@ -208,7 +225,30 @@ async def add_team_member_to_notice(
     user_id: int,
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
-) -> Any:
+) -> NoticeTeamMember:
+    """
+    Adds a team member (coordinator or social worker) to a specific notice.
+
+    This endpoint is restricted to coordinator users.
+
+    Args:
+        notice_id (int): The ID of the notice to add the team member to.
+        user_id (int): The ID of the user to add as a team member.
+        role (str): The role of the user in the team (must be 'COORDINATOR' or 'SOCIAL_WORKER').
+        current_user (User): The authenticated coordinator user.
+        db (AsyncSession): The database session.
+
+    Raises:
+        HTTPException: If the notice is not found, the role is invalid, or the user is already in the team.
+
+    Returns:
+        NoticeTeamMember: The newly added notice team member object.
+    """
+    if role not in [UserType.COORDINATOR.value, UserType.SOCIAL_WORKER.value]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Role must be COORDINATOR or SOCIAL_WORKER",
+        )
 
     existing_notice = await NoticeService.get_notice_by_id(db, notice_id)
     if not existing_notice:

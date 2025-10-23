@@ -73,6 +73,12 @@ class NoticeTeamBase(BaseModel):
         role (str): The role of the user in the team (e.g., 'COORDINATOR', 'SOCIAL_WORKER').
     """
     user_id: int
+    role: str = Field(..., description="COORDINATOR ou SOCIAL_WORKER")
+
+
+class NoticeTeamCreate(NoticeTeamBase):
+    """Schema for assigning a user as a team member to a notice."""
+    pass
 
 
 class UserInfo(BaseModel):
@@ -179,9 +185,10 @@ class NoticeBase(BaseModel):
 
 
 class NoticeCreate(NoticeBase):
-    team_members: Optional[List[int]] = Field(
-        default_factory=list,
-        description="Membros da equipe a serem atribuídos ao edital"
+    """Schema for creating a new notice. Extends `NoticeBase` without adding new fields."""
+    team_members: List[int] = Field(
+        default_factory=lambda: cast(List[int], []),
+        description="Lista de IDs dos membros da equipe atribuídos ao edital",
     )
 
 

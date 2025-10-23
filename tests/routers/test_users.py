@@ -24,8 +24,8 @@ async def test_list_users_as_student(client: AsyncClient, db_session: AsyncSessi
         full_name="Student User",
         user_type=UserType.STUDENT,
         password=student_password,
-        cpf=None,
-        registration_number=None
+        cpf="00000000000",
+        registration_number="00000000"
     )
     await UserService.create_user(db_session, student_data)
     login_data = {"username": student_data.email, "password": student_password}

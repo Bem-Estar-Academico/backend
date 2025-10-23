@@ -22,7 +22,6 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     async def get(self, db: AsyncSession, id: Any) -> Optional[ModelType]:
         """Get a single record by ID."""
-        # Use AsyncSession.get to fetch by primary key (better typed and more efficient).
         return await db.get(self.model, id)
 
     async def get_multi(

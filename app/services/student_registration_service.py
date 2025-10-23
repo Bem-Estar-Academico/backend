@@ -6,7 +6,8 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.notice import Notice, RegistrationStatus, StudentRegistration
+from app.models.notice import Notice
+from app.models.registration import RegistrationStatus, StudentRegistration
 from app.models.user import User, UserType
 from app.schemas.student_registration import (
     StudentRegistrationBase,
@@ -38,7 +39,7 @@ class StudentRegistrationService:
         Args:
             notice_id (int): The ID of the notice to register for.
             db (AsyncSession): The asynchronous database session.
-            registration_data (StudentRegistrationBase): Data containing registration answers/observations.
+            registration_data (StudentRegistrationCreate): Data containing registration answers/observations.
             student (User): The authenticated student user attempting to register.
 
         Returns:
@@ -53,7 +54,6 @@ class StudentRegistrationService:
                 status_code=403,
                 detail="Apenas estudantes podem se inscrever em editais",
             )
-
         notice_query = select(Notice).where(Notice.id == notice_id)
         notice_result = await db.execute(notice_query)
         notice = notice_result.scalar_one_or_none()
@@ -62,7 +62,12 @@ class StudentRegistrationService:
             raise HTTPException(status_code=404, detail="Edital não encontrado")
 
         now = datetime.now(timezone.utc)
-        if now < notice.registration_start_date or now > notice.registration_end_date:
+        start_date = getattr(notice, "registration_start_date", None)
+        end_date = getattr(notice, "registration_end_date", None)
+        if (
+            (start_date is not None and now < start_date)
+            or (end_date is not None and now > end_date)
+        ):
             raise HTTPException(
                 status_code=400, detail="Período de inscrições não está ativo"
             )
@@ -75,7 +80,6 @@ class StudentRegistrationService:
         )
         existing_result = await db.execute(existing_query)
         existing_registration = existing_result.scalar_one_or_none()
-
         if existing_registration:
             raise HTTPException(
                 status_code=400, detail="Estudante já inscrito neste edital"
@@ -87,7 +91,6 @@ class StudentRegistrationService:
             answer=registration_data.answer,
             status=RegistrationStatus.PENDING,
         )
-
         db.add(registration)
         await db.commit()
         await db.refresh(registration)
@@ -117,7 +120,9 @@ class StudentRegistrationService:
             .where(StudentRegistration.id == registration_id)
         )
         result = await db.execute(query)
-        return result.scalar_one_or_none()
+        data = result.scalar_one_or_none()
+
+        return data
 
     @staticmethod
     async def get_registrations_by_notice(
@@ -305,6 +310,7 @@ class StudentRegistrationService:
                     status_code=403,
                     detail="Você só pode deletar suas próprias inscrições",
                 )
+        # Assuming that 'is_staff' is an attribute available on User for Coordinator/SocialWorker roles
         elif not current_user.is_staff:
             raise HTTPException(
                 status_code=403, detail="Sem permissão para deletar inscrições"

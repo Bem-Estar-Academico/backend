@@ -5,11 +5,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import UserType
 from app.schemas.notice import NoticeCreate, NoticeUpdate
-from app.schemas.user import UserCreate
-from app.services.notice_service import NoticeService
-from app.services.user_service import UserService
 
 
 @pytest.mark.asyncio
@@ -19,10 +15,12 @@ async def test_list_notices(
     """Test that anyone can list notices."""
     notice_data = NoticeCreate(
         title="Test Notice for Listing",
-        year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
-        responsible_agency="Test Agency",
+        appeal_start_date=datetime.now(timezone.utc) + timedelta(days=1),
+        appeal_end_date=datetime.now(timezone.utc) + timedelta(days=11),
+        preliminary_result_date=datetime.now(timezone.utc) + timedelta(days=12),
+        final_result_date=datetime.now(timezone.utc) + timedelta(days=22),
         description="This is a test notice.",
     )
     headers = {"Authorization": f"Bearer {coordinator_token}"}
@@ -35,8 +33,6 @@ async def test_list_notices(
     notices = response.json()
     assert isinstance(notices, list)
     assert len(notices) >= 1
-
-    # Found the created notice
     assert any(notice["title"] == "Test Notice for Listing" for notice in notices)
 
 
@@ -47,10 +43,12 @@ async def test_get_notice_by_id(
     """Test getting a single notice by its ID."""
     notice_data = NoticeCreate(
         title="Test Notice for ID",
-        year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
-        responsible_agency="Test Agency",
+        appeal_start_date=datetime.now(timezone.utc) + timedelta(days=1),
+        appeal_end_date=datetime.now(timezone.utc) + timedelta(days=11),
+        preliminary_result_date=datetime.now(timezone.utc) + timedelta(days=12),
+        final_result_date=datetime.now(timezone.utc) + timedelta(days=22),
         description="This is another test notice.",
     )
     headers = {"Authorization": f"Bearer {coordinator_token}"}
@@ -80,10 +78,12 @@ async def test_create_notice_as_coordinator(
     """Test that a coordinator can create a notice."""
     notice_data = NoticeCreate(
         title="Coordinator Notice",
-        year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
-        responsible_agency="Coordinator Agency",
+        appeal_start_date=datetime.now(timezone.utc) + timedelta(days=1),
+        appeal_end_date=datetime.now(timezone.utc) + timedelta(days=11),
+        preliminary_result_date=datetime.now(timezone.utc) + timedelta(days=12),
+        final_result_date=datetime.now(timezone.utc) + timedelta(days=22),
         description="A notice created by a coordinator.",
     )
     headers = {"Authorization": f"Bearer {coordinator_token}"}
@@ -103,10 +103,12 @@ async def test_create_notice_as_non_coordinator(
     """Test that a non-coordinator cannot create a notice."""
     notice_data = NoticeCreate(
         title="Invalid Notice",
-        year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
-        responsible_agency="Invalid Agency",
+        appeal_start_date=datetime.now(timezone.utc) + timedelta(days=1),
+        appeal_end_date=datetime.now(timezone.utc) + timedelta(days=11),
+        preliminary_result_date=datetime.now(timezone.utc) + timedelta(days=12),
+        final_result_date=datetime.now(timezone.utc) + timedelta(days=22),
         description="This notice should not be created.",
     )
     headers = {"Authorization": f"Bearer {social_worker_token}"}
@@ -125,10 +127,12 @@ async def test_get_active_notices(
     # Active notice
     active_notice_data = NoticeCreate(
         title="Active Notice",
-        year=2025,
         registration_start_date=datetime.now(timezone.utc) - timedelta(days=1),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=1),
-        responsible_agency="Active Agency",
+        appeal_start_date=datetime.now(timezone.utc) + timedelta(days=1),
+        appeal_end_date=datetime.now(timezone.utc) + timedelta(days=11),
+        preliminary_result_date=datetime.now(timezone.utc) + timedelta(days=12),
+        final_result_date=datetime.now(timezone.utc) + timedelta(days=22),
         description="This is an active notice.",
     )
     await client.post(
@@ -140,10 +144,12 @@ async def test_get_active_notices(
     # Inactive notice (in the future)
     future_notice_data = NoticeCreate(
         title="Future Notice",
-        year=2025,
         registration_start_date=datetime.now(timezone.utc) + timedelta(days=5),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
-        responsible_agency="Future Agency",
+        appeal_start_date=datetime.now(timezone.utc) + timedelta(days=1),
+        appeal_end_date=datetime.now(timezone.utc) + timedelta(days=11),
+        preliminary_result_date=datetime.now(timezone.utc) + timedelta(days=12),
+        final_result_date=datetime.now(timezone.utc) + timedelta(days=22),
         description="This is a future notice.",
     )
     await client.post(
@@ -168,10 +174,12 @@ async def test_update_notice_as_coordinator_in_team(
     headers = {"Authorization": f"Bearer {coordinator_token}"}
     notice_data = NoticeCreate(
         title="Update Test Notice",
-        year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
-        responsible_agency="Update Agency",
+        appeal_start_date=datetime.now(timezone.utc) + timedelta(days=1),
+        appeal_end_date=datetime.now(timezone.utc) + timedelta(days=11),
+        preliminary_result_date=datetime.now(timezone.utc) + timedelta(days=12),
+        final_result_date=datetime.now(timezone.utc) + timedelta(days=22),
         description="Original description.",
     )
     create_response = await client.post(
@@ -181,10 +189,8 @@ async def test_update_notice_as_coordinator_in_team(
 
     update_data = NoticeUpdate(
         title="Updated Title",
-        year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
-        responsible_agency="Update Agency",
         description="Original description.",
         food_allowance=True,
         housing_allowance=False,
@@ -208,10 +214,12 @@ async def test_delete_notice_as_coordinator_in_team(
     headers = {"Authorization": f"Bearer {coordinator_token}"}
     notice_data = NoticeCreate(
         title="Delete Test Notice",
-        year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
-        responsible_agency="Delete Agency",
+        appeal_start_date=datetime.now(timezone.utc) + timedelta(days=1),
+        appeal_end_date=datetime.now(timezone.utc) + timedelta(days=11),
+        preliminary_result_date=datetime.now(timezone.utc) + timedelta(days=12),
+        final_result_date=datetime.now(timezone.utc) + timedelta(days=22),
         description="This notice will be deleted.",
     )
     create_response = await client.post(
@@ -242,10 +250,12 @@ async def test_upload_document(
     headers = {"Authorization": f"Bearer {coordinator_token}"}
     notice_data = NoticeCreate(
         title="Document Test Notice",
-        year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
-        responsible_agency="Document Agency",
+        appeal_start_date=datetime.now(timezone.utc) + timedelta(days=1),
+        appeal_end_date=datetime.now(timezone.utc) + timedelta(days=11),
+        preliminary_result_date=datetime.now(timezone.utc) + timedelta(days=12),
+        final_result_date=datetime.now(timezone.utc) + timedelta(days=22),
         description="A notice for document upload tests.",
     )
     create_response = await client.post(

@@ -8,8 +8,8 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import AsyncSessionLocal as SessionLocal
-from app.models.notice import RegistrationStatus
 from app.models.user import User, UserType
+from app.models.registration import RegistrationStatus
 from app.schemas.notice import NoticeCreate
 from app.schemas.student_registration import (
     StudentRegistrationBase,
@@ -62,7 +62,7 @@ class DataProvider:
     def get_notice(self) -> NoticeCreate:
         """Gera um novo edital com dados aleatórios."""
         start_date = datetime.now() + timedelta(
-            days=random.randint(-10, 10)
+            days=-10
         )
         return NoticeCreate(
             title=f"Edital de Cadastramento Socioeconômico {self.fake.year()}",
@@ -73,6 +73,7 @@ class DataProvider:
             housing_allowance=random.choice([True, False]),
             daycare_allowance=random.choice([True, False]),
             graduation_scholarship=random.choice([True, False]),
+            team_members=[],
         )
 
     def get_registration(self, notice_id: int) -> StudentRegistrationBase:

@@ -1,11 +1,12 @@
 """Schemas for student registration."""
 
 from datetime import datetime
-from app.schemas.user import UserInfo
-from pydantic import BaseModel, Field
-from app.schemas.notice import NoticeInfo
 from typing import Optional, Any, Dict, List
-from app.models.notice import RegistrationStatus, StudentRegistration
+from pydantic import BaseModel, Field, ConfigDict
+
+from app.schemas.user import UserInfo
+from app.schemas.notice import NoticeInfo
+from app.models.registration import RegistrationStatus, StudentRegistration
 
 
 class StudentRegistrationBase(BaseModel):
@@ -19,24 +20,39 @@ class StudentRegistrationBase(BaseModel):
         answer (Optional[Dict[str, Any]]): Observations or a dictionary containing
                                            the student's answers to registration-specific questions.
     """
-    answer: Optional[Dict[str, Any]] = Field(None, description="Observações sobre a inscrição")
 
-class StudentRegistrationCreate(StudentRegistrationBase):...
+    answer: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Observações ou respostas fornecidas pelo estudante durante a inscrição"
+    )
 
-class StudentRegistrationUpdate(BaseModel):
+
+class StudentRegistrationCreate(StudentRegistrationBase):
+    """
+    Schema for creating a new student registration.
+
+    Inherits all base fields since no additional fields are required at creation time.
+    """
+    pass
+
+
+class StudentRegistrationUpdate(StudentRegistrationBase):
     """
     Schema for updating the status or observations of a student registration.
 
     Attributes:
         status (Optional[RegistrationStatus]): The new status of the registration
-                                              (e.g., PENDENTE, APROVADO, REPROVADO).
+                                               (e.g., PENDENTE, APROVADO, REPROVADO).
         answer (Optional[Dict[str, Any]]): Updated observations or a dictionary
                                            with answers (e.g., notes from a social worker).
     """
+
     status: Optional[RegistrationStatus] = Field(
-        None, description="Status da inscrição"
+        None, description="Status atual da inscrição"
     )
-    answer: Optional[Dict[str, Any]] = Field(None, description="Observações sobre a inscrição")
+    answer: Optional[Dict[str, Any]] = Field(
+        None, description="Observações atualizadas ou respostas do estudante"
+    )
 
 
 class StudentRegistrationResponse(StudentRegistrationBase):
@@ -54,6 +70,7 @@ class StudentRegistrationResponse(StudentRegistrationBase):
         created_at (datetime): The timestamp when the record was created in the database.
         updated_at (datetime): The timestamp when the record was last updated.
     """
+
     id: int
     student_id: int
     notice_id: int
@@ -61,9 +78,7 @@ class StudentRegistrationResponse(StudentRegistrationBase):
     registration_date: datetime
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class StudentRegistrationWithDetails(StudentRegistrationResponse):
@@ -78,11 +93,14 @@ class StudentRegistrationWithDetails(StudentRegistrationResponse):
         notice (NoticeInfo): Embedded basic information about the notice (edital).
         documents_count (int): The total number of documents uploaded by the student for this registration.
     """
+
     student: UserInfo
     notice: NoticeInfo
     documents_count: int = Field(
         ..., description="Quantidade de documentos enviados pelo estudante"
     )
+
+    model_config = ConfigDict(from_attributes=True)
 
     @classmethod
     def from_model(cls, registration_model: StudentRegistration) -> "StudentRegistrationWithDetails":
@@ -103,7 +121,6 @@ class StudentRegistrationWithDetails(StudentRegistrationResponse):
             student=UserInfo.model_validate(registration_model.student),
             notice=NoticeInfo.model_validate(registration_model.notice),
             # TODO: Implementar contagem real de documentos por estudante
-            # Atualmente usando valor mockado fixo
             documents_count=30,  # Valor mockado por enquanto
         )
 
@@ -116,5 +133,8 @@ class StudentRegistrationList(BaseModel):
         registrations (List[StudentRegistrationWithDetails]): A list of detailed registration records.
         total (int): The total count of registrations found (useful for pagination).
     """
+
     registrations: List[StudentRegistrationWithDetails]
     total: int
+
+    model_config = ConfigDict(from_attributes=True)
