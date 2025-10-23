@@ -112,7 +112,6 @@ class NoticeTeamMember(BaseModel):
     """
     id: int
     user_id: int
-    role: str
     assigned_at: datetime
     user: UserInfo
 
@@ -155,7 +154,6 @@ class NoticeBase(BaseModel):
         graduation_scholarship (bool): Flag for graduation scholarship availability (default False).
     """
     title: str = Field(..., min_length=1, max_length=255)
-    year: int = Field(..., ge=2000, le=3000, description="Ano de vigência")
 
     registration_start_date: datetime = Field(
         ..., description="Data de início das inscrições"
@@ -213,7 +211,6 @@ class NoticeUpdate(BaseModel):
         # ... All other fields from NoticeBase are Optional[type]
     """
     title: Optional[str] = Field(None, min_length=1, max_length=255)
-    year: Optional[int] = Field(None, ge=2000, le=3000)
 
     registration_start_date: Optional[datetime] = None
     registration_end_date: Optional[datetime] = None

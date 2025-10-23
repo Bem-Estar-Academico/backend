@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.notice import Document, Notice, NoticeTeam
+from app.models.user import User, UserType
 from app.schemas.notice import NoticeCreate, NoticeUpdate
 
 
@@ -93,7 +94,6 @@ class NoticeService:
         """
         db_notice = Notice(
             title=notice_data.title,
-            year=notice_data.year,
             registration_start_date=notice_data.registration_start_date,
             registration_end_date=notice_data.registration_end_date,
             appeal_start_date=notice_data.appeal_start_date,
@@ -113,9 +113,17 @@ class NoticeService:
         db_team_member = NoticeTeam(
             notice_id=db_notice.id,
             user_id=created_by_user_id,
-            role="COORDINATOR",
         )
         db.add(db_team_member)
+
+        if notice_data.team_members:
+            for team_member_id in notice_data.team_members:
+                if team_member_id != created_by_user_id:
+                    db_additional_member = NoticeTeam(
+                        notice_id=db_notice.id,
+                        user_id=team_member_id,
+                    )
+                    db.add(db_additional_member)
 
         await db.commit()
         await db.refresh(db_notice)
@@ -221,7 +229,7 @@ class NoticeService:
 
     @staticmethod
     async def add_team_member_to_notice(
-        db: AsyncSession, notice_id: int, user_id: int, role: str
+        db: AsyncSession, notice_id: int, user_id: int
     ) -> Optional[NoticeTeam]:
         """
         Adds a user as a team member to a specific notice. Prevents duplicate assignments.
@@ -251,7 +259,6 @@ class NoticeService:
         db_team_member = NoticeTeam(
             notice_id=notice_id,
             user_id=user_id,
-            role=role,
         )
 
         db.add(db_team_member)

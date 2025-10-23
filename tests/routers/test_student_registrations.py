@@ -18,12 +18,11 @@ async def notice_instance(db_session: AsyncSession) -> Notice:
     """Create a notice directly in the DB."""
     notice = Notice(
         title="Notice for Get Test",
-        notice_number="12/2025",
-        year=2025,
         registration_start_date=datetime.now(timezone.utc),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=1),
-        responsible_agency="Test Agency",
         description="A notice for get test.",
+        # Corrigido: Removidos os campos 'year' e 'responsible_agency'
+        # que não existem no modelo Notice.
     )
     db_session.add(notice)
     await db_session.commit()
