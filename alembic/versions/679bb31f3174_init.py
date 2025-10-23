@@ -1,8 +1,8 @@
-"""Initial migration with all models
+"""init
 
-Revision ID: bac283692401
+Revision ID: 679bb31f3174
 Revises: 
-Create Date: 2025-10-02 10:49:09.113693
+Create Date: 2025-10-22 20:51:22.454038
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'bac283692401'
+revision = '679bb31f3174'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -21,11 +21,12 @@ def upgrade() -> None:
     op.create_table('notices',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('title', sa.String(length=255), nullable=False),
-    sa.Column('notice_number', sa.String(length=50), nullable=False, comment='Número do edital (ex: 05/2025)'),
-    sa.Column('year', sa.Integer(), nullable=False, comment='Ano de vigência'),
-    sa.Column('start_date', sa.DateTime(), nullable=False),
-    sa.Column('end_date', sa.DateTime(), nullable=False),
-    sa.Column('responsible_agency', sa.String(length=255), nullable=False, comment='Órgão responsável'),
+    sa.Column('registration_start_date', sa.DateTime(timezone=True), nullable=False, comment='Data de início das inscrições'),
+    sa.Column('registration_end_date', sa.DateTime(timezone=True), nullable=True, comment='Data de término das inscrições'),
+    sa.Column('appeal_start_date', sa.DateTime(timezone=True), nullable=True, comment='Data de início da fase de recursos'),
+    sa.Column('appeal_end_date', sa.DateTime(timezone=True), nullable=True, comment='Data de término da fase de recursos'),
+    sa.Column('preliminary_result_date', sa.DateTime(timezone=True), nullable=True, comment='Data de divulgação do resultado preliminar'),
+    sa.Column('final_result_date', sa.DateTime(timezone=True), nullable=True, comment='Data de divulgação do resultado final'),
     sa.Column('description', sa.Text(), nullable=False),
     sa.Column('food_allowance', sa.Boolean(), nullable=False, comment='Auxílio Alimentação'),
     sa.Column('housing_allowance', sa.Boolean(), nullable=False, comment='Auxílio Moradia'),
@@ -40,15 +41,19 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('email', sa.String(length=255), nullable=False),
     sa.Column('full_name', sa.String(length=255), nullable=False),
-    sa.Column('user_type', sa.Enum('COORDINATOR', 'STUDENT', 'SOCIAL_WORKER', 'NTI', name='usertype'), nullable=False, comment='Type of user: coordinator, student, social_worker, or nti'),
+    sa.Column('user_type', sa.Enum('NTI', 'STUDENT', 'COORDINATOR', 'SOCIAL_WORKER', name='usertype'), nullable=False, comment='Type of user: coordinator, student, social_worker, or nti'),
+    sa.Column('registration_number', sa.String(length=20), nullable=True, comment='Número de matrícula do estudante (apenas para user_type=STUDENT)'),
+    sa.Column('cpf', sa.String(length=14), nullable=True, comment='CPF do estudante (apenas para user_type=STUDENT)'),
     sa.Column('hashed_password', sa.Text(), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_index(op.f('ix_users_cpf'), 'users', ['cpf'], unique=True)
     op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
     op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
+    op.create_index(op.f('ix_users_registration_number'), 'users', ['registration_number'], unique=True)
     op.create_table('notice_documents',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('notice_id', sa.Integer(), nullable=False),
@@ -65,24 +70,41 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('notice_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('role', sa.String(length=50), nullable=False, comment='COORDINATOR ou SOCIAL_WORKER'),
     sa.Column('assigned_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['notice_id'], ['notices.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_notice_teams_id'), 'notice_teams', ['id'], unique=False)
+    op.create_table('student_registrations',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('student_id', sa.Integer(), nullable=False),
+    sa.Column('notice_id', sa.Integer(), nullable=False),
+    sa.Column('status', sa.Enum('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'APPEAL', 'REVIEW', name='registrationstatus'), nullable=False),
+    sa.Column('registration_date', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('answer', sa.JSON(), nullable=True, comment='answer está aqui!!!'),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['notice_id'], ['notices.id'], ),
+    sa.ForeignKeyConstraint(['student_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_student_registrations_id'), 'student_registrations', ['id'], unique=False)
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_index(op.f('ix_student_registrations_id'), table_name='student_registrations')
+    op.drop_table('student_registrations')
     op.drop_index(op.f('ix_notice_teams_id'), table_name='notice_teams')
     op.drop_table('notice_teams')
     op.drop_index(op.f('ix_notice_documents_id'), table_name='notice_documents')
     op.drop_table('notice_documents')
+    op.drop_index(op.f('ix_users_registration_number'), table_name='users')
     op.drop_index(op.f('ix_users_id'), table_name='users')
     op.drop_index(op.f('ix_users_email'), table_name='users')
+    op.drop_index(op.f('ix_users_cpf'), table_name='users')
     op.drop_table('users')
     op.drop_index(op.f('ix_notices_id'), table_name='notices')
     op.drop_table('notices')

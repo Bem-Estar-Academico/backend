@@ -18,7 +18,7 @@ from app.routers.auth import get_current_user
 from app.models.registration import RegistrationStatus
 from app.schemas.review_registration import (ReviewRegistrationCreate, ReviewRegistrationResponse, ReviewRegistrationResponseWithDetails, ReviewRegistrationUpdate)
 from app.schemas.student_registration import (
-    StudentRegistrationCreate,
+    StudentRegistrationBase,
     StudentRegistrationList,
     StudentRegistrationResponse,
     StudentRegistrationUpdate,
@@ -31,6 +31,7 @@ from app.services.student_registration_service import StudentRegistrationService
 router = APIRouter(prefix="/student-registrations", tags=["student-registrations"])
 
 @router.post(
+    "/{notice_id}",
     "/{notice_id}",
     response_model=StudentRegistrationResponse,
     status_code=status.HTTP_201_CREATED,
@@ -119,6 +120,23 @@ async def get_registrations_by_notice(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> StudentRegistrationList:
+    """
+    Retrieves all student registrations for a specific notice.
+
+    This endpoint is restricted to staff members.
+
+    Args:
+        notice_id (int): The ID of the notice to retrieve registrations for.
+        status_filter (Optional[RegistrationStatus]): Optional. Filter registrations by their status.
+        current_user (User): The authenticated staff user.
+        db (AsyncSession): The database session.
+
+    Raises:
+        HTTPException: If the user is not authorized.
+
+    Returns:
+        StudentRegistrationList: A list of student registrations for the notice.
+    """
     """
     Retrieves all student registrations for a specific notice.
 

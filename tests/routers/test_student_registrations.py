@@ -108,11 +108,11 @@ async def test_create_student_registration(
     )
     assert create_notice_response.status_code == 201
     notice_id = create_notice_response.json()["id"]
-    registration_data = {"notice_id": notice_id}
+    registration_data = {"answer": {"a": ["Answer 1", "Answer 2", "Answer 3", "Answer 4", "Answer 5"], "b": "Detailed answer text."}}
     headers_student = {"Authorization": f"Bearer {student_token}"}
 
     response = await client.post(
-        "/api/v1/student-registrations/",
+        f"/api/v1/student-registrations/{notice_id}",
         json=registration_data,
         headers=headers_student,
     )
@@ -121,7 +121,7 @@ async def test_create_student_registration(
 
     registration = response.json()
     assert registration["notice_id"] == notice_id
-    assert registration["status"] == "PENDENTE"
+    assert registration["status"] == "PENDING"
 
 
 @pytest.mark.asyncio

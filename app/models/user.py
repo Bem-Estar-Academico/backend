@@ -6,13 +6,21 @@ and the `UserType` enumeration, which categorizes different types of users.
 It includes fields for user authentication, personal information, and role-based
 properties.
 """
+"""Module for defining the User model and related enumerations."""
+
+"""
+This module defines the `User` SQLAlchemy model, representing users in the system,
+and the `UserType` enumeration, which categorizes different types of users.
+It includes fields for user authentication, personal information, and role-based
+properties.
+"""
 
 import enum
 from datetime import datetime
 from typing import TYPE_CHECKING, List, Optional, Dict
 
 from sqlalchemy import Boolean, DateTime, Enum, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from app.models.base import Base
