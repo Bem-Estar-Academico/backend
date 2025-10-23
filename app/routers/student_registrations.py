@@ -302,16 +302,16 @@ async def create_review_registration(
     db: AsyncSession = Depends(get_db),
 ) -> ReviewRegistrationResponse:
     """
-    Creates a new registration for the current student in a specified notice.
+    Creates a new review for a specific student registration.
 
     Args:
-        notice_id (int): The ID of the notice to register for.
-        registration_data (StudentRegistrationCreate): The registration data, including answers to notice-specific questions.
-        current_user (User): The authenticated student user.
+        student_registration_id (int): The ID of the student registration to review.
+        review_data (ReviewRegistrationCreate): The review data, including review details and feedback.
+        current_user (User): The authenticated social worker or staff member creating the review.
         db (AsyncSession): The database session.
 
     Returns:
-        ReviewRegistrationResponse: The newly created student registration.
+        ReviewRegistrationResponse: The newly created review registration.
     """
     registration = await ReviewRegistrationService.create_review(
         db=db, social_worker=current_user, student_registration_id=student_registration_id, review_data=review_data
