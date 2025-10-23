@@ -12,7 +12,7 @@ from app.models.notice import RegistrationStatus
 from app.models.user import User, UserType
 from app.schemas.notice import NoticeCreate
 from app.schemas.student_registration import (
-    StudentRegistrationCreate,
+    StudentRegistrationBase,
     StudentRegistrationUpdate,
 )
 from app.schemas.user import UserCreate
@@ -51,7 +51,7 @@ class DataProvider:
             full_name=full_name,
             user_type=user_type,
             password="password123",
-            student_registration=(
+            registration_number=(
                 self.fake.unique.numerify(text="202#####")
                 if user_type == UserType.STUDENT
                 else None
@@ -66,11 +66,8 @@ class DataProvider:
         )
         return NoticeCreate(
             title=f"Edital de Cadastramento Socioeconômico {self.fake.year()}",
-            notice_number=f"{random.randint(1, 100)}/{start_date.year}",
-            year=start_date.year,
             registration_start_date=start_date,
             registration_end_date=start_date + timedelta(days=random.randint(15, 45)),
-            responsible_agency="Universidade Federal de Exemplo",
             description=self.fake.paragraph(nb_sentences=5),
             food_allowance=random.choice([True, False]),
             housing_allowance=random.choice([True, False]),
@@ -78,9 +75,9 @@ class DataProvider:
             graduation_scholarship=random.choice([True, False]),
         )
 
-    def get_registration(self, notice_id: int) -> StudentRegistrationCreate:
+    def get_registration(self, notice_id: int) -> StudentRegistrationBase:
         """Gera uma nova inscrição em edital."""
-        return StudentRegistrationCreate(notice_id=notice_id, notes=self.fake.sentence())
+        return StudentRegistrationBase(notice_id=notice_id, answer={"a": [self.fake.sentence() for a in range(1, 6)], "b": self.fake.paragraph()})
 
 
 class Seeder:
@@ -144,7 +141,7 @@ class Seeder:
                 self.student_ids.append(user.id)
                 created_count += 1
                 logging.info(
-                    f"  [{i+1:02d}/{num_students}] {user.full_name:<30} | {user_data.student_registration}"
+                    f"  [{i+1:02d}/{num_students}] {user.full_name:<30} | {user_data.registration_number}"
                 )
             except ValueError:
                 logging.warning(f"E-mail/CPF/Matrícula duplicado para: {user_data.email}. Ignorando.")
@@ -189,7 +186,7 @@ class Seeder:
                 try:
                     reg_data = self.provider.get_registration(notice.id)
                     registration = await StudentRegistrationService.create_registration(
-                        self.db, reg_data, await UserService.get_user_by_id(self.db, student_id)
+                       notice_id=notice.id, db=self.db, registration_data=reg_data, student=await UserService.get_user_by_id(self.db, student_id)
                     )
                     final_status = await self._randomly_update_status(registration)
                     status_counts[final_status] = status_counts.get(final_status, 0) + 1
@@ -197,7 +194,7 @@ class Seeder:
                 except Exception as e:
                     logging.error(f"Falha ao criar inscrição (student_id={student_id}, notice_id={notice.id}): {e}")
 
-            logging.info(f"  - Edital {notice.notice_number:<10}: {len(registered_students)} inscrições criadas.")
+            logging.info(f"  - Edital: {len(registered_students)} inscrições criadas.")
 
         logging.info(f"\nTotal de inscrições criadas: {total_registrations}")
         logging.info("Distribuição de status:")

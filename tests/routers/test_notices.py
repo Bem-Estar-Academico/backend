@@ -35,7 +35,9 @@ async def test_list_notices(
     notices = response.json()
     assert isinstance(notices, list)
     assert len(notices) >= 1
-    assert notices[0]["title"] == "Test Notice for Listing"
+
+    # Found the created notice
+    assert any(notice["title"] == "Test Notice for Listing" for notice in notices)
 
 
 @pytest.mark.asyncio

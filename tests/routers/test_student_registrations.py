@@ -45,7 +45,7 @@ async def student_user(db_session: AsyncSession) -> User:
         full_name="Test Student",
         user_type=UserType.STUDENT,
         password="studentpassword",
-        student_registration="20240001",
+        registration_number="20240001",
         cpf="111.222.333-44",
     )
     created_user = await UserService.create_user(db_session, user_data)
@@ -64,7 +64,7 @@ async def other_student_user(db_session: AsyncSession) -> User:
         full_name="Other Student",
         user_type=UserType.STUDENT,
         password="otherpassword",
-        student_registration="20249999",
+        registration_number="20249999",
         cpf="999.888.777-66",
     )
     created_user = await UserService.create_user(db_session, user_data)
@@ -94,8 +94,6 @@ async def test_create_student_registration(
         registration_start_date=datetime.now(timezone.utc) - timedelta(days=1),
         registration_end_date=datetime.now(timezone.utc) + timedelta(days=1),
         description="A notice to test student registration.",
-        # Corrigido: Removidos os campos 'year' e 'responsible_agency'
-        # que não existem no modelo Notice (e presumivelmente no NoticeCreate).
     )
     headers_coord = {"Authorization": f"Bearer {coordinator_token}"}
     create_notice_response = await client.post(
@@ -105,11 +103,11 @@ async def test_create_student_registration(
     )
     assert create_notice_response.status_code == 201
     notice_id = create_notice_response.json()["id"]
-    registration_data = {"notice_id": notice_id}
+    registration_data = {"answer": {"a": ["Answer 1", "Answer 2", "Answer 3", "Answer 4", "Answer 5"], "b": "Detailed answer text."}}
     headers_student = {"Authorization": f"Bearer {student_token}"}
 
     response = await client.post(
-        "/api/v1/student-registrations/",
+        f"/api/v1/student-registrations/{notice_id}",
         json=registration_data,
         headers=headers_student,
     )
@@ -118,7 +116,7 @@ async def test_create_student_registration(
 
     registration = response.json()
     assert registration["notice_id"] == notice_id
-    assert registration["status"] == "PENDENTE"
+    assert registration["status"] == "PENDING"
 
 
 @pytest.mark.asyncio
@@ -291,7 +289,7 @@ async def test_student_cannot_delete_other_student_registration(
     db_session: AsyncSession,
     notice_instance: Notice,
     other_student_user: User,
-    student_token: str,  # Token for the first student
+    student_token: str,
 ):
     """Test that a student cannot delete another student's registration."""
     registration = StudentRegistration(
@@ -326,21 +324,16 @@ async def test_list_registrations_by_notice_as_coordinator(
     coordinator_token: str,
 ):
     """Test that a coordinator can list all registrations for a notice."""
-    # 1. Create a couple of registrations for the notice
     db_session.add_all([
         StudentRegistration(student_id=student_user.id, notice_id=notice_instance.id),
         StudentRegistration(student_id=other_student_user.id, notice_id=notice_instance.id),
     ])
     await db_session.commit()
-
-    # 2. As a coordinator, list the registrations
     headers = {"Authorization": f"Bearer {coordinator_token}"}
     response = await client.get(
         f"/api/v1/student-registrations/notice/{notice_instance.id}",
         headers=headers,
     )
-
-    # 3. Assert the response
     assert response.status_code == 200
     response_data = response.json()
     assert response_data["total"] == 2
@@ -373,18 +366,13 @@ async def test_list_registrations_by_student_as_self(
     student_token: str,
 ):
     """Test that a student can list their own registrations."""
-    # 1. Create a registration for the student
     db_session.add(StudentRegistration(student_id=student_user.id, notice_id=notice_instance.id))
     await db_session.commit()
-
-    # 2. As the student, list their registrations
     headers = {"Authorization": f"Bearer {student_token}"}
     response = await client.get(
         f"/api/v1/student-registrations/student/{student_user.id}",
         headers=headers,
     )
-
-    # 3. Assert the response
     assert response.status_code == 200
     response_data = response.json()
     assert response_data["total"] == 1
@@ -396,10 +384,9 @@ async def test_list_registrations_by_student_as_self(
 async def test_list_registrations_by_student_as_other_student_fails(
     client: AsyncClient,
     other_student_user: User,
-    student_token: str,  # Token for the first student
+    student_token: str,
 ):
     """Test that a student cannot list another student's registrations."""
-    # As the first student, attempt to list the other student's registrations
     headers = {"Authorization": f"Bearer {student_token}"}
     response = await client.get(
         f"/api/v1/student-registrations/student/{other_student_user.id}",

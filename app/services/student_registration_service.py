@@ -9,25 +9,52 @@ from sqlalchemy.orm import selectinload
 from app.models.notice import Notice, RegistrationStatus, StudentRegistration
 from app.models.user import User, UserType
 from app.schemas.student_registration import (
-    StudentRegistrationCreate,
+    StudentRegistrationBase,
     StudentRegistrationUpdate,
 )
 
 
 class StudentRegistrationService:
+    """
+    Service class responsible for managing student registrations for notices (editais).
+
+    Handles creation, retrieval, updating, and deletion of registrations, including
+    permission checks and validation against notice periods.
+    """
+
     @staticmethod
     async def create_registration(
+        notice_id: int,
         db: AsyncSession,
-        registration_data: StudentRegistrationCreate,
+        registration_data: StudentRegistrationBase,
         student: User,
     ) -> StudentRegistration:
+        """
+        Registers a student for a specific notice.
+
+        Performs checks for user type, notice existence, active registration period,
+        and prevents duplicate registrations.
+
+        Args:
+            notice_id (int): The ID of the notice to register for.
+            db (AsyncSession): The asynchronous database session.
+            registration_data (StudentRegistrationBase): Data containing registration answers/observations.
+            student (User): The authenticated student user attempting to register.
+
+        Returns:
+            StudentRegistration: The newly created registration object.
+
+        Raises:
+            HTTPException: If the user is not a student (403), notice not found (404),
+                           registration period is inactive (400), or already registered (400).
+        """
         if student.user_type != UserType.STUDENT:
             raise HTTPException(
                 status_code=403,
                 detail="Apenas estudantes podem se inscrever em editais",
             )
 
-        notice_query = select(Notice).where(Notice.id == registration_data.notice_id)
+        notice_query = select(Notice).where(Notice.id == notice_id)
         notice_result = await db.execute(notice_query)
         notice = notice_result.scalar_one_or_none()
 
@@ -43,7 +70,7 @@ class StudentRegistrationService:
         existing_query = select(StudentRegistration).where(
             and_(
                 StudentRegistration.student_id == student.id,
-                StudentRegistration.notice_id == registration_data.notice_id,
+                StudentRegistration.notice_id == notice_id,
             )
         )
         existing_result = await db.execute(existing_query)
@@ -56,8 +83,8 @@ class StudentRegistrationService:
 
         registration = StudentRegistration(
             student_id=student.id,
-            notice_id=registration_data.notice_id,
-            notes=registration_data.notes,
+            notice_id=notice_id,
+            answer=registration_data.answer,
             status=RegistrationStatus.PENDING,
         )
 
@@ -71,6 +98,16 @@ class StudentRegistrationService:
     async def get_registration_by_id(
         db: AsyncSession, registration_id: int
     ) -> Optional[StudentRegistration]:
+        """
+        Retrieves a single student registration by its ID, eagerly loading student and notice details.
+
+        Args:
+            db (AsyncSession): The asynchronous database session.
+            registration_id (int): The ID of the registration record.
+
+        Returns:
+            Optional[StudentRegistration]: The registration object, or None if not found.
+        """
         query = (
             select(StudentRegistration)
             .options(
@@ -87,7 +124,21 @@ class StudentRegistrationService:
         db: AsyncSession,
         notice_id: int,
         status: Optional[RegistrationStatus] = None,
-    ) -> tuple[list[StudentRegistration], int]:
+    ) -> tuple[List[StudentRegistration], int]:
+        """
+        Retrieves a list of registrations for a specific notice, with optional filtering by status.
+
+        Includes a total count of matching registrations.
+
+        Args:
+            db (AsyncSession): The asynchronous database session.
+            notice_id (int): The ID of the notice.
+            status (Optional[RegistrationStatus]): Optional filter by registration status.
+
+        Returns:
+            tuple[List[StudentRegistration], int]: A tuple containing the list of registrations
+                                                   and the total count of matching records.
+        """
         query = (
             select(StudentRegistration)
             .options(
@@ -114,7 +165,7 @@ class StudentRegistrationService:
 
         query = query.order_by(StudentRegistration.registration_date.desc())
         result = await db.execute(query)
-        registrations = result.scalars().all()
+        registrations = list(result.scalars().all())
 
         return registrations, total
 
@@ -122,7 +173,20 @@ class StudentRegistrationService:
     async def get_registrations_by_student(
         db: AsyncSession,
         student_id: int,
-    ) -> tuple[list[StudentRegistration], int]:
+    ) -> tuple[List[StudentRegistration], int]:
+        """
+        Retrieves all registrations submitted by a specific student.
+
+        Includes a total count of the student's registrations.
+
+        Args:
+            db (AsyncSession): The asynchronous database session.
+            student_id (int): The ID of the student user.
+
+        Returns:
+            tuple[List[StudentRegistration], int]: A tuple containing the list of registrations
+                                                   and the total count of the student's registrations.
+        """
         query = (
             select(StudentRegistration)
             .options(
@@ -143,7 +207,7 @@ class StudentRegistrationService:
         total = count_result.scalar_one()
 
         result = await db.execute(query)
-        registrations = result.scalars().all()
+        registrations = list(result.scalars().all())
 
         return registrations, total
 
@@ -154,6 +218,23 @@ class StudentRegistrationService:
         registration_data: StudentRegistrationUpdate,
         current_user: User,
     ) -> StudentRegistration:
+        """
+        Updates a registration status or answer, applying permission rules.
+
+        Students can only update (cancel) their own registrations. Staff/Coordinators can update status/answer.
+
+        Args:
+            db (AsyncSession): The asynchronous database session.
+            registration_id (int): The ID of the registration to update.
+            registration_data (StudentRegistrationUpdate): The data containing the updates.
+            current_user (User): The authenticated user performing the update.
+
+        Returns:
+            StudentRegistration: The updated registration object.
+
+        Raises:
+            HTTPException: If registration is not found (404) or user lacks permission (403).
+        """
         registration = await StudentRegistrationService.get_registration_by_id(
             db, registration_id
         )
@@ -182,8 +263,8 @@ class StudentRegistrationService:
 
         if registration_data.status is not None:
             registration.status = registration_data.status
-        if registration_data.notes is not None:
-            registration.notes = registration_data.notes
+        if registration_data.answer is not None:
+            registration.answer = registration_data.answer
 
         await db.commit()
         await db.refresh(registration)
@@ -196,6 +277,22 @@ class StudentRegistrationService:
         registration_id: int,
         current_user: User,
     ) -> bool:
+        """
+        Deletes a registration record, applying permission rules.
+
+        Students can only delete their own registrations. Staff/Coordinators can delete any registration.
+
+        Args:
+            db (AsyncSession): The asynchronous database session.
+            registration_id (int): The ID of the registration to delete.
+            current_user (User): The authenticated user performing the deletion.
+
+        Returns:
+            bool: True if the deletion was successful.
+
+        Raises:
+            HTTPException: If registration is not found (404) or user lacks permission (403).
+        """
         registration = await StudentRegistrationService.get_registration_by_id(
             db, registration_id
         )
@@ -224,6 +321,17 @@ class StudentRegistrationService:
         student_id: int,
         notice_id: int,
     ) -> Optional[StudentRegistration]:
+        """
+        Retrieves a single registration record based on a specific student and notice combination.
+
+        Args:
+            db (AsyncSession): The asynchronous database session.
+            student_id (int): The ID of the student.
+            notice_id (int): The ID of the notice.
+
+        Returns:
+            Optional[StudentRegistration]: The registration object, or None if the student is not registered for the notice.
+        """
         query = (
             select(StudentRegistration)
             .options(
