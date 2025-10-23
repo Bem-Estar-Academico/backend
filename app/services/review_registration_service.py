@@ -194,7 +194,7 @@ class ReviewRegistrationService:
         """
         review = await ReviewRegistrationService.get_review_by_id(db, review_id)
         if not review:
-            return False    
+            return False
 
         if current_user.user_type != UserType.COORDINATOR:
             raise HTTPException(
