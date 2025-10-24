@@ -234,7 +234,6 @@ async def add_team_member_to_notice(
     Args:
         notice_id (int): The ID of the notice to add the team member to.
         user_id (int): The ID of the user to add as a team member.
-        role (str): The role of the user in the team (must be 'COORDINATOR' or 'SOCIAL_WORKER').
         current_user (User): The authenticated coordinator user.
         db (AsyncSession): The database session.
 
@@ -244,11 +243,6 @@ async def add_team_member_to_notice(
     Returns:
         NoticeTeamMember: The newly added notice team member object.
     """
-    if role not in [UserType.COORDINATOR.value, UserType.SOCIAL_WORKER.value]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Role must be COORDINATOR or SOCIAL_WORKER",
-        )
 
     existing_notice = await NoticeService.get_notice_by_id(db, notice_id)
     if not existing_notice:
