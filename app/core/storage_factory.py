@@ -1,6 +1,5 @@
 from typing import Optional
 
-from app.core.config import settings
 from app.core.storage_interface import StorageInterface
 
 
@@ -15,14 +14,9 @@ class StorageFactory:
 
     @classmethod
     def _create_storage_manager(cls) -> StorageInterface:
-        if settings.S3_ENDPOINT_URL and "supabase" in settings.S3_ENDPOINT_URL:
-            from app.core.supabase_storage import supabase_storage
+        from app.core.s3_manager import s3_manager
 
-            return supabase_storage
-        else:
-            from app.core.s3_manager import s3_manager
-
-            return s3_manager
+        return s3_manager
 
     @classmethod
     def reset(cls):
