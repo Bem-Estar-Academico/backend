@@ -12,6 +12,7 @@ from app.db.database import AsyncSessionLocal as SessionLocal
 from app.models.notice import Notice
 from app.models.registration import RegistrationStatus, StudentRegistration
 from app.models.user import User, UserType
+from app.models.registration import RegistrationStatus
 from app.schemas.notice import NoticeCreate
 from app.schemas.review_registration import ReviewRegistrationCreate
 from app.schemas.student_registration import (
@@ -280,7 +281,7 @@ class Seeder:
                 else self.coordinator
             )
 
-            await StudentRegistrationService.update_registration(
+            await StudentRegistrate_registration(
                 self.db,
                 registration_id=registration.id,
                 registration_data=StudentRegistrationUpdate(status=new_status),
