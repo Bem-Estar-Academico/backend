@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.notice import Document, Notice, NoticeTeam
 from app.schemas.notice import NoticeCreate, NoticeUpdate
+from app.core.storage_factory import get_storage_manager
 
 
 class NoticeService:
@@ -177,14 +178,14 @@ class NoticeService:
         filename: str,
         content_type: str,
     ) -> Optional[Document]:
-        from app.core.s3_manager import s3_manager
+        storage_manager = get_storage_manager()
 
         notice = await NoticeService.get_notice_by_id(db, notice_id)
         if not notice:
             return None
 
         try:
-            file_key = s3_manager.upload_file(file_content, filename, content_type)
+            file_key = storage_manager.upload_file(file_content, filename, content_type)
 
             db_document = Document(
                 notice_id=notice_id,
@@ -206,7 +207,7 @@ class NoticeService:
 
     @staticmethod
     async def delete_document(db: AsyncSession, document_id: int) -> bool:
-        from app.core.s3_manager import s3_manager
+        storage_manager = get_storage_manager()
 
         result = await db.execute(select(Document).where(Document.id == document_id))
         document = result.scalar_one_or_none()
@@ -214,7 +215,7 @@ class NoticeService:
         if not document:
             return False
 
-        s3_manager.delete_file(document.file_key)
+        storage_manager.delete_file(document.file_key)
 
         await db.delete(document)
         await db.commit()
@@ -225,12 +226,13 @@ class NoticeService:
     async def get_document_download_url(
         db: AsyncSession, document_id: int, expiration: int = 3600
     ) -> Optional[str]:
-        from app.core.s3_manager import s3_manager
-
+        storage_manager = get_storage_manager()
+        
+        # First, get the document
         result = await db.execute(select(Document).where(Document.id == document_id))
         document = result.scalar_one_or_none()
 
         if not document:
             return None
-
-        return s3_manager.generate_presigned_download_url(document.file_key, expiration)
+        
+        return storage_manager.generate_signed_url(document.file_key, expiration)

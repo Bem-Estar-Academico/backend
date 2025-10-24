@@ -45,9 +45,13 @@ class Document(Base):
     @property
     def file_url(self) -> str:
         """Generate a signed URL for the document."""
-        from app.core.s3_manager import s3_manager
-
-        return s3_manager.generate_presigned_download_url(self.file_key)
+        from app.core.storage_factory import get_storage_manager
+        
+        try:
+            storage_manager = get_storage_manager()
+            return storage_manager.generate_signed_url(self.file_key)
+        except Exception:
+            return ""
 
 
 class NoticeTeam(Base):
