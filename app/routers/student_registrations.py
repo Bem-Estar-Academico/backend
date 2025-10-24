@@ -290,7 +290,6 @@ async def delete_student_registration(
 
     Args:
         student_registration_id (int): The ID of the registration to delete.
-        student_registration_id (int): The ID of the registration to delete.
         current_user (User): The authenticated user.
         db (AsyncSession): The database session.
 
