@@ -323,7 +323,7 @@ async def get_team_to_notice(
         HTTPException: If the notice with the given ID is not found.
 
     Returns:
-        List[UserFormatTeam]: A list of team member objects.
+        List[TeamMemberResponse]: A list of team member objects.
     """
     
     existing_notice = await NoticeService.get_notice_by_id(db, notice_id)
