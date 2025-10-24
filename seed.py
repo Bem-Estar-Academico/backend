@@ -2,53 +2,55 @@ import asyncio
 import random
 from datetime import datetime, timedelta, timezone
 import logging
+from typing import List
 
 from faker import Faker
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import AsyncSessionLocal as SessionLocal
+from app.models.notice import Notice
+from app.models.registration import RegistrationStatus, StudentRegistration
 from app.models.user import User, UserType
 from app.models.registration import RegistrationStatus
 from app.schemas.notice import NoticeCreate
+from app.schemas.review_registration import ReviewRegistrationCreate
 from app.schemas.student_registration import (
-    StudentRegistrationBase,
+    StudentRegistrationCreate,
     StudentRegistrationUpdate,
 )
 from app.schemas.user import UserCreate
 from app.services.notice_service import NoticeService
+from app.services.review_registration_service import ReviewRegistrationService
 from app.services.student_registration_service import StudentRegistrationService
 from app.services.user_service import UserService
 
-# Configuração de Logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-# --- Constantes ---
 NUM_STUDENTS = 50
 NUM_NOTICES = 10
 MAX_REGISTRATIONS_PER_NOTICE = 30
 MIN_REGISTRATIONS_PER_NOTICE = 15
+NUM_SOCIAL_WORKERS = 5
 
 
 class DataProvider:
-    """Fornece dados de teste gerados pelo Faker."""
-
     def __init__(self):
         self.fake = Faker("pt_BR")
 
     def get_user(self, user_type: UserType) -> UserCreate:
-        """Gera um novo usuário com dados aleatórios."""
-        email = (
-            f"coordinator.seed.{self.fake.unique.user_name()}@example.com"
-            if user_type == UserType.COORDINATOR
-            else self.fake.unique.email()
-        )
-        full_name = self.fake.name()
+        if user_type == UserType.COORDINATOR:
+            email = f"coordinator.seed.{self.fake.unique.user_name()}@example.com"
+        elif user_type == UserType.SOCIAL_WORKER:
+            email = f"social.worker.seed.{self.fake.unique.user_name()}@example.com"
+        else:
+            email = self.fake.unique.email()
+
         return UserCreate(
             email=email,
-            full_name=full_name,
+            full_name=self.fake.name(),
             user_type=user_type,
             password="password123",
             registration_number=(
@@ -60,10 +62,7 @@ class DataProvider:
         )
 
     def get_notice(self) -> NoticeCreate:
-        """Gera um novo edital com dados aleatórios."""
-        start_date = datetime.now() + timedelta(
-            days=-10
-        )
+        start_date = datetime.now() + timedelta(days=-10)
         return NoticeCreate(
             title=f"Edital de Cadastramento Socioeconômico {self.fake.year()}",
             registration_start_date=start_date,
@@ -72,28 +71,41 @@ class DataProvider:
             food_allowance=random.choice([True, False]),
             housing_allowance=random.choice([True, False]),
             daycare_allowance=random.choice([True, False]),
+            appeal_start_date=datetime.now(timezone.utc) + timedelta(days=1),
+            appeal_end_date=datetime.now(timezone.utc) + timedelta(days=11),
+            preliminary_result_date=datetime.now(timezone.utc) + timedelta(days=12),
+            final_result_date=datetime.now(timezone.utc) + timedelta(days=22),
             graduation_scholarship=random.choice([True, False]),
             team_members=[],
         )
 
-    def get_registration(self, notice_id: int) -> StudentRegistrationBase:
-        """Gera uma nova inscrição em edital."""
-        return StudentRegistrationBase(notice_id=notice_id, answer={"a": [self.fake.sentence() for a in range(1, 6)], "b": self.fake.paragraph()})
+    def get_registration(self) -> StudentRegistrationCreate:
+        return StudentRegistrationCreate(
+            answer={
+                "a": [self.fake.sentence() for _ in range(1, 6)],
+                "b": self.fake.paragraph(),
+            }
+        )
+
+    def get_review(self) -> ReviewRegistrationCreate:
+        return ReviewRegistrationCreate(
+            review={"notes": self.fake.paragraph()},
+            ivs=round(random.uniform(65, 175), 2),
+        )
 
 
 class Seeder:
-    """Orquestra o processo de popular o banco de dados."""
-
     def __init__(self, db: AsyncSession):
         self.db = db
         self.provider = DataProvider()
         self.coordinator: User | None = None
+        self.social_workers: list[User] = []
         self.student_ids: list[int] = []
 
     async def clean_database(self):
-        """Limpa as tabelas relevantes do banco de dados."""
         logging.info("Limpando o banco de dados...")
         tables_to_truncate = [
+            "review_registrations",
             "student_registrations",
             "notice_teams",
             "notice_documents",
@@ -106,8 +118,10 @@ class Seeder:
                 )
                 logging.info(f"  - Tabela '{table}' limpa.")
 
-            await self.db.execute(text("DELETE FROM users WHERE user_type = 'STUDENT';"))
-            logging.info("  - Usuários do tipo 'STUDENT' deletados.")
+            await self.db.execute(
+                text("DELETE FROM users WHERE user_type IN ('STUDENT', 'SOCIAL_WORKER');")
+            )
+            logging.info("  - Usuários dos tipos 'STUDENT' e 'SOCIAL_WORKER' deletados.")
 
             await self.db.commit()
             logging.info("Limpeza do banco de dados concluída com sucesso.")
@@ -117,7 +131,6 @@ class Seeder:
             raise
 
     async def _get_or_create_coordinator(self) -> User:
-        """Obtém ou cria o usuário coordenador."""
         logging.info("Verificando/criando usuário coordenador...")
         coordinator_email = "coordinator.seed@example.com"
         user = await UserService.get_user_by_email(self.db, coordinator_email)
@@ -126,13 +139,37 @@ class Seeder:
             return user
 
         user_data = self.provider.get_user(UserType.COORDINATOR)
-        user_data.email = coordinator_email # Garante o e-mail padrão
+        user_data.email = coordinator_email
         user = await UserService.create_user(self.db, user_data)
         logging.info(f"Coordenador criado: {user.full_name} (ID: {user.id})")
         return user
 
+    async def _get_or_create_social_workers(self, num_social_workers: int):
+        logging.info(f"Criando {num_social_workers} assistentes sociais...")
+        for i in range(num_social_workers):
+            user_data = self.provider.get_user(UserType.SOCIAL_WORKER)
+            try:
+                user = await UserService.get_user_by_email(self.db, user_data.email)
+                if not user:
+                    user = await UserService.create_user(self.db, user_data)
+                    logging.info(
+                        f"  [{i+1:02d}/{num_social_workers}] {user.full_name} criado."
+                    )
+                else:
+                    logging.info(
+                        f"  [{i+1:02d}/{num_social_workers}] {user.full_name} já existe."
+                    )
+                self.social_workers.append(user)
+            except Exception as e:
+                logging.error(
+                    f"Erro ao criar assistente social {user_data.email}: {e}"
+                )
+        if not self.social_workers:
+            raise Exception(
+                "Nenhum assistente social disponível para semear avaliações."
+            )
+
     async def seed_students(self, num_students: int):
-        """Cria um número especificado de estudantes."""
         logging.info(f"Criando {num_students} estudantes...")
         created_count = 0
         for i in range(num_students):
@@ -145,19 +182,19 @@ class Seeder:
                     f"  [{i+1:02d}/{num_students}] {user.full_name:<30} | {user_data.registration_number}"
                 )
             except ValueError:
-                logging.warning(f"E-mail/CPF/Matrícula duplicado para: {user_data.email}. Ignorando.")
+                logging.warning(
+                    f"E-mail/CPF/Matrícula duplicado para: {user_data.email}. Ignorando."
+                )
             except Exception as e:
                 logging.error(f"Erro ao criar estudante {user_data.email}: {e}")
         logging.info(f"Total de estudantes criados nesta execução: {created_count}")
 
-
-    async def seed_notices(self, num_notices: int) -> list[User]:
-        """Cria um número especificado de editais."""
+    async def seed_notices(self, num_notices: int) -> list[Notice]:
         if not self.coordinator:
             raise ValueError("Coordenador não foi definido.")
 
         logging.info(f"Criando {num_notices} editais...")
-        notices = []
+        notices: List[Notice] = []
         for i in range(num_notices):
             notice_data = self.provider.get_notice()
             try:
@@ -170,8 +207,7 @@ class Seeder:
                 logging.error(f"Erro ao criar edital: {e}")
         return notices
 
-    async def seed_registrations(self, notices: list[User]):
-        """Cria inscrições para os editais fornecidos."""
+    async def seed_registrations(self, notices: list[Notice]):
         if not self.coordinator:
             raise ValueError("Coordenador não foi definido.")
 
@@ -180,20 +216,37 @@ class Seeder:
         status_counts: dict[str, int] = {}
 
         for notice in notices:
-            num_regs = random.randint(MIN_REGISTRATIONS_PER_NOTICE, MAX_REGISTRATIONS_PER_NOTICE)
-            registered_students = random.sample(self.student_ids, min(num_regs, len(self.student_ids)))
+            num_regs = random.randint(
+                MIN_REGISTRATIONS_PER_NOTICE,
+                MAX_REGISTRATIONS_PER_NOTICE,
+            )
+            registered_students = random.sample(
+                self.student_ids, min(num_regs, len(self.student_ids))
+            )
 
             for student_id in registered_students:
                 try:
-                    reg_data = self.provider.get_registration(notice.id)
-                    registration = await StudentRegistrationService.create_registration(
-                       notice_id=notice.id, db=self.db, registration_data=reg_data, student=await UserService.get_user_by_id(self.db, student_id)
+                    reg_data = self.provider.get_registration()
+                    student = await UserService.get_user_by_id(self.db, student_id)
+                    if not student:
+                        continue
+                    registration = (
+                        await StudentRegistrationService.create_registration(
+                            notice_id=notice.id,
+                            db=self.db,
+                            registration_data=reg_data,
+                            student=student,
+                        )
                     )
                     final_status = await self._randomly_update_status(registration)
-                    status_counts[final_status] = status_counts.get(final_status, 0) + 1
+                    status_counts[final_status] = (
+                        status_counts.get(final_status, 0) + 1
+                    )
                     total_registrations += 1
                 except Exception as e:
-                    logging.error(f"Falha ao criar inscrição (student_id={student_id}, notice_id={notice.id}): {e}")
+                    logging.error(
+                        f"Falha ao criar inscrição (student_id={student_id}, notice_id={notice.id}): {e}"
+                    )
 
             logging.info(f"  - Edital: {len(registered_students)} inscrições criadas.")
 
@@ -202,20 +255,31 @@ class Seeder:
         for status, count in sorted(status_counts.items()):
             logging.info(f"  - {status:<10}: {count}")
 
-
-    async def _randomly_update_status(self, registration) -> str:
-        """Decide aleatoriamente se atualiza o status de uma inscrição."""
+    async def _randomly_update_status(
+        self, registration: StudentRegistration
+    ) -> str:
         if not self.coordinator:
             raise ValueError("Coordenador não foi definido.")
 
-        if random.random() < 0.8:  # 80% de chance de atualizar
-            possible_statuses = [RegistrationStatus.APPROVED, RegistrationStatus.REJECTED]
-            if random.random() < 0.2: # 20% de chance de ser cancelado (dentro dos 80%)
+        if random.random() < 0.8:
+            possible_statuses = [
+                RegistrationStatus.APPROVED,
+                RegistrationStatus.REJECTED,
+            ]
+            if random.random() < 0.2:
                 possible_statuses.append(RegistrationStatus.CANCELLED)
 
             new_status = random.choice(possible_statuses)
-            student = await UserService.get_user_by_id(self.db, registration.student_id)
-            updater = student if new_status == RegistrationStatus.CANCELLED else self.coordinator
+            student = await UserService.get_user_by_id(
+                self.db, registration.student_id
+            )
+            if not student:
+                return registration.status.name
+            updater = (
+                student
+                if new_status == RegistrationStatus.CANCELLED
+                else self.coordinator
+            )
 
             await StudentRegistrationService.update_registration(
                 self.db,
@@ -226,9 +290,39 @@ class Seeder:
             return new_status.name
         return registration.status.name
 
+    async def seed_reviews(self):
+        logging.info("Criando avaliações para as inscrições...")
+        result = await self.db.execute(select(StudentRegistration))
+        registrations = result.scalars().all()
+        review_count = 0
+        for reg in registrations:
+            if reg.status == RegistrationStatus.CANCELLED:
+                continue
+            try:
+                existing_review = (
+                    await ReviewRegistrationService.get_review_by_student_registration_id(
+                        self.db, reg.id
+                    )
+                )
+                if existing_review:
+                    continue
+
+                review_data = self.provider.get_review()
+                social_worker = random.choice(self.social_workers)
+                await ReviewRegistrationService.create_review(
+                    self.db,
+                    social_worker=social_worker,
+                    student_registration_id=reg.id,
+                    review_data=review_data,
+                )
+                review_count += 1
+            except Exception as e:
+                logging.error(
+                    f"Falha ao criar avaliação para inscrição (id={reg.id}): {e}"
+                )
+        logging.info(f"Total de avaliações criadas: {review_count}")
 
     async def run(self):
-        """Executa todo o processo de seeding."""
         logging.info("=" * 60)
         logging.info("INICIANDO SEED DO BANCO DE DADOS")
         logging.info("=" * 60)
@@ -237,14 +331,17 @@ class Seeder:
             await self.clean_database()
             self.coordinator = await self._get_or_create_coordinator()
             await self.seed_students(NUM_STUDENTS)
+            await self._get_or_create_social_workers(NUM_SOCIAL_WORKERS)
 
             if len(self.student_ids) < MIN_REGISTRATIONS_PER_NOTICE:
-                logging.warning(f"Número de estudantes ({len(self.student_ids)}) é menor que o mínimo por edital ({MIN_REGISTRATIONS_PER_NOTICE}).")
-                # Poderia criar mais estudantes aqui se a regra de negócio exigisse
+                logging.warning(
+                    f"Número de estudantes ({len(self.student_ids)}) é menor que o mínimo por edital ({MIN_REGISTRATIONS_PER_NOTICE})."
+                )
 
             notices = await self.seed_notices(NUM_NOTICES)
             if notices:
                 await self.seed_registrations(notices)
+                await self.seed_reviews()
 
             await self.db.commit()
             logging.info("=" * 60)
@@ -259,7 +356,6 @@ class Seeder:
 
 
 async def main():
-    """Ponto de entrada principal para o script de seed."""
     async with SessionLocal() as db:
         seeder = Seeder(db)
         await seeder.run()

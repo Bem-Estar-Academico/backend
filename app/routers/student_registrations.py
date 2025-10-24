@@ -152,6 +152,23 @@ async def get_registrations_by_notice(
     Returns:
         StudentRegistrationList: A list of student registrations for the notice.
     """
+    """
+    Retrieves all student registrations for a specific notice.
+
+    This endpoint is restricted to staff members.
+
+    Args:
+        notice_id (int): The ID of the notice to retrieve registrations for.
+        status_filter (Optional[RegistrationStatus]): Optional. Filter registrations by their status.
+        current_user (User): The authenticated staff user.
+        db (AsyncSession): The database session.
+
+    Raises:
+        HTTPException: If the user is not authorized.
+
+    Returns:
+        StudentRegistrationList: A list of student registrations for the notice.
+    """
     if not current_user.is_staff:
         raise HTTPException(
             status_code=403, detail="Sem permissão para ver inscrições de editais"

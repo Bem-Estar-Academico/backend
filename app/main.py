@@ -12,6 +12,7 @@ from app.routers.auth import router as auth_router
 from app.routers.notices import router as notices_router
 from app.routers.student_registrations import router as student_registrations_router
 from app.routers.users import router as users_router
+from app.routers.ivs import router as ivs_router
 
 # Setup logging first
 setup_logging()
@@ -50,6 +51,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(users_router, prefix=settings.API_V1_STR)
 app.include_router(notices_router, prefix=settings.API_V1_STR)
+app.include_router(ivs_router, prefix=settings.API_V1_STR)
 app.include_router(student_registrations_router, prefix=f"{settings.API_V1_STR}")
 
 

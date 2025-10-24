@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -30,7 +31,7 @@ async def test_list_notices(
 
     response = await client.get("/api/v1/notices/")
     assert response.status_code == 200
-    notices = response.json()
+    notices: List[Dict[str, Any]] = response.json()
     assert isinstance(notices, list)
     assert len(notices) >= 1
     assert any(notice["title"] == "Test Notice for Listing" for notice in notices)
@@ -124,7 +125,6 @@ async def test_get_active_notices(
 ):
     """Test that only active notices are returned."""
     headers = {"Authorization": f"Bearer {coordinator_token}"}
-    # Active notice
     active_notice_data = NoticeCreate(
         title="Active Notice",
         registration_start_date=datetime.now(timezone.utc) - timedelta(days=1),
@@ -140,8 +140,7 @@ async def test_get_active_notices(
         json=active_notice_data.model_dump(mode="json"),
         headers=headers,
     )
-
-    # Inactive notice (in the future)
+    
     future_notice_data = NoticeCreate(
         title="Future Notice",
         registration_start_date=datetime.now(timezone.utc) + timedelta(days=5),
@@ -160,7 +159,7 @@ async def test_get_active_notices(
 
     response = await client.get("/api/v1/notices/active")
     assert response.status_code == 200
-    active_notices = response.json()
+    active_notices: List[Dict[str, Any]] = response.json()
     assert isinstance(active_notices, list)
     assert len(active_notices) >= 1
     assert any(notice["title"] == "Active Notice" for notice in active_notices)
@@ -239,7 +238,7 @@ async def test_delete_notice_as_coordinator_in_team(
 @pytest.mark.asyncio
 @patch("app.core.s3_manager.s3_manager", new_callable=MagicMock)
 async def test_upload_document(
-    mock_s3_manager, client: AsyncClient, coordinator_token: str
+    mock_s3_manager: MagicMock, client: AsyncClient, coordinator_token: str
 ):
     """Test uploading a document to a notice."""
     mock_s3_manager.upload_file.return_value = "some_file_key"
