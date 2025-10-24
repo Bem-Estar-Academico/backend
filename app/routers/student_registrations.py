@@ -256,7 +256,6 @@ async def update_student_registration(
 
     Args:
         student_registration_id (int): The ID of the registration to update.
-        student_registration_id (int): The ID of the registration to update.
         registration_data (StudentRegistrationUpdate): The updated data for the registration.
         current_user (User): The authenticated user.
         db (AsyncSession): The database session.
