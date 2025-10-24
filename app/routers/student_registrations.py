@@ -26,7 +26,6 @@ from app.schemas.student_registration import (
 )
 from app.schemas.user import UserType
 from app.services.review_registration_service import ReviewRegistrationService
-from app.services.review_registration_service import ReviewRegistrationService
 from app.services.student_registration_service import StudentRegistrationService
 
 router = APIRouter(prefix="/student-registrations", tags=["student-registrations"])
