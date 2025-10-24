@@ -1,20 +1,26 @@
+import urllib.parse
 import uuid
 from datetime import datetime
 from typing import Dict, Optional
 
 import boto3
+from botocore.config import Config
 from botocore.exceptions import ClientError, NoCredentialsError
 
 from app.core.config import settings
+from app.core.storage_interface import StorageInterface
 
 
-class S3Manager:
+class S3Manager(StorageInterface):
 
     def __init__(self):
+        config = Config(signature_version="s3v4", s3={"addressing_style": "path"})
+
         client_args = {
             "aws_access_key_id": settings.AWS_ACCESS_KEY_ID,
             "aws_secret_access_key": settings.AWS_SECRET_ACCESS_KEY,
             "region_name": settings.AWS_REGION,
+            "config": config,
         }
 
         if settings.S3_ENDPOINT_URL:
@@ -76,15 +82,32 @@ class S3Manager:
         self, file_key: str, expiration: int = 3600
     ) -> str:
         try:
+            clean_file_key = file_key.lstrip("/")
+
             url = self.s3_client.generate_presigned_url(
                 "get_object",
-                Params={"Bucket": self.bucket_name, "Key": file_key},
+                Params={"Bucket": self.bucket_name, "Key": clean_file_key},
                 ExpiresIn=expiration,
+                HttpMethod="GET",
             )
+
+            if settings.S3_ENDPOINT_URL and "supabase" in settings.S3_ENDPOINT_URL:
+                if not url or "Missing signature" in url:
+                    encoded_key = urllib.parse.quote(clean_file_key, safe="/")
+                    url = f"{settings.S3_ENDPOINT_URL.rstrip('/')}/{self.bucket_name}/{encoded_key}"
+
             return url
 
         except (ClientError, NoCredentialsError) as e:
+            if settings.S3_ENDPOINT_URL and "supabase" in settings.S3_ENDPOINT_URL:
+                clean_file_key = file_key.lstrip("/")
+                encoded_key = urllib.parse.quote(clean_file_key, safe="/")
+                return f"{settings.S3_ENDPOINT_URL.rstrip('/')}/{self.bucket_name}/{encoded_key}"
+
             raise Exception(f"Error generating presigned download URL: {str(e)}")
+
+    def generate_signed_url(self, file_key: str, expiration: int = 3600) -> str:
+        return self.generate_presigned_download_url(file_key, expiration)
 
     def delete_file(self, file_key: str) -> bool:
         try:
