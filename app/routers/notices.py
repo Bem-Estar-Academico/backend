@@ -11,62 +11,15 @@ from typing import List, Optional, Sequence
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.dependencies import require_coordinator
 from app.db.database import get_db
-from app.models.user import User, UserType
-from app.routers.auth import get_current_user
+from app.models.user import User
 from app.schemas.notice import DocumentWithUrl
 from app.schemas.notice import Notice as NoticeSchema
 from app.schemas.notice import NoticeCreate, NoticeTeamMember, NoticeUpdate
 from app.services.notice_service import NoticeService
 
 router = APIRouter(prefix="/notices", tags=["notices"])
-
-
-async def require_coordinator(current_user: User = Depends(get_current_user)) -> User:
-    """
-    Dependency that checks if the current user is a coordinator.
-
-    This function is used to protect endpoints that should only be accessible
-    by users with the `COORDINATOR` role.
-
-    Args:
-        current_user (User): The authenticated user object.
-
-    Raises:
-        HTTPException: If the current user is not a coordinator, with a 403 Forbidden status.
-
-    Returns:
-        User: The current user object if they are a coordinator.
-    """
-    if current_user.user_type != UserType.COORDINATOR:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only coordinators can perform this action",
-        )
-    return current_user
-
-async def require_staff(current_user: User = Depends(get_current_user)) -> User:
-    """
-    Dependency that checks if the current user is a staff.
-
-    This function is used to protect endpoints that should only be accessible
-    by users with the `STAFF` role.
-
-    Args:
-        current_user (User): The authenticated user object.
-
-    Raises:
-        HTTPException: If the current user is not a staff, with a 403 Forbidden status.
-
-    Returns:
-        User: The current user object if they are a staff.
-    """
-    if not current_user.is_staff:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only staff can perform this action",
-        )
-    return current_user
 
 
 @router.get("/", response_model=List[NoticeSchema])

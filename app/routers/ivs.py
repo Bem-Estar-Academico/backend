@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
-from app.routers.notices import require_staff
+from app.core.dependencies import require_staff
 from app.schemas.ivs import IVSData
 from app.schemas.user import User
 from app.services import ivs_service
