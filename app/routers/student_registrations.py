@@ -79,7 +79,6 @@ async def get_student_registration(
 
     Args:
         student_registration_id (int): The ID of the registration to retrieve.
-        student_registration_id (int): The ID of the registration to retrieve.
         current_user (User): The authenticated user.
         db (AsyncSession): The database session.
 
