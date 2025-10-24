@@ -2,7 +2,7 @@ import enum
 from datetime import datetime
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, JSON
+from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -18,6 +18,7 @@ class RegistrationStatus(enum.Enum):
     REJECTED = "INDEFERIDO"  # Rejeitada
     CANCELLED = "CANCELADO"  # Cancelada pelo estudante
     APPEAL = "RECURSO"  # Em fase de recurso
+
 
 class Document(Base):
     __tablename__ = "notice_documents"
@@ -46,7 +47,49 @@ class Document(Base):
     def file_url(self) -> str:
         """Generate a signed URL for the document."""
         from app.core.storage_factory import get_storage_manager
-        
+
+        try:
+            storage_manager = get_storage_manager()
+            return storage_manager.generate_signed_url(self.file_key)
+        except Exception:
+            return ""
+
+
+class StudentDocument(Base):
+    __tablename__ = "student_documents"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    student_registration_id: Mapped[int] = mapped_column(
+        ForeignKey("student_registrations.id"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(
+        String(255), nullable=False, comment="Nome original do arquivo"
+    )
+    file_key: Mapped[str] = mapped_column(
+        String(512), nullable=False, comment="Chave do arquivo no storage"
+    )
+    file_type: Mapped[Optional[str]] = mapped_column(
+        String(50), nullable=True, comment="MIME type do arquivo"
+    )
+    file_size: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True, comment="Tamanho do arquivo em bytes"
+    )
+    uploaded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    description: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="Descrição adicional do documento"
+    )
+
+    student_registration: Mapped["StudentRegistration"] = relationship(
+        "StudentRegistration", back_populates="documents"
+    )
+
+    @property
+    def file_url(self) -> str:
+        """Generate a signed URL for the document."""
+        from app.core.storage_factory import get_storage_manager
+
         try:
             storage_manager = get_storage_manager()
             return storage_manager.generate_signed_url(self.file_key)
@@ -82,9 +125,7 @@ class Notice(Base):
     )
 
     registration_start_date: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        comment="Data de início das inscrições"
+        DateTime(timezone=True), nullable=False, comment="Data de início das inscrições"
     )
     registration_end_date: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
@@ -177,3 +218,8 @@ class StudentRegistration(Base):
 
     student: Mapped["User"] = relationship("User", foreign_keys=[student_id])
     notice: Mapped["Notice"] = relationship("Notice", back_populates="registrations")
+    documents: Mapped[List["StudentDocument"]] = relationship(
+        "StudentDocument",
+        back_populates="student_registration",
+        cascade="all, delete-orphan",
+    )
