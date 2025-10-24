@@ -49,7 +49,6 @@ async def create_student_registration(
     Args:
         notice_id (int): The ID of the notice to register for.
         registration_data (StudentRegistrationCreate): The registration data, including answers to notice-specific questions.
-        registration_data (StudentRegistrationCreate): The registration data, including answers to notice-specific questions.
         current_user (User): The authenticated student user.
         db (AsyncSession): The database session.
 
