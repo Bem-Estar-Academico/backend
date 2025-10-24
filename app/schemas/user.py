@@ -193,3 +193,16 @@ class TokenData(BaseModel):
     """Schema for token payload data."""
 
     email: Optional[str] = None
+
+class UserFormatTeam(BaseModel):
+    """
+    Schema for formatting user information as part of a team response.
+    Contains a subset of user fields loaded from the database.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: EmailStr
+    full_name: str
+    user_type: UserType
+    is_active: bool

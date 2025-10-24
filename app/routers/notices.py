@@ -18,6 +18,7 @@ from app.schemas.notice import DocumentWithUrl
 from app.schemas.notice import Notice as NoticeSchema
 from app.schemas.notice import NoticeCreate, NoticeTeamMember, NoticeUpdate
 from app.services.notice_service import NoticeService
+from app.schemas.user import User as UserFormatTeam
 
 router = APIRouter(prefix="/notices", tags=["notices"])
 
@@ -303,3 +304,34 @@ async def upload_document_to_notice(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error uploading document: {str(e)}",
         )
+
+@router.get("/{notice_id}/team", response_model=List[UserFormatTeam])
+async def get_team_to_notice(
+    notice_id: int,
+    db: AsyncSession = Depends(get_db),
+    # current_user: User = Depends(require_coordinator),
+) -> List[UserFormatTeam]:
+    """
+    Retrieves the list of team members (coordinators and social workers)
+    associated with a specific notice.
+
+    Args:
+        notice_id (int): The ID of the notice.
+        db (AsyncSession): The database session.
+
+    Raises:
+        HTTPException: If the notice with the given ID is not found.
+
+    Returns:
+        List[NoticeTeamMember]: A list of team member objects.
+    """
+    
+    existing_notice = await NoticeService.get_notice_by_id(db, notice_id)
+    if not existing_notice:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
+        )
+
+    team_members = await NoticeService.get_team_for_notice(db, notice_id=notice_id)
+
+    return [member.user for member in team_members]

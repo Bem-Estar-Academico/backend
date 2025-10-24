@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.notice import Document, Notice, NoticeTeam
-from app.models.user import User, UserType
+from app.models.user import User
 from app.schemas.notice import NoticeCreate, NoticeUpdate
 
 
@@ -374,3 +374,36 @@ class NoticeService:
             return None
 
         return s3_manager.generate_presigned_download_url(document.file_key, expiration)
+    
+    @staticmethod
+    async def get_team_for_notice(db: AsyncSession, notice_id: int) -> List[NoticeTeam]:
+        """
+        Retrieves the list of team members for a specific notice.
+
+        This query eagerly loads the related User object but restricts the
+        loaded fields to id, email, full_name, user_type, and is_active
+        for efficiency, as requested.
+
+        Args:
+            db (AsyncSession): The asynchronous database session.
+            notice_id (int): The ID of the notice.
+
+        Returns:
+            List[NoticeTeam]: A list of NoticeTeam objects, each with
+                              its 'user' attribute partially loaded.
+        """
+        query = (
+            select(NoticeTeam)
+            .where(NoticeTeam.notice_id == notice_id)
+            .options(
+                selectinload(NoticeTeam.user).load_only(
+                    User.id,
+                    User.email,
+                    User.full_name,
+                    User.user_type,
+                    User.is_active,
+                )
+            )
+        )
+        result = await db.execute(query)
+        return list(result.scalars().all())
