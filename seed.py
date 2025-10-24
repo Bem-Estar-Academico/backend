@@ -281,7 +281,7 @@ class Seeder:
                 else self.coordinator
             )
 
-            await StudentRegistrate_registration(
+            await StudentRegistrationService.update_registration(
                 self.db,
                 registration_id=registration.id,
                 registration_data=StudentRegistrationUpdate(status=new_status),

@@ -13,11 +13,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
-from app.models.user import User
 from app.db.database import get_db
 from app.routers.auth import get_current_user
-from app.models.registration import RegistrationStatus
-from app.schemas.review_registration import (ReviewRegistrationCreate, ReviewRegistrationResponse, ReviewRegistrationResponseWithDetails, ReviewRegistrationUpdate)
 from app.models.registration import RegistrationStatus
 from app.schemas.review_registration import (ReviewRegistrationCreate, ReviewRegistrationResponse, ReviewRegistrationResponseWithDetails, ReviewRegistrationUpdate)
 from app.schemas.student_registration import (
@@ -28,7 +25,6 @@ from app.schemas.student_registration import (
     StudentRegistrationCreate,
 )
 from app.schemas.user import UserType
-from app.services.review_registration_service import ReviewRegistrationService
 from app.services.review_registration_service import ReviewRegistrationService
 from app.services.student_registration_service import StudentRegistrationService
 
@@ -52,7 +48,6 @@ async def create_student_registration(
 
     Args:
         notice_id (int): The ID of the notice to register for.
-        registration_data (StudentRegistrationCreate): The registration data, including answers to notice-specific questions.
         registration_data (StudentRegistrationCreate): The registration data, including answers to notice-specific questions.
         current_user (User): The authenticated student user.
         db (AsyncSession): The database session.
@@ -83,7 +78,6 @@ async def get_student_registration(
     Students can only view their own registrations. Staff members can view any registration.
 
     Args:
-        student_registration_id (int): The ID of the registration to retrieve.
         student_registration_id (int): The ID of the registration to retrieve.
         current_user (User): The authenticated user.
         db (AsyncSession): The database session.
@@ -262,7 +256,6 @@ async def update_student_registration(
 
     Args:
         student_registration_id (int): The ID of the registration to update.
-        student_registration_id (int): The ID of the registration to update.
         registration_data (StudentRegistrationUpdate): The updated data for the registration.
         current_user (User): The authenticated user.
         db (AsyncSession): The database session.
@@ -296,7 +289,6 @@ async def delete_student_registration(
     Students can only delete their own registrations. Staff members can delete any registration.
 
     Args:
-        student_registration_id (int): The ID of the registration to delete.
         student_registration_id (int): The ID of the registration to delete.
         current_user (User): The authenticated user.
         db (AsyncSession): The database session.
