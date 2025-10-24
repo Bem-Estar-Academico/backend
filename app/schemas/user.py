@@ -6,7 +6,7 @@ user-related data throughout the application. It includes schemas for base user
 information, user creation, user updates, user responses, and authentication tokens.
 """
 
-from typing import Optional
+from typing import Any, Optional
 from datetime import datetime
 from app.models.user import UserType
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, ValidationInfo
@@ -194,15 +194,16 @@ class TokenData(BaseModel):
 
     email: Optional[str] = None
 
-class UserFormatTeam(BaseModel):
+class TeamMemberResponse(BaseModel):
     """
-    Schema for formatting user information as part of a team response.
-    Contains a subset of user fields loaded from the database.
+    Schema específico para a resposta da rota /notices/{id}/team
     """
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     email: EmailStr
     full_name: str
-    user_type: UserType
     is_active: bool
+    user_type: UserType
+    last_review: Optional[Any] = None
+    progress: int

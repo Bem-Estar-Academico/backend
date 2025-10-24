@@ -1,12 +1,14 @@
 from datetime import datetime, timezone
-from typing import List, Optional
+import random
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.notice import Document, Notice, NoticeTeam
-from app.models.user import User
+from app.models.review import ReviewRegistrationModel
+from app.models.user import User, UserType
 from app.schemas.notice import NoticeCreate, NoticeUpdate
 
 
@@ -376,34 +378,54 @@ class NoticeService:
         return s3_manager.generate_presigned_download_url(document.file_key, expiration)
     
     @staticmethod
-    async def get_team_for_notice(db: AsyncSession, notice_id: int) -> List[NoticeTeam]:
+    async def get_team_for_notice(db: AsyncSession, notice_id: int) -> List[Dict[str, Any]]:
         """
-        Retrieves the list of team members for a specific notice.
+        Retrieves the formatted list of team members for a specific notice.
 
-        This query eagerly loads the related User object but restricts the
-        loaded fields to id, email, full_name, user_type, and is_active
-        for efficiency, as requested.
-
+        Esta consulta agora usa o modelo 'ReviewRegistrationModel' (o nome correto)
+        para buscar a 'last_review' para assistentes sociais.
+        
+        Também seleciona 'created_at' e 'updated_at' para corresponder ao
+        schema de resposta (UserFormatTeam/User) que está sendo usado no router.
+        
         Args:
             db (AsyncSession): The asynchronous database session.
             notice_id (int): The ID of the notice.
 
         Returns:
-            List[NoticeTeam]: A list of NoticeTeam objects, each with
-                              its 'user' attribute partially loaded.
+            List[Dict[str, Any]]: A list of dictionaries, each formatted to match
+                                  the full User schema + 'last_review'.
         """
-        query = (
-            select(NoticeTeam)
-            .where(NoticeTeam.notice_id == notice_id)
-            .options(
-                selectinload(NoticeTeam.user).load_only(
-                    User.id,
-                    User.email,
-                    User.full_name,
-                    User.user_type,
-                    User.is_active,
-                )
-            )
+        
+        sq = (
+            select(ReviewRegistrationModel.updated_at)
+            .where(ReviewRegistrationModel.social_worker_id == User.id)
+            .order_by(ReviewRegistrationModel.updated_at.desc())
+            .limit(1)
+            .as_scalar()
         )
-        result = await db.execute(query)
-        return list(result.scalars().all())
+        
+        q = (
+            select(
+                User.id,
+                User.email,
+                User.full_name,
+                User.is_active,
+                User.user_type,
+                sq.label("last_review")
+            )
+            .join(NoticeTeam, NoticeTeam.user_id == User.id)
+            .where(NoticeTeam.notice_id == notice_id)
+            .order_by(User.full_name)
+        )
+
+        result = await db.execute(q)
+        
+        team_members_formatted = []
+        for row in result.mappings():
+            member_data = dict(row)
+            
+            member_data["progress"] = random.randint(0, 100) # TO DO: logica do progresso
+            team_members_formatted.append(member_data)
+
+        return team_members_formatted
