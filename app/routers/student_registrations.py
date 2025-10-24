@@ -17,8 +17,6 @@ from app.db.database import get_db
 from app.routers.auth import get_current_user
 from app.models.registration import RegistrationStatus
 from app.schemas.review_registration import (ReviewRegistrationCreate, ReviewRegistrationResponse, ReviewRegistrationResponseWithDetails, ReviewRegistrationUpdate)
-from app.models.registration import RegistrationStatus
-from app.schemas.review_registration import (ReviewRegistrationCreate, ReviewRegistrationResponse, ReviewRegistrationResponseWithDetails, ReviewRegistrationUpdate)
 from app.schemas.student_registration import (
     StudentRegistrationList,
     StudentRegistrationResponse,
