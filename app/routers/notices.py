@@ -309,7 +309,7 @@ async def upload_document_to_notice(
 async def get_team_to_notice(
     notice_id: int,
     db: AsyncSession = Depends(get_db),
-    # current_user: User = Depends(require_coordinator),
+    current_user: User = Depends(require_coordinator),
 ) -> List[TeamMemberResponse]:
     """
     Retrieves the list of team members (coordinators and social workers)
