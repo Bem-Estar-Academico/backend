@@ -18,7 +18,7 @@ from app.schemas.notice import DocumentWithUrl
 from app.schemas.notice import Notice as NoticeSchema
 from app.schemas.notice import NoticeCreate, NoticeTeamMember, NoticeUpdate
 from app.services.notice_service import NoticeService
-from app.schemas.user import TeamMemberResponse, User as UserFormatTeam
+from app.schemas.user import TeamMemberResponse
 
 router = APIRouter(prefix="/notices", tags=["notices"])
 

@@ -380,13 +380,7 @@ class NoticeService:
     @staticmethod
     async def get_team_for_notice(db: AsyncSession, notice_id: int) -> List[Dict[str, Any]]:
         """
-        Retrieves the formatted list of team members for a specific notice.
-
-        Esta consulta agora usa o modelo 'ReviewRegistrationModel' (o nome correto)
-        para buscar a 'last_review' para assistentes sociais.
-        
-        Também seleciona 'created_at' e 'updated_at' para corresponder ao
-        schema de resposta (UserFormatTeam/User) que está sendo usado no router.
+        Retrieves the list of team members for a specific notice.
         
         Args:
             db (AsyncSession): The asynchronous database session.
