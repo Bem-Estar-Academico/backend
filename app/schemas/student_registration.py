@@ -1,12 +1,13 @@
 """Schemas for student registration."""
 
 from datetime import datetime
-from typing import Optional, Any, Dict, List
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Any, Dict, List, Optional
 
-from app.schemas.user import UserInfo
-from app.schemas.notice import NoticeInfo
+from pydantic import BaseModel, ConfigDict, Field
+
 from app.models.registration import RegistrationStatus, StudentRegistration
+from app.schemas.notice import NoticeInfo
+from app.schemas.user import UserInfo
 
 
 class StudentRegistrationBase(BaseModel):
@@ -14,16 +15,32 @@ class StudentRegistrationBase(BaseModel):
     Base schema for student registration data.
 
     This schema contains fields that are common during the registration process,
-    such as general observations or answers to registration questions.
+    such as general observations, answers to registration questions, and requested benefits.
 
     Attributes:
         answer (Optional[Dict[str, Any]]): Observations or a dictionary containing
                                            the student's answers to registration-specific questions.
+        requested_food_allowance (bool): Whether the student requested food allowance benefit.
+        requested_housing_allowance (bool): Whether the student requested housing allowance benefit.
+        requested_daycare_allowance (bool): Whether the student requested daycare allowance benefit.
+        requested_graduation_scholarship (bool): Whether the student requested graduation scholarship benefit.
     """
 
     answer: Optional[Dict[str, Any]] = Field(
         None,
-        description="Observações ou respostas fornecidas pelo estudante durante a inscrição"
+        description="Observações ou respostas fornecidas pelo estudante durante a inscrição",
+    )
+    requested_food_allowance: bool = Field(
+        default=False, description="Indica se o estudante solicitou auxílio alimentação"
+    )
+    requested_housing_allowance: bool = Field(
+        default=False, description="Indica se o estudante solicitou auxílio moradia"
+    )
+    requested_daycare_allowance: bool = Field(
+        default=False, description="Indica se o estudante solicitou auxílio creche"
+    )
+    requested_graduation_scholarship: bool = Field(
+        default=False, description="Indica se o estudante solicitou bolsa conclusão"
     )
 
 
@@ -33,6 +50,7 @@ class StudentRegistrationCreate(StudentRegistrationBase):
 
     Inherits all base fields since no additional fields are required at creation time.
     """
+
     pass
 
 
@@ -103,7 +121,9 @@ class StudentRegistrationWithDetails(StudentRegistrationResponse):
     model_config = ConfigDict(from_attributes=True)
 
     @classmethod
-    def from_model(cls, registration_model: StudentRegistration) -> "StudentRegistrationWithDetails":
+    def from_model(
+        cls, registration_model: StudentRegistration
+    ) -> "StudentRegistrationWithDetails":
         """
         Factory method to create the schema instance from a SQLAlchemy model instance.
         It handles the conversion of related models (`student` and `notice`) to their

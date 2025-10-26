@@ -9,15 +9,15 @@ and student registrations, storing the review details and the calculated IVS.
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from sqlalchemy import Boolean, JSON, DateTime, ForeignKey, Numeric
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.models.base import Base
 
 if TYPE_CHECKING:
-    from app.models.user import User
     from app.models.registration import StudentRegistration
+    from app.models.user import User
 
 
 class ReviewRegistrationModel(Base):
@@ -70,8 +70,7 @@ class ReviewRegistrationModel(Base):
         nullable=False,
         comment="Calculated Vulnerability Score (IVS)",
     )
-    
-    # Aprovação de benefícios pelo assistente social
+
     approved_food_allowance: Mapped[Optional[bool]] = mapped_column(
         Boolean,
         nullable=True,
