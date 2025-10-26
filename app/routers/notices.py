@@ -6,48 +6,66 @@ It also includes endpoints for managing documents and team members associated wi
 and enforces role-based access control for certain operations.
 """
 
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Union
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import require_coordinator
+from app.core.dependencies import get_current_user, require_coordinator
 from app.db.database import get_db
-from app.models.user import User
+from app.models.user import User, UserType
 from app.schemas.notice import DocumentWithUrl
 from app.schemas.notice import Notice as NoticeSchema
-from app.schemas.notice import NoticeCreate, NoticeTeamMember, NoticeUpdate
-from app.services.notice_service import NoticeService
+from app.schemas.notice import (
+    NoticeCreate,
+    NoticeForStudent,
+    NoticeTeamMember,
+    NoticeUpdate,
+)
 from app.schemas.user import TeamMemberResponse
+from app.services.notice_service import NoticeService
 
 router = APIRouter(prefix="/notices", tags=["notices"])
 
 
-@router.get("/", response_model=List[NoticeSchema])
+@router.get("/", response_model=Union[List[NoticeSchema], List[NoticeForStudent]])
 async def list_notices(
     skip: int = 0,
     limit: int = 100,
     year: Optional[int] = None,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> Sequence[NoticeSchema]:
+) -> Union[Sequence[NoticeSchema], List[NoticeForStudent]]:
     """
     Retrieves a list of notices.
+
+    For students, returns notices with registration status and without team_members.
+    For coordinators/admins, returns full notice data including team_members.
 
     Args:
         skip (int): The number of items to skip (for pagination).
         limit (int): The maximum number of items to return (for pagination).
         year (Optional[int]): Optional. Filter notices by year.
+        current_user (User): The authenticated user.
         db (AsyncSession): The database session.
 
     Returns:
-        Sequence[NoticeSchema]: A list of notice objects.
+        Union[Sequence[NoticeSchema], List[NoticeForStudent]]: A list of notice objects.
     """
+    if current_user.user_type == UserType.STUDENT:
+        notices_with_status = await NoticeService.get_notices_for_student(
+            db, student_id=current_user.id, skip=skip, limit=limit, year=year
+        )
+        return [NoticeForStudent(**notice) for notice in notices_with_status]
+
     notices = await NoticeService.get_notices(db, skip=skip, limit=limit, year=year)
     return notices
 
 
 @router.get("/active", response_model=List[NoticeSchema])
-async def get_active_notices(db: AsyncSession = Depends(get_db)) -> Sequence[NoticeSchema]:
+async def get_active_notices(
+    db: AsyncSession = Depends(get_db),
+) -> Sequence[NoticeSchema]:
     """
     Retrieves a list of currently active notices.
 
@@ -62,7 +80,9 @@ async def get_active_notices(db: AsyncSession = Depends(get_db)) -> Sequence[Not
 
 
 @router.get("/year/{year}", response_model=List[NoticeSchema])
-async def get_notices_by_year(year: int, db: AsyncSession = Depends(get_db)) -> Sequence[NoticeSchema]:
+async def get_notices_by_year(
+    year: int, db: AsyncSession = Depends(get_db)
+) -> Sequence[NoticeSchema]:
     """
     Retrieves a list of notices for a specific year.
 
@@ -78,7 +98,9 @@ async def get_notices_by_year(year: int, db: AsyncSession = Depends(get_db)) -> 
 
 
 @router.get("/{notice_id}", response_model=NoticeSchema)
-async def get_notice(notice_id: int, db: AsyncSession = Depends(get_db)) -> NoticeSchema:
+async def get_notice(
+    notice_id: int, db: AsyncSession = Depends(get_db)
+) -> NoticeSchema:
     """
     Retrieves a single notice by its ID.
 
@@ -227,9 +249,7 @@ async def add_team_member_to_notice(
             status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
         )
 
-    team_member = await NoticeService.add_team_member_to_notice(
-        db, notice_id, user_id
-    )
+    team_member = await NoticeService.add_team_member_to_notice(db, notice_id, user_id)
     if not team_member:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -305,6 +325,7 @@ async def upload_document_to_notice(
             detail=f"Error uploading document: {str(e)}",
         )
 
+
 @router.get("/{notice_id}/team", response_model=List[TeamMemberResponse])
 async def get_team_to_notice(
     notice_id: int,
@@ -325,7 +346,7 @@ async def get_team_to_notice(
     Returns:
         List[TeamMemberResponse]: A list of team member objects.
     """
-    
+
     existing_notice = await NoticeService.get_notice_by_id(db, notice_id)
     if not existing_notice:
         raise HTTPException(
