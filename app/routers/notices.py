@@ -1,26 +1,26 @@
-from typing import Any, List, Optional
+"""Router for managing notices and related operations."""
+
+"""
+This module defines the API endpoints for creating, retrieving, updating, and deleting notices.
+It also includes endpoints for managing documents and team members associated with notices,
+and enforces role-based access control for certain operations.
+"""
+
+from typing import List, Optional, Sequence
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.dependencies import require_coordinator
 from app.db.database import get_db
-from app.models.user import User, UserType
-from app.routers.auth import get_current_user
+from app.models.user import User
 from app.schemas.notice import DocumentWithUrl
 from app.schemas.notice import Notice as NoticeSchema
 from app.schemas.notice import NoticeCreate, NoticeTeamMember, NoticeUpdate
 from app.services.notice_service import NoticeService
+from app.schemas.user import TeamMemberResponse
 
 router = APIRouter(prefix="/notices", tags=["notices"])
-
-
-async def require_coordinator(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.user_type != UserType.COORDINATOR:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only coordinators can perform this action",
-        )
-    return current_user
 
 
 @router.get("/", response_model=List[NoticeSchema])
@@ -29,25 +29,69 @@ async def list_notices(
     limit: int = 100,
     year: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
-) -> Any:
+) -> Sequence[NoticeSchema]:
+    """
+    Retrieves a list of notices.
+
+    Args:
+        skip (int): The number of items to skip (for pagination).
+        limit (int): The maximum number of items to return (for pagination).
+        year (Optional[int]): Optional. Filter notices by year.
+        db (AsyncSession): The database session.
+
+    Returns:
+        Sequence[NoticeSchema]: A list of notice objects.
+    """
     notices = await NoticeService.get_notices(db, skip=skip, limit=limit, year=year)
     return notices
 
 
 @router.get("/active", response_model=List[NoticeSchema])
-async def get_active_notices(db: AsyncSession = Depends(get_db)) -> Any:
+async def get_active_notices(db: AsyncSession = Depends(get_db)) -> Sequence[NoticeSchema]:
+    """
+    Retrieves a list of currently active notices.
+
+    Args:
+        db (AsyncSession): The database session.
+
+    Returns:
+        Sequence[NoticeSchema]: A list of active notice objects.
+    """
     notices = await NoticeService.get_active_notices(db)
     return notices
 
 
 @router.get("/year/{year}", response_model=List[NoticeSchema])
-async def get_notices_by_year(year: int, db: AsyncSession = Depends(get_db)) -> Any:
+async def get_notices_by_year(year: int, db: AsyncSession = Depends(get_db)) -> Sequence[NoticeSchema]:
+    """
+    Retrieves a list of notices for a specific year.
+
+    Args:
+        year (int): The year to filter notices by.
+        db (AsyncSession): The database session.
+
+    Returns:
+        Sequence[NoticeSchema]: A list of notice objects for the specified year.
+    """
     notices = await NoticeService.get_notices_by_year(db, year)
     return notices
 
 
 @router.get("/{notice_id}", response_model=NoticeSchema)
-async def get_notice(notice_id: int, db: AsyncSession = Depends(get_db)) -> Any:
+async def get_notice(notice_id: int, db: AsyncSession = Depends(get_db)) -> NoticeSchema:
+    """
+    Retrieves a single notice by its ID.
+
+    Args:
+        notice_id (int): The ID of the notice to retrieve.
+        db (AsyncSession): The database session.
+
+    Raises:
+        HTTPException: If the notice with the given ID is not found.
+
+    Returns:
+        NoticeSchema: The notice object.
+    """
     notice = await NoticeService.get_notice_by_id(db, notice_id)
     if not notice:
         raise HTTPException(
@@ -61,7 +105,20 @@ async def create_notice(
     notice_data: NoticeCreate,
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
-) -> Any:
+) -> NoticeSchema:
+    """
+    Creates a new notice.
+
+    This endpoint is restricted to coordinator users.
+
+    Args:
+        notice_data (NoticeCreate): The data for creating the new notice.
+        current_user (User): The authenticated coordinator user.
+        db (AsyncSession): The database session.
+
+    Returns:
+        NoticeSchema: The newly created notice object.
+    """
     notice = await NoticeService.create_notice(db, notice_data, current_user.id)
     return notice
 
@@ -72,22 +129,28 @@ async def update_notice(
     notice_update: NoticeUpdate,
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
-) -> Any:
+) -> NoticeSchema:
+    """
+    Updates an existing notice.
+
+    This endpoint is restricted to coordinator users who are part of the notice's team.
+
+    Args:
+        notice_id (int): The ID of the notice to update.
+        notice_update (NoticeUpdate): The updated data for the notice.
+        current_user (User): The authenticated coordinator user.
+        db (AsyncSession): The database session.
+
+    Raises:
+        HTTPException: If the notice is not found or the user is not authorized.
+
+    Returns:
+        NoticeSchema: The updated notice object.
+    """
     existing_notice = await NoticeService.get_notice_by_id(db, notice_id)
     if not existing_notice:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
-        )
-
-    user_in_team = any(
-        member.user_id == current_user.id and member.role == UserType.COORDINATOR.value
-        for member in existing_notice.team_members
-    )
-
-    if not user_in_team:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only update notices where you are a coordinator",
         )
 
     notice = await NoticeService.update_notice(db, notice_id, notice_update)
@@ -101,22 +164,27 @@ async def delete_notice(
     notice_id: int,
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
-) -> Any:
+) -> None:
+    """
+    Deletes a notice by its ID.
+
+    This endpoint is restricted to coordinator users who are part of the notice's team.
+
+    Args:
+        notice_id (int): The ID of the notice to delete.
+        current_user (User): The authenticated coordinator user.
+        db (AsyncSession): The database session.
+
+    Raises:
+        HTTPException: If the notice is not found or the user is not authorized.
+
+    Returns:
+        None
+    """
     existing_notice = await NoticeService.get_notice_by_id(db, notice_id)
     if not existing_notice:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
-        )
-
-    user_in_team = any(
-        member.user_id == current_user.id and member.role == UserType.COORDINATOR.value
-        for member in existing_notice.team_members
-    )
-
-    if not user_in_team:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only delete notices where you are a coordinator",
         )
 
     success = await NoticeService.delete_notice(db, notice_id)
@@ -128,19 +196,30 @@ async def delete_notice(
     return
 
 
-@router.post("/{notice_id}/team", response_model=NoticeTeamMember)
+@router.post("/{notice_id}/team/{user_id}", response_model=NoticeTeamMember)
 async def add_team_member_to_notice(
     notice_id: int,
     user_id: int,
-    role: str,
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
-) -> Any:
-    if role not in [UserType.COORDINATOR.value, UserType.SOCIAL_WORKER.value]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Role must be COORDINATOR or SOCIAL_WORKER",
-        )
+) -> NoticeTeamMember:
+    """
+    Adds a team member (coordinator or social worker) to a specific notice.
+
+    This endpoint is restricted to coordinator users.
+
+    Args:
+        notice_id (int): The ID of the notice to add the team member to.
+        user_id (int): The ID of the user to add as a team member.
+        current_user (User): The authenticated coordinator user.
+        db (AsyncSession): The database session.
+
+    Raises:
+        HTTPException: If the notice is not found, the role is invalid, or the user is already in the team.
+
+    Returns:
+        NoticeTeamMember: The newly added notice team member object.
+    """
 
     existing_notice = await NoticeService.get_notice_by_id(db, notice_id)
     if not existing_notice:
@@ -149,7 +228,7 @@ async def add_team_member_to_notice(
         )
 
     team_member = await NoticeService.add_team_member_to_notice(
-        db, notice_id, user_id, role
+        db, notice_id, user_id
     )
     if not team_member:
         raise HTTPException(
@@ -166,7 +245,24 @@ async def upload_document_to_notice(
     file: UploadFile = File(...),
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
-) -> Any:
+) -> DocumentWithUrl:
+    """
+    Uploads a document and associates it with a specific notice.
+
+    This endpoint is restricted to coordinator users.
+
+    Args:
+        notice_id (int): The ID of the notice to associate the document with.
+        file (UploadFile): The document file to upload.
+        current_user (User): The authenticated coordinator user.
+        db (AsyncSession): The database session.
+
+    Raises:
+        HTTPException: If the notice is not found, filename is missing, file size exceeds limit, or upload fails.
+
+    Returns:
+        DocumentWithUrl: The uploaded document's information, including a presigned URL for download.
+    """
     existing_notice = await NoticeService.get_notice_by_id(db, notice_id)
     if not existing_notice:
         raise HTTPException(
@@ -208,3 +304,34 @@ async def upload_document_to_notice(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error uploading document: {str(e)}",
         )
+
+@router.get("/{notice_id}/team", response_model=List[TeamMemberResponse])
+async def get_team_to_notice(
+    notice_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_coordinator),
+) -> List[TeamMemberResponse]:
+    """
+    Retrieves the list of team members (coordinators and social workers)
+    associated with a specific notice.
+
+    Args:
+        notice_id (int): The ID of the notice.
+        db (AsyncSession): The database session.
+
+    Raises:
+        HTTPException: If the notice with the given ID is not found.
+
+    Returns:
+        List[TeamMemberResponse]: A list of team member objects.
+    """
+    
+    existing_notice = await NoticeService.get_notice_by_id(db, notice_id)
+    if not existing_notice:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
+        )
+
+    team_members = await NoticeService.get_team_for_notice(db, notice_id=notice_id)
+
+    return team_members

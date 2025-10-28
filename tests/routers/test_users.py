@@ -1,3 +1,4 @@
+from typing import Dict, Any
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +24,8 @@ async def test_list_users_as_student(client: AsyncClient, db_session: AsyncSessi
         full_name="Student User",
         user_type=UserType.STUDENT,
         password=student_password,
+        cpf="00000000000",
+        registration_number="00000000"
     )
     await UserService.create_user(db_session, student_data)
     login_data = {"username": student_data.email, "password": student_password}
@@ -43,6 +46,8 @@ async def test_list_users_as_coordinator(client: AsyncClient, db_session: AsyncS
         full_name="Coordinator User",
         user_type=UserType.COORDINATOR,
         password=coordinator_password,
+        cpf=None,
+        registration_number=None
     )
     await UserService.create_user(db_session, coordinator_data)
     social_worker_data = UserCreate(
@@ -50,6 +55,8 @@ async def test_list_users_as_coordinator(client: AsyncClient, db_session: AsyncS
         full_name="Social Worker User",
         user_type=UserType.SOCIAL_WORKER,
         password="swpassword",
+        cpf=None,
+        registration_number=None
     )
     await UserService.create_user(db_session, social_worker_data)
     login_data = {"username": coordinator_data.email, "password": coordinator_password}
@@ -59,7 +66,7 @@ async def test_list_users_as_coordinator(client: AsyncClient, db_session: AsyncS
     response = await client.get("/api/v1/users/", headers=headers)
 
     assert response.status_code == 200
-    users = response.json()
+    users: list[Dict[str, Any]] = response.json()
     assert isinstance(users, list)
     assert len(users) == 1
     assert users[0]["email"] == social_worker_data.email

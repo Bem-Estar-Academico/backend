@@ -1,26 +1,42 @@
-import enum
+"""Module for defining notice-related models."""
+
+"""
+This module defines several SQLAlchemy models related to notices, including:
+- `RegistrationStatus`: An enumeration for the status of student registrations.
+- `Document`: Represents documents associated with a notice.
+- `NoticeTeam`: Represents team members assigned to a specific notice.
+- `Notice`: The main model for notices, containing details about various allowances and dates.
+- `StudentRegistration`: Represents a student's registration for a notice.
+"""
+
 from datetime import datetime
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.models.base import Base
+from app.models.registration import StudentRegistration
 
 if TYPE_CHECKING:
     from app.models.user import User
 
 
-class RegistrationStatus(enum.Enum):
-    PENDING = "PENDENTE"  # Aguardando análise
-    APPROVED = "DEFERIDO"  # Aprovada
-    REJECTED = "INDEFERIDO"  # Rejeitada
-    CANCELLED = "CANCELADO"  # Cancelada pelo estudante
-    APPEAL = "RECURSO"  # Em fase de recurso
-
-
 class Document(Base):
+    """
+    Represents a document associated with a notice.
+
+    Attributes:
+        id (int): Primary key of the document.
+        notice_id (int): Foreign key to the associated notice.
+        name (str): Name of the document.
+        file_key (str): S3 key for the stored file.
+        file_type (Optional[str]): Type of the file (e.g., PDF, DOC).
+        file_size (Optional[int]): Size of the file in bytes.
+        uploaded_at (datetime): Timestamp when the document was uploaded.
+    """
+
     __tablename__ = "notice_documents"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -98,14 +114,26 @@ class StudentDocument(Base):
 
 
 class NoticeTeam(Base):
+    """
+    Represents a team member assigned to a specific notice.
+
+    This model links users (coordinators or social workers) to notices,
+    defining their role within the context of that notice.
+
+    Attributes:
+        id (int): Primary key of the notice team entry.
+        notice_id (int): Foreign key to the associated notice.
+        user_id (int): Foreign key to the assigned user.
+        role (str): The role of the user in the notice (e.g., 'COORDINATOR', 'SOCIAL_WORKER').
+        assigned_at (datetime): Timestamp when the user was assigned to the notice.
+    """
+
     __tablename__ = "notice_teams"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     notice_id: Mapped[int] = mapped_column(ForeignKey("notices.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    role: Mapped[str] = mapped_column(
-        String(50), nullable=False, comment="COORDINATOR ou SOCIAL_WORKER"
-    )
+
     assigned_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -115,14 +143,34 @@ class NoticeTeam(Base):
 
 
 class Notice(Base):
+    """
+    Represents a notice (edital) in the system.
+
+    This model stores all details related to a public notice, including its
+    timeline, available allowances, and associated documents and team members.
+
+    Attributes:
+        id (int): Primary key of the notice.
+        title (str): The title of the notice.
+        registration_start_date (datetime): The start date for student registrations.
+        registration_end_date (Optional[datetime]): The end date for student registrations.
+        appeal_start_date (Optional[datetime]): The start date for the appeal phase.
+        appeal_end_date (Optional[datetime]): The end date for the appeal phase.
+        preliminary_result_date (Optional[datetime]): The date for the preliminary results announcement.
+        final_result_date (Optional[datetime]): The date for the final results announcement.
+        description (str): A detailed description of the notice.
+        food_allowance (bool): Indicates if food allowance is offered.
+        housing_allowance (bool): Indicates if housing allowance is offered.
+        daycare_allowance (bool): Indicates if daycare allowance is offered.
+        graduation_scholarship (bool): Indicates if a graduation scholarship is offered.
+        created_at (datetime): Timestamp of when the notice was created.
+        updated_at (datetime): Timestamp of the last update to the notice.
+    """
+
     __tablename__ = "notices"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
-
-    year: Mapped[int] = mapped_column(
-        Integer, nullable=False, comment="Ano de vigência"
-    )
 
     registration_start_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, comment="Data de início das inscrições"
@@ -186,40 +234,4 @@ class Notice(Base):
     )
     registrations: Mapped[List["StudentRegistration"]] = relationship(
         "StudentRegistration", back_populates="notice", cascade="all, delete-orphan"
-    )
-
-
-class StudentRegistration(Base):
-    __tablename__ = "student_registrations"
-
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    student_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    notice_id: Mapped[int] = mapped_column(ForeignKey("notices.id"), nullable=False)
-    status: Mapped[RegistrationStatus] = mapped_column(
-        Enum(RegistrationStatus), default=RegistrationStatus.PENDING, nullable=False
-    )
-    registration_date: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-    answer: Mapped[Optional[dict]] = mapped_column(
-        JSON,
-        nullable=True,
-        comment="answer está aqui!!!",
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
-    )
-
-    student: Mapped["User"] = relationship("User", foreign_keys=[student_id])
-    notice: Mapped["Notice"] = relationship("Notice", back_populates="registrations")
-    documents: Mapped[List["StudentDocument"]] = relationship(
-        "StudentDocument",
-        back_populates="student_registration",
-        cascade="all, delete-orphan",
     )

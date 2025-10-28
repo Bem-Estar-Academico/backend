@@ -1,17 +1,32 @@
-"""User model."""
+"""Module for defining the User model and related enumerations."""
+
+"""
+This module defines the `User` SQLAlchemy model, representing users in the system,
+and the `UserType` enumeration, which categorizes different types of users.
+It includes fields for user authentication, personal information, and role-based
+properties.
+"""
+"""Module for defining the User model and related enumerations."""
+
+"""
+This module defines the `User` SQLAlchemy model, representing users in the system,
+and the `UserType` enumeration, which categorizes different types of users.
+It includes fields for user authentication, personal information, and role-based
+properties.
+"""
 
 import enum
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional, Dict
 
 from sqlalchemy import Boolean, DateTime, Enum, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.models.base import Base
 
 if TYPE_CHECKING:
-    from app.models.notice import Notice
+    from app.models.review import ReviewRegistrationModel
 
 
 class UserType(enum.Enum):
@@ -24,7 +39,25 @@ class UserType(enum.Enum):
 
 
 class User(Base):
-    """User model."""
+    """
+    Represents a user in the system.
+
+    This model stores user-related information, including authentication credentials,
+    personal details, and role-based attributes. It supports different user types
+    defined by the `UserType` enum.
+
+    Attributes:
+        id (int): Primary key of the user.
+        email (str): Unique email address of the user.
+        full_name (str): Full name of the user.
+        user_type (UserType): The type of user (e.g., STUDENT, COORDINATOR).
+        registration_number (Optional[str]): Student registration number, if applicable.
+        cpf (Optional[str]): CPF of the student, if applicable.
+        hashed_password (str): Hashed password for user authentication.
+        is_active (bool): Indicates if the user account is active.
+        created_at (datetime): Timestamp of when the user account was created.
+        updated_at (datetime): Timestamp of the last update to the user account.
+    """
 
     __tablename__ = "users"
 
@@ -65,33 +98,49 @@ class User(Base):
         nullable=False,
     )
 
+    reviews: Mapped[List["ReviewRegistrationModel"]] = relationship(
+        "ReviewRegistrationModel", back_populates="social_worker"
+    )
+
     @property
     def is_coordinator(self) -> bool:
+        """Checks if the user is a coordinator."""
         return self.user_type == UserType.COORDINATOR
 
     @property
     def is_student(self) -> bool:
+        """Checks if the user is a student."""
         return self.user_type == UserType.STUDENT
 
     @property
     def is_social_worker(self) -> bool:
+        """Checks if the user is a social worker."""
         return self.user_type == UserType.SOCIAL_WORKER
 
     @property
     def is_nti(self) -> bool:
+        """Checks if the user is an NTI member."""
         return self.user_type == UserType.NTI
 
     @property
     def is_staff(self) -> bool:
+        """Checks if the user is a staff member (coordinator, social worker, or NTI)."""
         return self.user_type in [
             UserType.COORDINATOR,
             UserType.SOCIAL_WORKER,
             UserType.NTI,
         ]
 
-    def to_dict(self) -> dict:
-        """Convert user to dictionary."""
-        data = {
+    def to_dict(self) -> Dict[str, object]:
+        """
+        Converts the User object to a dictionary representation.
+
+        Returns:
+            Dict[str, object]: A dictionary containing the user's id, email, full name,
+                               user type, active status, creation and update timestamps.
+                               If the user is a student, it also includes registration number and CPF.
+        """
+        data: Dict[str, object] = {
             "id": self.id,
             "email": self.email,
             "full_name": self.full_name,

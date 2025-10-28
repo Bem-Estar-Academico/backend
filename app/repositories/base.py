@@ -22,8 +22,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     async def get(self, db: AsyncSession, id: Any) -> Optional[ModelType]:
         """Get a single record by ID."""
-        result = await db.execute(select(self.model).where(self.model.id == id))
-        return result.scalar_one_or_none()
+        return await db.get(self.model, id)
 
     async def get_multi(
         self, db: AsyncSession, *, skip: int = 0, limit: int = 100
@@ -62,8 +61,8 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         await db.refresh(db_obj)
         return db_obj
 
-    async def remove(self, db: AsyncSession, *, id: int) -> ModelType:
-        """Remove a record by ID."""
+    async def remove(self, db: AsyncSession, *, id: int) -> Optional[ModelType]:
+        """Remove a record by ID and return the removed object or None if not found."""
         obj = await self.get(db, id)
         if obj:
             await db.delete(obj)

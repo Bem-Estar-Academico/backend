@@ -17,6 +17,8 @@ async def test_login_success(client: AsyncClient, db_session: AsyncSession):
         full_name="Test User Success",
         user_type=UserType.STUDENT,
         password=password,
+        cpf="00000000000",
+        registration_number="11111111"
     )
     await UserService.create_user(db_session, user_data)
 
@@ -40,6 +42,8 @@ async def test_login_wrong_password(client: AsyncClient, db_session: AsyncSessio
         full_name="Test User Wrong Pass",
         user_type=UserType.STUDENT,
         password=password,
+        cpf="00000000000",
+        registration_number="11111111"
     )
     await UserService.create_user(db_session, user_data)
 

@@ -1,15 +1,29 @@
-"""User schemas."""
+"""Module for defining Pydantic schemas for user-related data."""
 
+"""
+This module defines various Pydantic schemas used for validating and serializing
+user-related data throughout the application. It includes schemas for base user
+information, user creation, user updates, user responses, and authentication tokens.
+"""
+
+from typing import Any, Optional
 from datetime import datetime
-from typing import List, Optional
-
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
-
 from app.models.user import UserType
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, ValidationInfo
 
 
 class UserBase(BaseModel):
-    """Base user schema."""
+    """
+    Base schema for user data.
+
+    Attributes:
+        email (EmailStr): The user's email address, which must be unique.
+        full_name (str): The full name of the user.
+        user_type (UserType): The type of user (e.g., STUDENT, COORDINATOR, SOCIAL_WORKER, NTI).
+        is_active (bool): Indicates if the user account is active. Defaults to True.
+        registration_number (Optional[str]): The student's registration number, applicable only for students.
+        cpf (Optional[str]): The student's CPF, applicable only for students.
+    """
 
     email: EmailStr
     full_name: str
@@ -28,7 +42,14 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    """Schema for creating a user."""
+    """
+    Schema for creating a new user.
+
+    Extends `UserBase` by adding a password field and validation for student-specific fields.
+
+    Attributes:
+        password (str): The user's password. Must be at least 8 characters long.
+    """
 
     password: str = Field(
         ..., min_length=8, description="User password (minimum 8 characters)"
@@ -36,12 +57,29 @@ class UserCreate(UserBase):
 
     @field_validator("registration_number", "cpf")
     @classmethod
-    def validate_student_fields(cls, v, info):
-        if v is not None and info.data.get("user_type") != UserType.STUDENT:
+    def validate_student_fields(cls, value: Optional[str], validation_info: ValidationInfo):
+        """
+        Validates that 'registration_number' and 'cpf' are only provided if the user_type is STUDENT.
+
+        Args:
+            value (Optional[str]): The value of the field being validated (registration_number or cpf).
+            validation_info (ValidationInfo): Information about the validation context.
+
+        Raises:
+            ValueError: If 'registration_number' or 'cpf' are provided for a non-student user_type.
+
+        Returns:
+            Optional[str]: The validated field value.
+        """
+        if value is None and validation_info.data.get("user_type") == UserType.STUDENT:
+            raise ValueError(
+                "registration_number and cpf should be provided for students"
+            )
+        if value is not None and validation_info.data.get("user_type") != UserType.STUDENT:
             raise ValueError(
                 "registration_number and cpf can only be provided for students"
             )
-        return v
+        return value
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -59,7 +97,20 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    """Schema for updating a user."""
+    """
+    Schema for updating an existing user's information.
+
+    All fields are optional, allowing for partial updates.
+
+    Attributes:
+        email (Optional[EmailStr]): The user's email address.
+        full_name (Optional[str]): The full name of the user.
+        user_type (Optional[UserType]): The type of user.
+        password (Optional[str]): The user's new password.
+        is_active (Optional[bool]): The active status of the user account.
+        registration_number (Optional[str]): The student's registration number.
+        cpf (Optional[str]): The student's CPF.
+    """
 
     email: Optional[EmailStr] = None
     full_name: Optional[str] = None
@@ -91,7 +142,14 @@ class UserInfo(BaseModel):
 
 
 class User(UserBase):
-    """User schema for responses."""
+    """
+    Full user schema for responses, extending `UserBase` with database-generated fields.
+
+    Attributes:
+        id (int): The unique identifier of the user.
+        created_at (datetime): The timestamp when the user account was created.
+        updated_at (datetime): The timestamp when the user account was last updated.
+    """
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -135,3 +193,17 @@ class TokenData(BaseModel):
     """Schema for token payload data."""
 
     email: Optional[str] = None
+
+class TeamMemberResponse(BaseModel):
+    """
+    Schema específico para a resposta da rota /notices/{id}/team
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: EmailStr
+    full_name: str
+    is_active: bool
+    user_type: UserType
+    last_review: Optional[Any] = None
+    progress: int

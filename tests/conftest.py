@@ -1,10 +1,11 @@
 import asyncio
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator, Generator
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from asyncio import AbstractEventLoop
 from app.db.database import get_db
 from app.models.base import Base
 from app.models.user import UserType
@@ -14,14 +15,14 @@ from tests.database import TestAsyncSessionLocal, test_engine
 
 
 @pytest.fixture(scope="session")
-def event_loop():
+def event_loop() -> Generator[AbstractEventLoop, Any, None]:
     """Create an instance of the default event loop for each test session."""
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_database(event_loop):
+def setup_database(event_loop: AbstractEventLoop):
     """
     Create the database tables before the test session and drop them after.
     """
@@ -38,7 +39,7 @@ def setup_database(event_loop):
 
 
 @pytest.fixture
-async def db_session(setup_database) -> AsyncGenerator[AsyncSession, None]:
+async def db_session() -> AsyncGenerator[AsyncSession, None]:
     """
     Fixture to create a new database session for each test, with a transaction
     that is rolled back at the end of the test.
@@ -87,6 +88,8 @@ async def coordinator_token(client: AsyncClient, db_session: AsyncSession) -> st
         full_name="Test Coordinator",
         user_type=UserType.COORDINATOR,
         password=password,
+        cpf=None,
+        registration_number=None
     )
     return await create_user_and_token(client, db_session, user_data, password)
 
@@ -100,5 +103,7 @@ async def social_worker_token(client: AsyncClient, db_session: AsyncSession) -> 
         full_name="Test Social Worker",
         user_type=UserType.SOCIAL_WORKER,
         password=password,
+        cpf=None,
+        registration_number=None
     )
     return await create_user_and_token(client, db_session, user_data, password)
