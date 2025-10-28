@@ -72,6 +72,12 @@ class ReviewRegistrationModel(Base):
         comment="JSON payload containing the review form data",
     )
     
+    ocr_analisys: Mapped[Dict[str, Any]] = mapped_column(
+        JSON,
+        nullable=False,
+        comment="JSON payload containing the review form data",
+    )
+    
     status: Mapped[RegistrationStatus] = mapped_column(
         Enum(RegistrationStatus), default=RegistrationStatus.PENDING, nullable=False
     )
