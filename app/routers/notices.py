@@ -54,7 +54,7 @@ async def list_notices(
     """
     if current_user.user_type == UserType.STUDENT:
         notices_with_status = await NoticeService.get_notices_for_student(
-            db, student_id=current_user.id, skip=skip, limit=limit, year=year
+            db, student_id=current_user.id, skip=skip, limit=limit
         )
         return [NoticeForStudent(**notice) for notice in notices_with_status]
 
