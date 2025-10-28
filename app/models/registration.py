@@ -2,7 +2,7 @@
 
 import enum
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -11,7 +11,7 @@ from sqlalchemy.sql import func
 from app.models.base import Base
 
 if TYPE_CHECKING:
-    from app.models.notice import Notice
+    from app.models.notice import Notice, StudentDocument
     from app.models.review import ReviewRegistrationModel
     from app.models.user import User
 
@@ -99,9 +99,14 @@ class StudentRegistration(Base):
     )
     student: Mapped["User"] = relationship("User", foreign_keys=[student_id])
     notice: Mapped["Notice"] = relationship("Notice", back_populates="registrations")
-    review: Mapped["ReviewRegistrationModel"] = relationship(
+    review: Mapped[Optional["ReviewRegistrationModel"]] = relationship(
         "ReviewRegistrationModel",
         back_populates="student_registration",
         cascade="all, delete-orphan",
         uselist=False,
+    )
+    documents: Mapped[List["StudentDocument"]] = relationship(
+        "StudentDocument",
+        back_populates="student_registration",
+        cascade="all, delete-orphan",
     )
