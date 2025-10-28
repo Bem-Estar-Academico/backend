@@ -5,10 +5,10 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-
+from app.core.storage_factory import get_storage_manager
 from app.models.notice import Document, Notice, NoticeTeam, StudentRegistration
 from app.models.review import ReviewRegistrationModel
-from app.models.user import User, UserType
+from app.models.user import User
 from app.schemas.notice import NoticeCreate, NoticeUpdate
 
 
@@ -378,14 +378,15 @@ class NoticeService:
         Raises:
             Exception: If an error occurs during the S3 upload or database transaction.
         """
-        from app.core.s3_manager import s3_manager
+
+        storage_manager = get_storage_manager()
 
         notice = await NoticeService.get_notice_by_id(db, notice_id)
         if not notice:
             return None
 
         try:
-            file_key = s3_manager.upload_file(file_content, filename, content_type)
+            file_key = storage_manager.upload_file(file_content, filename, content_type)
 
             db_document = Document(
                 notice_id=notice_id,
@@ -417,7 +418,8 @@ class NoticeService:
         Returns:
             bool: True if the document was deleted, False if it was not found.
         """
-        from app.core.s3_manager import s3_manager
+
+        storage_manager = get_storage_manager()
 
         result = await db.execute(select(Document).where(Document.id == document_id))
         document = result.scalar_one_or_none()
@@ -425,7 +427,7 @@ class NoticeService:
         if not document:
             return False
 
-        s3_manager.delete_file(document.file_key)
+        storage_manager.delete_file(document.file_key)
 
         await db.delete(document)
         await db.commit()
@@ -436,6 +438,8 @@ class NoticeService:
     async def get_document_download_url(
         db: AsyncSession, document_id: int, expiration: int = 3600
     ) -> Optional[str]:
+
+        # First, get the document
         """
         Generates a temporary, presigned URL for direct download of a document from S3.
 
@@ -447,7 +451,7 @@ class NoticeService:
         Returns:
             Optional[str]: The presigned download URL, or None if the document was not found.
         """
-        from app.core.s3_manager import s3_manager
+        storage_manager = get_storage_manager()
 
         result = await db.execute(select(Document).where(Document.id == document_id))
         document = result.scalar_one_or_none()
@@ -455,7 +459,7 @@ class NoticeService:
         if not document:
             return None
 
-        return s3_manager.generate_presigned_download_url(document.file_key, expiration)
+        return storage_manager.generate_signed_url(document.file_key, expiration)
 
     @staticmethod
     async def get_team_for_notice(
