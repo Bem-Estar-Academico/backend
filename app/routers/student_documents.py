@@ -16,7 +16,6 @@ from app.schemas.student_document import (
     StudentDocumentCreate,
     StudentDocumentList,
     StudentDocumentResponse,
-    StudentDocumentUpdate,
 )
 from app.services.student_document_service import StudentDocumentService
 from app.services.student_registration_service import StudentRegistrationService
