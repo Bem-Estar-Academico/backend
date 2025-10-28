@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 from app.db.database import get_db
 from app.routers.auth import get_current_user
-from app.models.registration import RegistrationStatus
+from app.models.review import RegistrationStatus
 from app.schemas.review_registration import (ReviewRegistrationCreate, ReviewRegistrationResponse, ReviewRegistrationResponseWithDetails, ReviewRegistrationUpdate)
 from app.schemas.student_registration import (
     StudentRegistrationList,
@@ -27,6 +27,7 @@ from app.schemas.student_registration import (
 from app.schemas.user import UserType
 from app.services.review_registration_service import ReviewRegistrationService
 from app.services.student_registration_service import StudentRegistrationService
+from app.services.user_service import UserService
 
 router = APIRouter(prefix="/student-registrations", tags=["student-registrations"])
 
@@ -35,7 +36,9 @@ router = APIRouter(prefix="/student-registrations", tags=["student-registrations
     response_model=StudentRegistrationResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create student registration",
-    description="Create a new registration for a student in a notice",
+    description="""Cria uma nova inscrição para o estudante no edital.
+    Isto também irá criar automaticamente uma avaliação (review) pendente
+    e atribuí-la a um assistente social aleatório.""",
 )
 async def create_student_registration(
     notice_id: int,
@@ -44,20 +47,41 @@ async def create_student_registration(
     db: AsyncSession = Depends(get_db),
 ) -> StudentRegistrationResponse:
     """
-    Creates a new registration for the current student in a specified notice.
-
-    Args:
-        notice_id (int): The ID of the notice to register for.
-        registration_data (StudentRegistrationCreate): The registration data, including answers to notice-specific questions.
-        current_user (User): The authenticated student user.
-        db (AsyncSession): The database session.
-
-    Returns:
-        StudentRegistrationResponse: The newly created student registration.
+    Cria uma nova inscrição para o estudante atual em um edital específico.
+    
+    Este processo automaticamente dispara a criação de uma 'ReviewRegistration'
+    e a atribui a um assistente social aleatório disponível.
     """
+    
     registration = await StudentRegistrationService.create_registration(
         notice_id, db, registration_data, current_user
     )
+
+    random_social_worker = await UserService.get_random_social_worker(db)
+    
+    if not random_social_worker:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Nenhum assistente social disponível no sistema para atribuir a avaliação."
+        )
+
+    default_review_data = ReviewRegistrationCreate(
+        review={"initial_notes": "Avaliacap auto-criada pelo sistema."},
+        ivs=0.0,
+        status=RegistrationStatus.PENDING,
+        ocr_analisys={"initial_ocr": "OCR auto-criada pelo sistema."}
+    )
+
+    try:
+        await ReviewRegistrationService.create_review(
+            db=db,
+            social_worker=random_social_worker,
+            student_registration_id=registration.id,
+            review_data=default_review_data
+        )
+    except Exception as e:
+        print(f"Alerta: A inscrição {registration.id} foi criada, mas a 'review' falhou: {e}")
+
     return StudentRegistrationResponse.model_validate(registration)
 
 
@@ -303,36 +327,6 @@ async def delete_student_registration(
     
     
 #------------------- REVIEW REGISTRATION ------------------------
-
-@router.post(
-    "/{student_registration_id}/review",
-    response_model=ReviewRegistrationResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Create review registration",
-    description="Create a new review registration for a student in a notice",
-)
-async def create_review_registration(
-    student_registration_id: int,
-    review_data:  ReviewRegistrationCreate,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> ReviewRegistrationResponse:
-    """
-    Creates a new review for a specific student registration.
-
-    Args:
-        student_registration_id (int): The ID of the student registration to review.
-        review_data (ReviewRegistrationCreate): The review data, including review details and feedback.
-        current_user (User): The authenticated social worker or staff member creating the review.
-        db (AsyncSession): The database session.
-
-    Returns:
-        ReviewRegistrationResponse: The newly created review registration.
-    """
-    registration = await ReviewRegistrationService.create_review(
-        db=db, social_worker=current_user, student_registration_id=student_registration_id, review_data=review_data
-    )
-    return ReviewRegistrationResponse.model_validate(registration)
 
 @router.get(
     "/{student_registration_id}/review",

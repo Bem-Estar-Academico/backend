@@ -1,6 +1,5 @@
 """Module for defining the StudentRegistration model and its status enum."""
 
-import enum
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
@@ -26,7 +25,6 @@ class StudentRegistration(Base):
         id (int): Primary key of the student registration.
         student_id (int): Foreign key to the registering student (User).
         notice_id (int): Foreign key to the notice being registered for.
-        status (RegistrationStatus): The current status of the registration (e.g., PENDING, APPROVED).
         registration_date (datetime): The date and time when the student registered.
         answer (Optional[Dict[str, Any]]): A JSON field storing the student's answers to the notice questions.
         created_at (datetime): Timestamp of when the registration was created.

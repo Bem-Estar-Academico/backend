@@ -73,7 +73,6 @@ class ReviewRegistrationModel(Base):
     
     ocr_analisys: Mapped[Dict[str, Any]] = mapped_column(
         JSON,
-        nullable=False,
         comment="JSON payload containing the review form data",
     )
     

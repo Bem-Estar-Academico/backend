@@ -7,13 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.notice import Notice
-from app.models.registration import RegistrationStatus, StudentRegistration
+from app.models.registration import StudentRegistration
 from app.models.user import User, UserType
 from app.schemas.student_registration import (
     StudentRegistrationBase,
     StudentRegistrationUpdate,
 )
 
+from app.models.review import RegistrationStatus
 
 class StudentRegistrationService:
     """
@@ -89,7 +90,6 @@ class StudentRegistrationService:
             student_id=student.id,
             notice_id=notice_id,
             answer=registration_data.answer,
-            status=RegistrationStatus.PENDING,
         )
         db.add(registration)
         await db.commit()

@@ -7,11 +7,12 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.notice import Notice
-from app.models.registration import RegistrationStatus, StudentRegistration
+from app.models.registration import StudentRegistration
 from app.models.user import User, UserType
 from app.schemas.notice import NoticeCreate
 from app.schemas.user import UserCreate
 from app.services.user_service import UserService
+from app.models.review import RegistrationStatus
 
 
 @pytest.fixture

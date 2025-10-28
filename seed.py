@@ -10,9 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import AsyncSessionLocal as SessionLocal
 from app.models.notice import Notice
-from app.models.registration import RegistrationStatus, StudentRegistration
+from app.models.registration import StudentRegistration
 from app.models.user import User, UserType
-from app.models.registration import RegistrationStatus
 from app.schemas.notice import NoticeCreate
 from app.schemas.review_registration import ReviewRegistrationCreate
 from app.schemas.student_registration import (
@@ -24,6 +23,7 @@ from app.services.notice_service import NoticeService
 from app.services.review_registration_service import ReviewRegistrationService
 from app.services.student_registration_service import StudentRegistrationService
 from app.services.user_service import UserService
+from app.models.review import RegistrationStatus
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

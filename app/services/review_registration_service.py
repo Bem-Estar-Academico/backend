@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.review import ReviewRegistrationModel
+from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.models.user import User
 from app.schemas.review_registration import (
     ReviewRegistrationCreate,
@@ -74,7 +74,8 @@ class ReviewRegistrationService:
 
         db_review = ReviewRegistrationModel(**review_data.model_dump(),
                                             social_worker_id=social_worker.id,
-                                            student_registration_id=student_registration_id)
+                                            student_registration_id=student_registration_id,
+                                            status=RegistrationStatus.PENDING)
         db.add(db_review)
         await db.commit()
         await db.refresh(db_review)
