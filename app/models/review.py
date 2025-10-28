@@ -68,7 +68,6 @@ class ReviewRegistrationModel(Base):
     )
     review: Mapped[Dict[str, Any]] = mapped_column(
         JSON,
-        nullable=False,
         comment="JSON payload containing the review form data",
     )
     
@@ -83,8 +82,7 @@ class ReviewRegistrationModel(Base):
     )
     
     ivs: Mapped[float] = mapped_column(
-        Numeric(10, 2),
-        nullable=False,
+        Numeric(200, 0),
         comment="Calculated Vulnerability Score (IVS)",
     )
 
