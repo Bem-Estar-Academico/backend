@@ -8,17 +8,19 @@ and student registrations, storing the review details and the calculated IVS.
 
 from datetime import datetime
 import enum
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from sqlalchemy import JSON, Enum, DateTime, ForeignKey, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
+from app.models.appeal import Appeal
 from app.models.base import Base
 
 if TYPE_CHECKING:
     from app.models.user import User
     from app.models.registration import StudentRegistration
+    from app.models.appeal import Appeal
 
 
 class RegistrationStatus(enum.Enum):
@@ -54,6 +56,11 @@ class ReviewRegistrationModel(Base):
     __tablename__ = "review_registrations"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    appeal: Mapped[Optional["Appeal"]] = relationship(
+        back_populates="review_registration",
+        cascade="all, delete-orphan",
+        uselist=False
+    )
     social_worker_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"),
         nullable=False,
