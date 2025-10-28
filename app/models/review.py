@@ -7,9 +7,10 @@ and student registrations, storing the review details and the calculated IVS.
 """
 
 from datetime import datetime
+import enum
 from typing import TYPE_CHECKING, Any, Dict
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Numeric
+from sqlalchemy import JSON, Enum, DateTime, ForeignKey, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -19,6 +20,15 @@ if TYPE_CHECKING:
     from app.models.user import User
     from app.models.registration import StudentRegistration
 
+
+class RegistrationStatus(enum.Enum):
+    """Enumeration for the possible statuses of a student's registration for a notice."""
+    PENDING = "PENDING"  # Aguardando análise
+    APPROVED = "APPROVED"  # Aprovada
+    REJECTED = "REJECTED"  # Rejeitada
+    CANCELLED = "CANCELLED"  # Cancelada pelo estudante
+    APPEAL = "APPEAL"  # Em fase de recurso
+    REVIEW = "REVIEW" # Em análise
 
 class ReviewRegistrationModel(Base):
     """
@@ -61,6 +71,11 @@ class ReviewRegistrationModel(Base):
         nullable=False,
         comment="JSON payload containing the review form data",
     )
+    
+    status: Mapped[RegistrationStatus] = mapped_column(
+        Enum(RegistrationStatus), default=RegistrationStatus.PENDING, nullable=False
+    )
+    
     ivs: Mapped[float] = mapped_column(
         Numeric(10, 2),
         nullable=False,

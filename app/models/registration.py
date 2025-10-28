@@ -4,7 +4,7 @@ import enum
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from sqlalchemy import DateTime, Enum, ForeignKey, JSON
+from sqlalchemy import DateTime, ForeignKey, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -14,18 +14,6 @@ if TYPE_CHECKING:
     from app.models.user import User
     from app.models.notice import Notice
     from app.models.review import ReviewRegistrationModel
-
-
-class RegistrationStatus(enum.Enum):
-    """Enumeration for the possible statuses of a student's registration for a notice."""
-    PENDING = "PENDING"  # Aguardando análise
-    APPROVED = "APPROVED"  # Aprovada
-    REJECTED = "REJECTED"  # Rejeitada
-    CANCELLED = "CANCELLED"  # Cancelada pelo estudante
-    APPEAL = "APPEAL"  # Em fase de recurso
-    REVIEW = "REVIEW" # Em análise
-
-
 
 class StudentRegistration(Base):
     """
@@ -49,10 +37,6 @@ class StudentRegistration(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     student_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     notice_id: Mapped[int] = mapped_column(ForeignKey("notices.id"), nullable=False)
-    
-    status: Mapped[RegistrationStatus] = mapped_column(
-        Enum(RegistrationStatus), default=RegistrationStatus.PENDING, nullable=False
-    )
     
     registration_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
