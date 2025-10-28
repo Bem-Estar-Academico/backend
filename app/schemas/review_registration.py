@@ -73,8 +73,22 @@ class ReviewRegistrationUpdate(BaseModel):
         None, description="Conteúdo atualizado da avaliação em formato JSON"
     )
     ivs: float | None = Field(None, ge=0, description="(IVS) atualizado")
-
-
+    approved_food_allowance: bool | None = Field(
+        None,
+        description="Indica se o auxílio alimentação foi aprovado (null se não aplicável)",
+    )
+    approved_housing_allowance: bool | None = Field(
+        None,
+        description="Indica se o auxílio moradia foi aprovado (null se não aplicável)",
+    )
+    approved_daycare_allowance: bool | None = Field(
+        None,
+        description="Indica se o auxílio creche foi aprovado (null se não aplicável)",
+    )
+    approved_graduation_scholarship: bool | None = Field(
+        None,
+        description="Indica se a bolsa conclusão foi aprovada (null se não aplicável)",
+    )
 class ReviewRegistrationResponse(ReviewRegistrationBase):
     """
     Schema representing a basic review registration record with metadata and FKs.
