@@ -1,7 +1,7 @@
 import urllib.parse
 import uuid
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 import boto3  # type: ignore
 from botocore.config import Config  # type: ignore
@@ -16,7 +16,7 @@ class S3Manager(StorageInterface):
     def __init__(self):
         config = Config(signature_version="s3v4", s3={"addressing_style": "path"})
 
-        client_args = {
+        client_args: Dict[str, Any] = {
             "aws_access_key_id": settings.AWS_ACCESS_KEY_ID,
             "aws_secret_access_key": settings.AWS_SECRET_ACCESS_KEY,
             "region_name": settings.AWS_REGION,
@@ -84,7 +84,7 @@ class S3Manager(StorageInterface):
         try:
             clean_file_key = file_key.lstrip("/")
 
-            url = self.s3_client.generate_presigned_url(
+            url = self.s3_client.generate_presigned_url( # type: ignore
                 "get_object",
                 Params={"Bucket": self.bucket_name, "Key": clean_file_key},
                 ExpiresIn=expiration,
@@ -96,7 +96,7 @@ class S3Manager(StorageInterface):
                     encoded_key = urllib.parse.quote(clean_file_key, safe="/")
                     url = f"{settings.S3_ENDPOINT_URL.rstrip('/')}/{self.bucket_name}/{encoded_key}"
 
-            return url
+            return url # type: ignore
 
         except (ClientError, NoCredentialsError) as e:
             if settings.S3_ENDPOINT_URL and "supabase" in settings.S3_ENDPOINT_URL:
@@ -117,6 +117,26 @@ class S3Manager(StorageInterface):
         except ClientError as e:
             print(f"Error deleting file from S3: {str(e)}")
             return False
+
+    def download_file_content(self, file_key: str) -> bytes:
+        """
+        Downloads the content of a file from S3.
+
+        Args:
+            file_key (str): The key of the file in the S3 bucket.
+
+        Returns:
+            bytes: The raw content of the file.
+
+        Raises:
+            Exception: If the file cannot be downloaded.
+        """
+        try:
+            response = self.s3_client.get_object(Bucket=self.bucket_name, Key=file_key) # type: ignore
+            return response['Body'].read() # type: ignore
+        except ClientError as e:
+            print(f"Error downloading file {file_key} from S3: {str(e)}")
+            raise Exception(f"Error downloading file from S3: {str(e)}")
 
     def get_file_info(self, file_key: str) -> Optional[Dict]:  # type: ignore
         try:

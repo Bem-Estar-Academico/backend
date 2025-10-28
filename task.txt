@@ -1,5 +1,0 @@
-Uma rota para listar todos os estudantes que tiveram um IVS calculado. 
-
-Basicamente devemos pegar todas as reviews, caso haja mais de uma review feita para um estudante nós devemos pegar a do edital mais recente. 
-
-Data de expiração pode ficar hardcoded de 2 anos a mais da data de encerramento do edital onde o IVS foi calculado.

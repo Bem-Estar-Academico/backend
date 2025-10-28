@@ -1,5 +1,4 @@
-"""Module for defining notice-related models."""
-
+"""Module for defining notice-related models."""  
 """
 This module defines several SQLAlchemy models related to notices, including:
 - `RegistrationStatus`: An enumeration for the status of student registrations.
@@ -8,11 +7,12 @@ This module defines several SQLAlchemy models related to notices, including:
 - `Notice`: The main model for notices, containing details about various allowances and dates.
 - `StudentRegistration`: Represents a student's registration for a notice.
 """
-
+import enum
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import (JSON, Boolean, DateTime, Enum as SQLAlchemyEnum, ForeignKey, Integer,
+                        String, Text)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -21,6 +21,13 @@ from app.models.registration import StudentRegistration
 
 if TYPE_CHECKING:
     from app.models.user import User
+
+
+class OCRStatus(enum.Enum):
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    SUCCESS = "SUCCESS"
+    FAILED = "FAILED"
 
 
 class Document(Base):
@@ -95,6 +102,18 @@ class StudentDocument(Base):
     )
     description: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True, comment="Descrição adicional do documento"
+    )
+
+    ocr_status: Mapped[OCRStatus] = mapped_column(
+        SQLAlchemyEnum(OCRStatus),
+        default=OCRStatus.PENDING,
+        nullable=False,
+        server_default="PENDING",
+        index=True
+    )
+    ocr_results: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        JSON,
+        nullable=True
     )
 
     student_registration: Mapped["StudentRegistration"] = relationship(

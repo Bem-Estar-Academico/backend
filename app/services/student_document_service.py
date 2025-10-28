@@ -6,6 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.storage_factory import get_storage_manager
 from app.models.notice import StudentDocument, StudentRegistration
+from app.models.registration import StudentRegistration
 from app.schemas.student_document import StudentDocumentCreate
 
 
@@ -18,7 +19,11 @@ class StudentDocumentService:
     ) -> Optional[StudentDocument]:
         result = await db.execute(
             select(StudentDocument)
-            .options(selectinload(StudentDocument.student_registration))
+            .options(
+                selectinload(StudentDocument.student_registration).selectinload(
+                    StudentRegistration.student
+                )
+            )
             .where(StudentDocument.id == document_id)
         )
         return result.scalar_one_or_none()

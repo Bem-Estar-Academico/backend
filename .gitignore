@@ -62,6 +62,8 @@ venv.bak/
 *.swp
 *.swo
 *~
+*.pyi
+versions/
 
 # OS
 .DS_Store
