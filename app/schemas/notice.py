@@ -8,6 +8,7 @@ It covers schemas for creating, updating, and retrieving notice information.
 
 from datetime import datetime
 from typing import List, Optional, cast
+
 from pydantic import BaseModel, Field
 
 
@@ -20,6 +21,7 @@ class DocumentBase(BaseModel):
         file_type (Optional[str]): The type of the file (e.g., 'application/pdf').
         file_size (Optional[int]): The size of the file in bytes.
     """
+
     name: str = Field(
         ..., min_length=1, max_length=255, description="Nome do documento"
     )
@@ -29,6 +31,7 @@ class DocumentBase(BaseModel):
 
 class DocumentCreate(DocumentBase):
     """Schema for creating a document - file will be uploaded directly"""
+
     pass
 
 
@@ -42,6 +45,7 @@ class Document(DocumentBase):
         file_key (str): The key used to store the file in S3.
         uploaded_at (datetime): The timestamp when the document was uploaded.
     """
+
     id: int
     notice_id: int
     file_key: str = Field(..., description="Chave do arquivo no S3")
@@ -59,6 +63,7 @@ class DocumentWithUrl(Document):
     Attributes:
         file_url (str): A presigned URL for downloading the document, valid for a limited time.
     """
+
     file_url: str = Field(
         ..., description="URL assinada do arquivo (válida por tempo limitado)"
     )
@@ -72,12 +77,14 @@ class NoticeTeamBase(BaseModel):
         user_id (int): The ID of the user who is a team member.
         role (str): The role of the user in the team (e.g., 'COORDINATOR', 'SOCIAL_WORKER').
     """
+
     user_id: int
     role: str = Field(..., description="COORDINATOR ou SOCIAL_WORKER")
 
 
 class NoticeTeamCreate(NoticeTeamBase):
     """Schema for assigning a user as a team member to a notice."""
+
     pass
 
 
@@ -91,6 +98,7 @@ class UserInfo(BaseModel):
         full_name (str): The user's full name.
         user_type (str): The type of the user (e.g., 'STUDENT', 'COORDINATOR').
     """
+
     id: int
     email: str
     full_name: str
@@ -110,6 +118,7 @@ class NoticeTeamMember(BaseModel):
         assigned_at (datetime): The timestamp of when the user was assigned.
         user (UserInfo): Detailed information about the assigned user.
     """
+
     id: int
     user_id: int
     assigned_at: datetime
@@ -127,6 +136,7 @@ class NoticeTeam(NoticeTeamBase):
         notice_id (int): The ID of the notice.
         assigned_at (datetime): The timestamp of when the user was assigned.
     """
+
     id: int
     notice_id: int
     assigned_at: datetime
@@ -153,6 +163,7 @@ class NoticeBase(BaseModel):
         daycare_allowance (bool): Flag for daycare allowance availability (default False).
         graduation_scholarship (bool): Flag for graduation scholarship availability (default False).
     """
+
     title: str = Field(..., min_length=1, max_length=255)
 
     registration_start_date: datetime = Field(
@@ -186,6 +197,7 @@ class NoticeBase(BaseModel):
 
 class NoticeCreate(NoticeBase):
     """Schema for creating a new notice. Extends `NoticeBase` without adding new fields."""
+
     team_members: List[int] = Field(
         default_factory=lambda: cast(List[int], []),
         description="Lista de IDs dos membros da equipe atribuídos ao edital",
@@ -199,6 +211,7 @@ class NoticeInfo(NoticeBase):
     Attributes:
         id (int): The unique identifier of the notice.
     """
+
     id: int
 
     model_config = {"from_attributes": True}
@@ -213,6 +226,7 @@ class NoticeUpdate(BaseModel):
         year (Optional[int]): New year of validity.
         # ... All other fields from NoticeBase are Optional[type]
     """
+
     title: Optional[str] = Field(None, min_length=1, max_length=255)
 
     registration_start_date: Optional[datetime] = None
@@ -243,6 +257,7 @@ class Notice(NoticeBase):
         documents (List[DocumentWithUrl]): List of documents associated with the notice, including URLs.
         team_members (List[NoticeTeamMember]): List of assigned team members.
     """
+
     id: int
     created_at: datetime
     updated_at: datetime
@@ -251,6 +266,20 @@ class Notice(NoticeBase):
     )
     team_members: List[NoticeTeamMember] = Field(
         default_factory=lambda: cast(List[NoticeTeamMember], [])
+    )
+
+    model_config = {"from_attributes": True}
+
+
+class NoticeForStudent(NoticeBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    documents: List[DocumentWithUrl] = Field(
+        default_factory=lambda: cast(List[DocumentWithUrl], [])
+    )
+    is_registered: bool = Field(
+        default=False, description="Se o estudante já está inscrito neste edital"
     )
 
     model_config = {"from_attributes": True}
