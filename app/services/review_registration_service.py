@@ -71,7 +71,6 @@ class ReviewRegistrationService:
                 status_code=400,
                 detail="A review for this registration already exists.",
             )
-
         db_review = ReviewRegistrationModel(**review_data.model_dump(),
                                             social_worker_id=social_worker.id,
                                             student_registration_id=student_registration_id,

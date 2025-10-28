@@ -168,7 +168,7 @@ class StudentRegistrationService:
         count_result = await db.execute(count_query)
         total = count_result.scalar_one()
 
-        query = query.order_by(StudentRegistration.registration_date.desc())
+        query = query.order_by(StudentRegistration.created_at.desc())
         result = await db.execute(query)
         registrations = list(result.scalars().all())
 
@@ -199,7 +199,7 @@ class StudentRegistrationService:
                 selectinload(StudentRegistration.notice),
             )
             .where(StudentRegistration.student_id == student_id)
-            .order_by(StudentRegistration.registration_date.desc())
+            .order_by(StudentRegistration.created_at.desc())
         )
 
         count_query = (

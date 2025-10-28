@@ -59,7 +59,6 @@ class StudentRegistrationResponse(StudentRegistrationBase):
         id (int): The unique identifier of the registration.
         student_id (int): The ID of the student who submitted the registration.
         notice_id (int): The ID of the notice (edital) the student is applying to.
-        registration_date (datetime): The original date and time the registration was submitted.
         created_at (datetime): The timestamp when the record was created in the database.
         updated_at (datetime): The timestamp when the record was last updated.
     """
@@ -67,7 +66,6 @@ class StudentRegistrationResponse(StudentRegistrationBase):
     id: int
     student_id: int
     notice_id: int
-    registration_date: datetime
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
@@ -105,8 +103,6 @@ class StudentRegistrationWithDetails(StudentRegistrationResponse):
             id=registration_model.id,
             student_id=registration_model.student_id,
             notice_id=registration_model.notice_id,
-            status=registration_model.status,
-            registration_date=registration_model.registration_date,
             answer=registration_model.answer,
             created_at=registration_model.created_at,
             updated_at=registration_model.updated_at,

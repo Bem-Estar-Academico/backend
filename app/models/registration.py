@@ -25,7 +25,6 @@ class StudentRegistration(Base):
         id (int): Primary key of the student registration.
         student_id (int): Foreign key to the registering student (User).
         notice_id (int): Foreign key to the notice being registered for.
-        registration_date (datetime): The date and time when the student registered.
         answer (Optional[Dict[str, Any]]): A JSON field storing the student's answers to the notice questions.
         created_at (datetime): Timestamp of when the registration was created.
         updated_at (datetime): Timestamp of the last update to the registration.
@@ -35,10 +34,6 @@ class StudentRegistration(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     student_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     notice_id: Mapped[int] = mapped_column(ForeignKey("notices.id"), nullable=False)
-    
-    registration_date: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
     
     answer: Mapped[Optional[Dict[str, Any]]] = mapped_column(
         JSON,

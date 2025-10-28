@@ -23,6 +23,7 @@ class ReviewRegistrationBase(BaseModel):
     """
     review: dict[str, Any] = Field(..., description="Conteúdo da avaliação em formato JSON")
     ivs: float = Field(..., ge=0, description="Índice de vulnerabilidade econômica (IVS)")
+    ocr_analisys: dict[str, Any] = Field(..., description="Conteúdo do OCR em formato JSON")
 
 
 class ReviewRegistrationCreate(ReviewRegistrationBase):
@@ -79,6 +80,7 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
             student_registration_id=review_model.student_registration_id,
             review=review_model.review,
             ivs=ivs_value,
+            ocr_analysis=review_model.ocr_analisys,
             created_at=review_model.created_at,
             updated_at=review_model.updated_at,
             social_worker=UserInfo.model_validate(review_model.social_worker),
