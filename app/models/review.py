@@ -76,11 +76,13 @@ class ReviewRegistrationModel(Base):
     )
     review: Mapped[Dict[str, Any]] = mapped_column(
         JSON,
+        nullable=True,
         comment="JSON payload containing the review form data",
     )
     
     ocr_analisys: Mapped[Dict[str, Any]] = mapped_column(
         JSON,
+        nullable=True,
         comment="JSON payload containing the review form data",
     )
     
@@ -90,6 +92,7 @@ class ReviewRegistrationModel(Base):
     
     ivs: Mapped[float] = mapped_column(
         Numeric(200, 0),
+        nullable=False,
         comment="Calculated Vulnerability Score (IVS)",
     )
 
@@ -124,6 +127,3 @@ class ReviewRegistrationModel(Base):
             "updated_at": self.updated_at.isoformat(),
         }
         
-    @classmethod
-    def calculete_ivs():
-        return random(100, 0)

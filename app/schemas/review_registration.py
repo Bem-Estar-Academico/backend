@@ -58,6 +58,8 @@ class ReviewRegistrationResponse(ReviewRegistrationBase):
     id: int
     social_worker_id: int
     student_registration_id: int
+    status: RegistrationStatus
+    ocr_analisys: Dict[str, Any]
     created_at: datetime
     updated_at: datetime
 
@@ -81,14 +83,18 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
         """
         Factory method to create the detailed schema instance from a SQLAlchemy model instance.
         """
+        from app.schemas.student_registration import StudentRegistrationResponse
+        
         ivs_value = float(review_model.ivs) if isinstance(review_model.ivs, (Decimal, str)) else review_model.ivs
+        
         return cls(
             id=review_model.id,
             social_worker_id=review_model.social_worker_id,
             student_registration_id=review_model.student_registration_id,
             review=review_model.review,
             ivs=ivs_value,
-            ocr_analysis=review_model.ocr_analisys,
+            ocr_analisys=review_model.ocr_analisys,
+            status=review_model.status,
             created_at=review_model.created_at,
             updated_at=review_model.updated_at,
             social_worker=UserInfo.model_validate(review_model.social_worker),
