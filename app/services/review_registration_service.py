@@ -153,11 +153,12 @@ class ReviewRegistrationService:
 
         Raises:
             HTTPException: If the user does not have permission.
-        """
+        """ 
+        
         review = await ReviewRegistrationService.get_review_by_id(db, review_id)
         if not review:
             return None
-
+            
         is_owner = review.social_worker_id == current_user.id
         is_coordinator = current_user.user_type == UserType.COORDINATOR
 
@@ -166,6 +167,16 @@ class ReviewRegistrationService:
                 status_code=403, detail="Not enough permissions to update this review."
             )
 
+        if review_data.status.value == RegistrationStatus.APPROVED.value or review_data.status.value == RegistrationStatus.REJECTED.value:
+            review.ivs = review_data.calculete_ivs()
+        elif review_data.status.value == RegistrationStatus.APPEAL.value:
+            if review_data.appeals:
+                raise HTTPException(
+                    status_code=403, detail="Miss the field 'appeal' in the request body"
+                )
+            else:
+                pass
+        
         update_data = review_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(review, field, value)

@@ -8,6 +8,7 @@ and student registrations, storing the review details and the calculated IVS.
 
 from datetime import datetime
 import enum
+import random
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from sqlalchemy import JSON, Enum, DateTime, ForeignKey, Numeric
@@ -60,7 +61,7 @@ class ReviewRegistrationModel(Base):
         back_populates="review_registration",
         cascade="all, delete-orphan",
         uselist=False
-    )
+    ) #isso é para o relacionamento!!!
     social_worker_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"),
         nullable=False,
@@ -122,3 +123,7 @@ class ReviewRegistrationModel(Base):
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
         }
+        
+    @classmethod
+    def calculete_ivs():
+        return random(100, 0)

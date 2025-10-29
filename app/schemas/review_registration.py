@@ -6,12 +6,13 @@ data related to social worker reviews of student registrations.
 """
 
 from datetime import datetime
-from typing import Any, Dict
+import random
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field, ConfigDict
 from decimal import Decimal
 from app.schemas.user import UserInfo
 from app.schemas.student_registration import StudentRegistrationResponse 
-from app.models.review import ReviewRegistrationModel
+from app.models.review import ReviewRegistrationModel, RegistrationStatus
 
 class ReviewRegistrationBase(BaseModel):
     """
@@ -24,6 +25,7 @@ class ReviewRegistrationBase(BaseModel):
     review: dict[str, Any] = Field(..., description="Conteúdo da avaliação em formato JSON")
     ivs: float = Field(..., ge=0, description="Índice de vulnerabilidade econômica (IVS)")
     ocr_analisys: dict[str, Any] = Field(..., description="Conteúdo do OCR em formato JSON")
+    status: RegistrationStatus = Field(..., description="Status no formato do sistema")
 
 
 class ReviewRegistrationCreate(ReviewRegistrationBase):
@@ -41,7 +43,12 @@ class ReviewRegistrationUpdate(BaseModel):
     All fields are optional to allow partial updates.
     """
     review: Dict[str, Any] | None = Field(None, description="Conteúdo atualizado da avaliação em formato JSON")
-    ivs: float | None = Field(None, ge=0, description="(IVS) atualizado")
+    status: RegistrationStatus | None = Field(None, description="Status só possui esses valores PENDING, APPROVED, REJECTED, CANCELLED, APPEAL, REVIEW")
+    appeals: Optional[List[Dict[str, Any]]] | None = Field(None, description="Conteúdo relacionado aos recursos")
+    
+    def calculete_ivs(self) -> float:
+        "Calcular o IVS aqui"
+        return random.uniform(0, 100)
 
 
 class ReviewRegistrationResponse(ReviewRegistrationBase):
@@ -55,6 +62,7 @@ class ReviewRegistrationResponse(ReviewRegistrationBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+    
 
 
 class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
