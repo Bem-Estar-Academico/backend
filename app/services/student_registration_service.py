@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import HTTPException
@@ -10,8 +10,11 @@ from app.models.notice import Notice
 from app.models.registration import RegistrationStatus, StudentRegistration
 from app.models.user import User, UserType
 from app.schemas.student_registration import (
+    NoticeDetailsForRegistration,
+    ReviewDetailsForRegistration,
     StudentRegistrationBase,
     StudentRegistrationUpdate,
+    StudentRegistrationWithReviewResponse,
 )
 
 
@@ -353,3 +356,56 @@ class StudentRegistrationService:
         )
         result = await db.execute(query)
         return result.scalar_one_or_none()
+
+    @staticmethod
+    async def get_student_registrations_with_reviews(
+        db: AsyncSession, student_id: int
+    ) -> List[StudentRegistrationWithReviewResponse]:
+        """
+        Retrieves all registrations for a student, including notice and review details.
+
+        Args:
+            db (AsyncSession): The asynchronous database session.
+            student_id (int): The ID of the student.
+
+        Returns:
+            List[StudentRegistrationWithReviewResponse]: A list of registrations with details.
+        """
+        query = (
+            select(StudentRegistration)
+            .options(
+                selectinload(StudentRegistration.notice),
+                selectinload(StudentRegistration.review),
+            )
+            .where(StudentRegistration.student_id == student_id)
+            .order_by(StudentRegistration.registration_date.desc())
+        )
+
+        result = await db.execute(query)
+        registrations = result.scalars().all()
+
+        response_list: List[StudentRegistrationWithReviewResponse] = []
+        for reg in registrations:
+            notice_details = NoticeDetailsForRegistration.model_validate(reg.notice)
+
+            review_details = None
+            if reg.review:
+                expires_at = None
+                if reg.notice.registration_end_date:
+                    expires_at = reg.notice.registration_end_date + timedelta(days=730)
+
+                review_details = ReviewDetailsForRegistration(
+                    id=reg.review.id,
+                    status=reg.status,
+                    ivs=reg.review.ivs,
+                    expires_at=expires_at,
+                )
+
+            response_list.append(
+                StudentRegistrationWithReviewResponse(
+                    notice=notice_details,
+                    review=review_details,
+                )
+            )
+
+        return response_list
