@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Dict, List
 from unittest.mock import MagicMock, patch
 
@@ -239,7 +240,7 @@ async def test_delete_notice_as_coordinator_in_team(
 @pytest.mark.asyncio
 @patch("app.core.s3_manager.s3_manager", new_callable=MagicMock)
 async def test_upload_document(
-    mock_s3_manager: MagicMock, client: AsyncClient, coordinator_token: str
+    mock_s3_manager: MagicMock, client: AsyncClient, coordinator_token: str, tmp_path: Path
 ):
     mock_s3_manager.upload_file.return_value = "some_file_key"
     mock_s3_manager.generate_signed_url.return_value = "http://mock-s3-url/some_file_key"
@@ -264,8 +265,11 @@ async def test_upload_document(
     
     notice_id = create_response.json()["id"]
 
-    image_path = "/home/diolinux/Documentos/Projetao/backend/app/ocr_processing/mock_images/cnh.jpg"
-    with open(image_path, "rb") as f:
+    mock_file_content = b"Conteudo de teste binario"
+    temp_file_path = tmp_path / "cnh.jpg"
+    temp_file_path.write_bytes(mock_file_content)
+
+    with open(temp_file_path, "rb") as f:
         files = {"file": ("cnh.jpg", f.read(), "image/jpeg")}
         response = await client.post(
             f"/api/v1/notices/{notice_id}/documents", files=files, headers=headers
@@ -276,3 +280,5 @@ async def test_upload_document(
     assert document["name"] == "cnh.jpg"
     assert "file_key" in document
     assert document["file_url"] == "http://mock-s3-url/some_file_key"
+    
+    mock_s3_manager.upload_file.assert_called_once()
