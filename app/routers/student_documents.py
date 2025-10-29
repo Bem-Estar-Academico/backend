@@ -1,5 +1,6 @@
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     File,
     Form,
@@ -13,7 +14,6 @@ from app.core.dependencies import require_staff
 from app.db.database import get_db
 from app.models.notice import OCRStatus
 from app.models.user import User, UserType
-from celery_worker import celery_app
 from app.routers.auth import get_current_user
 from app.schemas.student_document import (
     StudentDocumentCreate,
@@ -176,6 +176,7 @@ async def delete_document(
 @router.post("/{document_id}/trigger-ocr", status_code=status.HTTP_202_ACCEPTED)
 async def trigger_ocr_processing(
     document_id: int,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_staff),
 ):
@@ -194,20 +195,12 @@ async def trigger_ocr_processing(
         }
     doc.ocr_status = OCRStatus.PROCESSING
     db.add(doc)
-
-    try:
-        # Send task by name using the correctly configured Celery app
-        celery_app.send_task(
-            "app.ocr_processing.tasks.process_document_ocr", args=[document_id]
-        )
-
-    except Exception as _:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Não foi possível iniciar o processamento. Tente novamente mais tarde.",
-        )
     await db.commit()
+
+    # Schedule the OCR task to run in the background
+    background_tasks.add_task(
+        StudentDocumentService.process_document_ocr_background, db, document_id
+    )
 
     return {"message": "Processamento OCR iniciado.", "status": "PROCESSING"}
 
