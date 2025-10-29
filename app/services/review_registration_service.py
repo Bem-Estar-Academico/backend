@@ -17,6 +17,7 @@ from app.schemas.review_registration import (
     ReviewRegistrationUpdate,
 )
 from app.schemas.user import UserType
+from app.services.appeal_service import AppealService
 from app.services.student_registration_service import StudentRegistrationService
 
 
@@ -136,29 +137,17 @@ class ReviewRegistrationService:
     async def update_review(
         db: AsyncSession,
         review_id: int,
-        review_data: ReviewRegistrationUpdate,
+        review_data: ReviewRegistrationUpdate,  # Objeto Pydantic vindo da rota
         current_user: User,
     ) -> Optional[ReviewRegistrationModel]:
         """
-        Updates an existing review.
+        Updates an existing review and handles appeal creation/update if status is APPEAL.
+        """
 
-        Args:
-            db (AsyncSession): The database session.
-            review_id (int): The ID of the review to update.
-            review_data (ReviewRegistrationUpdate): The data to update.
-            current_user (User): The user performing the update.
-
-        Returns:
-            Optional[ReviewRegistrationModel]: The updated review object, or None if not found.
-
-        Raises:
-            HTTPException: If the user does not have permission.
-        """ 
-        
         review = await ReviewRegistrationService.get_review_by_id(db, review_id)
         if not review:
             return None
-            
+
         is_owner = review.social_worker_id == current_user.id
         is_coordinator = current_user.user_type == UserType.COORDINATOR
 
@@ -167,25 +156,63 @@ class ReviewRegistrationService:
                 status_code=403, detail="Not enough permissions to update this review."
             )
 
-        if review_data.status.value == RegistrationStatus.APPROVED.value or review_data.status.value == RegistrationStatus.REJECTED.value:
-            review.ivs = review_data.calculete_ivs()
-        elif review_data.status.value == RegistrationStatus.APPEAL.value:
-            if review_data.appeals:
-                raise HTTPException(
-                    status_code=403, detail="Miss the field 'appeal' in the request body"
-                )
-            else:
-                pass
-        
         update_data = review_data.model_dump(exclude_unset=True)
+        appeal_data = update_data.pop('appeal', None)
+        calculated_ivs: Optional[float] = None
+        new_status = review_data.status
+
+        if new_status:
+            if new_status in [RegistrationStatus.APPROVED, RegistrationStatus.REJECTED]:
+                if not appeal_data:
+                    calculated_ivs = review_data.calculete_ivs()
+                    update_data.pop('ivs', None)
+                else:
+                   raise HTTPException(
+                        status_code=400,
+                        detail="The 'appeals' field is required when setting status to APPEAL."
+                    ) 
+
+            elif new_status == RegistrationStatus.APPEAL:
+                if not appeal_data:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="The 'appeals' field is required when setting status to APPEAL."
+                    )
+                else:
+                    try:
+                        created_appeal = await AppealService.create_appeal(
+                            db=db,
+                            requested_documents_data=appeal_data,
+                            review_registration_id=review_id,
+                            current_user=current_user
+                        )
+                        if not created_appeal:
+                            raise HTTPException(
+                                status_code=500, detail="Failed to save appeal data.")
+                    except HTTPException as http_exc:
+                        raise http_exc
+                    except Exception as e:
+                        print(
+                            f"Erro inesperado ao criar apelo para review {review_id}: {e}")
+                        raise HTTPException(
+                            status_code=500, detail=f"Internal error saving appeal: {e}")
+
         for field, value in update_data.items():
             setattr(review, field, value)
 
+        if calculated_ivs is not None:
+            review.ivs = calculated_ivs
+
         review.updated_at = datetime.now(timezone.utc)
 
-        await db.commit()
-        await db.refresh(review)
-        return review
+        try:
+            await db.commit()
+            await db.refresh(review)
+            return review
+        except Exception as e:
+            await db.rollback()
+            print(f"Erro durante o commit ao atualizar review {review_id}: {e}")
+            raise HTTPException(status_code=500, detail=f"Database commit error: {e}")
 
     @staticmethod
     async def delete_review(db: AsyncSession, review_id: int, current_user: User) -> bool:

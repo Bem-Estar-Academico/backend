@@ -44,7 +44,7 @@ class ReviewRegistrationUpdate(BaseModel):
     """
     review: Dict[str, Any] | None = Field(None, description="Conteúdo atualizado da avaliação em formato JSON")
     status: RegistrationStatus | None = Field(None, description="Status só possui esses valores PENDING, APPROVED, REJECTED, CANCELLED, APPEAL, REVIEW")
-    appeals: Optional[List[Dict[str, Any]]] | None = Field(None, description="Conteúdo relacionado aos recursos")
+    appeal: Optional[Dict[str, Any]] | None = Field(None, description="Conteúdo relacionado aos recursos")
     
     def calculete_ivs(self) -> float:
         "Calcular o IVS aqui"

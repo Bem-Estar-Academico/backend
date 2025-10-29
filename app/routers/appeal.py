@@ -9,7 +9,7 @@ from app.db.database import get_db
 from app.models.user import User
 from app.routers.auth import get_current_user # Ou seu método de autenticação
 from app.schemas.appeal import AppealCreate, AppealResponse, AppealUpdate
-from app.services.appeal import AppealService
+from app.services.appeal_service import AppealService
 from app.services.review_registration_service import ReviewRegistrationService # Para verificar permissões
 
 router = APIRouter(tags=["appeal"])
