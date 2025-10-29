@@ -19,9 +19,9 @@ from app.models.appeal import Appeal
 from app.models.base import Base
 
 if TYPE_CHECKING:
-    from app.models.user import User
     from app.models.registration import StudentRegistration
     from app.models.appeal import Appeal
+    from app.models.user import User
 
 
 class RegistrationStatus(enum.Enum):
@@ -38,7 +38,7 @@ class ReviewRegistrationModel(Base):
     Represents a review of a student registration in the database.
 
     This model stores the social worker's assessment, the calculated IVS,
-    and links to the associated social worker (User) and the
+    benefit approvals, and links to the associated social worker (User) and the
     StudentRegistration.
 
     Attributes:
@@ -48,6 +48,10 @@ class ReviewRegistrationModel(Base):
                                        This is unique, enforcing a one-to-one relationship.
         review (dict): JSON blob containing the structured review data.
         ivs (float): The calculated vulnerability score (Índice de Vulnerabilidade Social).
+        approved_food_allowance (Optional[bool]): Whether food allowance benefit was approved.
+        approved_housing_allowance (Optional[bool]): Whether housing allowance benefit was approved.
+        approved_daycare_allowance (Optional[bool]): Whether daycare allowance benefit was approved.
+        approved_graduation_scholarship (Optional[bool]): Whether graduation scholarship benefit was approved.
         created_at (datetime): Timestamp of when the review was created.
         updated_at (datetime): Timestamp of the last update to the review.
         social_worker (User): Relationship to the User who performed the review.
@@ -96,6 +100,27 @@ class ReviewRegistrationModel(Base):
         comment="Calculated Vulnerability Score (IVS)",
     )
 
+    approved_food_allowance: Mapped[Optional[bool]] = mapped_column(
+        Boolean,
+        nullable=True,
+        comment="Whether food allowance benefit was approved (null if not applicable)",
+    )
+    approved_housing_allowance: Mapped[Optional[bool]] = mapped_column(
+        Boolean,
+        nullable=True,
+        comment="Whether housing allowance benefit was approved (null if not applicable)",
+    )
+    approved_daycare_allowance: Mapped[Optional[bool]] = mapped_column(
+        Boolean,
+        nullable=True,
+        comment="Whether daycare allowance benefit was approved (null if not applicable)",
+    )
+    approved_graduation_scholarship: Mapped[Optional[bool]] = mapped_column(
+        Boolean,
+        nullable=True,
+        comment="Whether graduation scholarship benefit was approved (null if not applicable)",
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -123,7 +148,10 @@ class ReviewRegistrationModel(Base):
             "student_registration_id": self.student_registration_id,
             "review": self.review,
             "ivs": float(self.ivs),
+            "approved_food_allowance": self.approved_food_allowance,
+            "approved_housing_allowance": self.approved_housing_allowance,
+            "approved_daycare_allowance": self.approved_daycare_allowance,
+            "approved_graduation_scholarship": self.approved_graduation_scholarship,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
         }
-        

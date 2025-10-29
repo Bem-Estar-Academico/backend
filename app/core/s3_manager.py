@@ -1,26 +1,32 @@
+import urllib.parse
 import uuid
 from datetime import datetime
 from typing import Dict, Optional
 
-import boto3 # type: ignore
-from botocore.exceptions import ClientError, NoCredentialsError # type: ignore
+import boto3  # type: ignore
+from botocore.config import Config  # type: ignore
+from botocore.exceptions import ClientError, NoCredentialsError  # type: ignore
 
 from app.core.config import settings
+from app.core.storage_interface import StorageInterface
 
 
-class S3Manager:
+class S3Manager(StorageInterface):
 
     def __init__(self):
+        config = Config(signature_version="s3v4", s3={"addressing_style": "path"})
+
         client_args = {
             "aws_access_key_id": settings.AWS_ACCESS_KEY_ID,
             "aws_secret_access_key": settings.AWS_SECRET_ACCESS_KEY,
             "region_name": settings.AWS_REGION,
+            "config": config,
         }
 
         if settings.S3_ENDPOINT_URL:
             client_args["endpoint_url"] = settings.S3_ENDPOINT_URL
 
-        self.s3_client = boto3.client("s3", **client_args) # type: ignore
+        self.s3_client = boto3.client("s3", **client_args)  # type: ignore
         self.bucket_name = settings.S3_BUCKET_NAME
 
     def generate_unique_filename(self, original_filename: str) -> str:
@@ -59,7 +65,7 @@ class S3Manager:
         try:
             unique_filename = self.generate_unique_filename(filename)
 
-            self.s3_client.put_object( # type: ignore
+            self.s3_client.put_object(  # type: ignore
                 Bucket=self.bucket_name,
                 Key=unique_filename,
                 Body=file_content,
@@ -76,42 +82,59 @@ class S3Manager:
         self, file_key: str, expiration: int = 3600
     ) -> str:
         try:
-            url = self.s3_client.generate_presigned_url( # type: ignore
+            clean_file_key = file_key.lstrip("/")
+
+            url = self.s3_client.generate_presigned_url(
                 "get_object",
-                Params={"Bucket": self.bucket_name, "Key": file_key},
+                Params={"Bucket": self.bucket_name, "Key": clean_file_key},
                 ExpiresIn=expiration,
+                HttpMethod="GET",
             )
-            return url # type: ignore
+
+            if settings.S3_ENDPOINT_URL and "supabase" in settings.S3_ENDPOINT_URL:
+                if not url or "Missing signature" in url:
+                    encoded_key = urllib.parse.quote(clean_file_key, safe="/")
+                    url = f"{settings.S3_ENDPOINT_URL.rstrip('/')}/{self.bucket_name}/{encoded_key}"
+
+            return url
 
         except (ClientError, NoCredentialsError) as e:
+            if settings.S3_ENDPOINT_URL and "supabase" in settings.S3_ENDPOINT_URL:
+                clean_file_key = file_key.lstrip("/")
+                encoded_key = urllib.parse.quote(clean_file_key, safe="/")
+                return f"{settings.S3_ENDPOINT_URL.rstrip('/')}/{self.bucket_name}/{encoded_key}"
+
             raise Exception(f"Error generating presigned download URL: {str(e)}")
+
+    def generate_signed_url(self, file_key: str, expiration: int = 3600) -> str:
+        return self.generate_presigned_download_url(file_key, expiration)
 
     def delete_file(self, file_key: str) -> bool:
         try:
-            self.s3_client.delete_object(Bucket=self.bucket_name, Key=file_key) # type: ignore
+            self.s3_client.delete_object(Bucket=self.bucket_name, Key=file_key)  # type: ignore
             return True
 
         except ClientError as e:
             print(f"Error deleting file from S3: {str(e)}")
             return False
 
-    def get_file_info(self, file_key: str) -> Optional[Dict]: # type: ignore
+    def get_file_info(self, file_key: str) -> Optional[Dict]:  # type: ignore
         try:
-            response = self.s3_client.head_object(Bucket=self.bucket_name, Key=file_key) # type: ignore
+            response = self.s3_client.head_object(Bucket=self.bucket_name, Key=file_key)  # type: ignore
 
             return {
-                "size": response.get("ContentLength"), # type: ignore
-                "content_type": response.get("ContentType"), # type: ignore
-                "last_modified": response.get("LastModified"),# type: ignore
-                "etag": response.get("ETag", "").strip('"'),# type: ignore
-            } # type: ignore
+                "size": response.get("ContentLength"),  # type: ignore
+                "content_type": response.get("ContentType"),  # type: ignore
+                "last_modified": response.get("LastModified"),  # type: ignore
+                "etag": response.get("ETag", "").strip('"'),  # type: ignore
+            }  # type: ignore
 
         except ClientError:
             return None
 
     def verify_file_exists(self, file_key: str) -> bool:
         try:
-            self.s3_client.head_object(Bucket=self.bucket_name, Key=file_key)# type: ignore
+            self.s3_client.head_object(Bucket=self.bucket_name, Key=file_key)  # type: ignore
             return True
         except ClientError:
             return False

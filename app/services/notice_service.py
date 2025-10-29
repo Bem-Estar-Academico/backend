@@ -1,14 +1,14 @@
-from datetime import datetime, timezone
 import random
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-
-from app.models.notice import Document, Notice, NoticeTeam
+from app.core.storage_factory import get_storage_manager
+from app.models.notice import Document, Notice, NoticeTeam, StudentRegistration
 from app.models.review import ReviewRegistrationModel
-from app.models.user import User, UserType
+from app.models.user import User
 from app.schemas.notice import NoticeCreate, NoticeUpdate
 
 
@@ -110,7 +110,7 @@ class NoticeService:
         )
 
         db.add(db_notice)
-        await db.flush() # Flush to get db_notice.id
+        await db.flush()  # Flush to get db_notice.id
         db_team_member = NoticeTeam(
             notice_id=db_notice.id,
             user_id=created_by_user_id,
@@ -206,6 +206,86 @@ class NoticeService:
         return list(result.scalars().all())
 
     @staticmethod
+    async def get_notices_for_student(
+        db: AsyncSession,
+        student_id: int,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieves notices with registration status for a specific student.
+        Uses a single optimized query with LEFT JOIN to get registration status.
+
+        Args:
+            db (AsyncSession): The asynchronous database session.
+            student_id (int): The ID of the student.
+            skip (int): The number of items to skip (for pagination).
+            limit (int): The maximum number of items to return (for pagination).
+
+        Returns:
+            List[Dict[str, Any]]: A list of notice data with registration status.
+        """
+
+        query = (
+            select(
+                Notice,
+                case((StudentRegistration.id.is_not(None), True), else_=False).label(
+                    "is_registered"
+                ),
+            )
+            .outerjoin(
+                StudentRegistration,
+                (StudentRegistration.notice_id == Notice.id)
+                & (StudentRegistration.student_id == student_id),
+            )
+            .options(selectinload(Notice.documents))
+            .offset(skip)
+            .limit(limit)
+        )
+
+        result = await db.execute(query)
+
+        notices_data = []
+        for row in result:
+            notice = row.Notice
+            is_registered = row.is_registered
+
+            notice_dict = {
+                "id": notice.id,
+                "title": notice.title,
+                "registration_start_date": notice.registration_start_date,
+                "registration_end_date": notice.registration_end_date,
+                "appeal_start_date": notice.appeal_start_date,
+                "appeal_end_date": notice.appeal_end_date,
+                "preliminary_result_date": notice.preliminary_result_date,
+                "final_result_date": notice.final_result_date,
+                "description": notice.description,
+                "food_allowance": notice.food_allowance,
+                "housing_allowance": notice.housing_allowance,
+                "daycare_allowance": notice.daycare_allowance,
+                "graduation_scholarship": notice.graduation_scholarship,
+                "created_at": notice.created_at,
+                "updated_at": notice.updated_at,
+                "documents": [
+                    {
+                        "id": doc.id,
+                        "notice_id": doc.notice_id,
+                        "name": doc.name,
+                        "file_key": doc.file_key,
+                        "file_type": doc.file_type,
+                        "file_size": doc.file_size,
+                        "uploaded_at": doc.uploaded_at,
+                        "file_url": doc.file_url,
+                    }
+                    for doc in notice.documents
+                ],
+                "is_registered": is_registered,
+            }
+            notices_data.append(notice_dict)
+
+        return notices_data
+
+    @staticmethod
     async def get_notices_by_year(db: AsyncSession, year: int) -> List[Notice]:
         """
         Retrieves all notices published in a specific year.
@@ -298,14 +378,15 @@ class NoticeService:
         Raises:
             Exception: If an error occurs during the S3 upload or database transaction.
         """
-        from app.core.s3_manager import s3_manager
+
+        storage_manager = get_storage_manager()
 
         notice = await NoticeService.get_notice_by_id(db, notice_id)
         if not notice:
             return None
 
         try:
-            file_key = s3_manager.upload_file(file_content, filename, content_type)
+            file_key = storage_manager.upload_file(file_content, filename, content_type)
 
             db_document = Document(
                 notice_id=notice_id,
@@ -337,7 +418,8 @@ class NoticeService:
         Returns:
             bool: True if the document was deleted, False if it was not found.
         """
-        from app.core.s3_manager import s3_manager
+
+        storage_manager = get_storage_manager()
 
         result = await db.execute(select(Document).where(Document.id == document_id))
         document = result.scalar_one_or_none()
@@ -345,7 +427,7 @@ class NoticeService:
         if not document:
             return False
 
-        s3_manager.delete_file(document.file_key)
+        storage_manager.delete_file(document.file_key)
 
         await db.delete(document)
         await db.commit()
@@ -356,6 +438,8 @@ class NoticeService:
     async def get_document_download_url(
         db: AsyncSession, document_id: int, expiration: int = 3600
     ) -> Optional[str]:
+
+        # First, get the document
         """
         Generates a temporary, presigned URL for direct download of a document from S3.
 
@@ -367,7 +451,7 @@ class NoticeService:
         Returns:
             Optional[str]: The presigned download URL, or None if the document was not found.
         """
-        from app.core.s3_manager import s3_manager
+        storage_manager = get_storage_manager()
 
         result = await db.execute(select(Document).where(Document.id == document_id))
         document = result.scalar_one_or_none()
@@ -375,13 +459,15 @@ class NoticeService:
         if not document:
             return None
 
-        return s3_manager.generate_presigned_download_url(document.file_key, expiration)
-    
+        return storage_manager.generate_signed_url(document.file_key, expiration)
+
     @staticmethod
-    async def get_team_for_notice(db: AsyncSession, notice_id: int) -> List[Dict[str, Any]]:
+    async def get_team_for_notice(
+        db: AsyncSession, notice_id: int
+    ) -> List[Dict[str, Any]]:
         """
         Retrieves the list of team members for a specific notice.
-        
+
         Args:
             db (AsyncSession): The asynchronous database session.
             notice_id (int): The ID of the notice.
@@ -390,7 +476,7 @@ class NoticeService:
             List[Dict[str, Any]]: A list of dictionaries, each formatted to match
                                   the full User schema + 'last_review'.
         """
-        
+
         sq = (
             select(ReviewRegistrationModel.updated_at)
             .where(ReviewRegistrationModel.social_worker_id == User.id)
@@ -398,7 +484,7 @@ class NoticeService:
             .limit(1)
             .as_scalar()
         )
-        
+
         q = (
             select(
                 User.id,
@@ -406,7 +492,7 @@ class NoticeService:
                 User.full_name,
                 User.is_active,
                 User.user_type,
-                sq.label("last_review")
+                sq.label("last_review"),
             )
             .join(NoticeTeam, NoticeTeam.user_id == User.id)
             .where(NoticeTeam.notice_id == notice_id)
@@ -414,12 +500,14 @@ class NoticeService:
         )
 
         result = await db.execute(q)
-        
+
         team_members_formatted = []
         for row in result.mappings():
             member_data = dict(row)
-            
-            member_data["progress"] = random.randint(0, 100) # TO DO: logica do progresso
+
+            member_data["progress"] = random.randint(
+                0, 100
+            )  # TO DO: logica do progresso
             team_members_formatted.append(member_data)
 
         return team_members_formatted
