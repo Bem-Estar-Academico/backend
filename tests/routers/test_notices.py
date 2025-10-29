@@ -29,7 +29,7 @@ async def test_list_notices(
         "/api/v1/notices/", json=notice_data.model_dump(mode="json"), headers=headers
     )
 
-    response = await client.get("/api/v1/notices/")
+    response = await client.get("/api/v1/notices/", headers=headers)
     assert response.status_code == 200
     notices: List[Dict[str, Any]] = response.json()
     assert isinstance(notices, list)
@@ -58,7 +58,7 @@ async def test_get_notice_by_id(
     )
     notice_id = create_response.json()["id"]
 
-    response = await client.get(f"/api/v1/notices/{notice_id}")
+    response = await client.get(f"/api/v1/notices/{notice_id}", headers=headers)
     assert response.status_code == 200
     notice = response.json()
     assert notice["id"] == notice_id
@@ -66,9 +66,10 @@ async def test_get_notice_by_id(
 
 
 @pytest.mark.asyncio
-async def test_get_notice_not_found(client: AsyncClient):
+async def test_get_notice_not_found(client: AsyncClient, coordinator_token: str):
     """Test that getting a notice that does not exist returns a 404 error."""
-    response = await client.get("/api/v1/notices/99999")
+    headers = {"Authorization": f"Bearer {coordinator_token}"}
+    response = await client.get("/api/v1/notices/99999", headers=headers)
     assert response.status_code == 404
 
 
@@ -157,7 +158,7 @@ async def test_get_active_notices(
         headers=headers,
     )
 
-    response = await client.get("/api/v1/notices/active")
+    response = await client.get("/api/v1/notices/active", headers=headers)
     assert response.status_code == 200
     active_notices: List[Dict[str, Any]] = response.json()
     assert isinstance(active_notices, list)
@@ -231,7 +232,7 @@ async def test_delete_notice_as_coordinator_in_team(
     )
     assert delete_response.status_code == 204
 
-    get_response = await client.get(f"/api/v1/notices/{notice_id}")
+    get_response = await client.get(f"/api/v1/notices/{notice_id}", headers=headers)
     assert get_response.status_code == 404
 
 
@@ -240,34 +241,38 @@ async def test_delete_notice_as_coordinator_in_team(
 async def test_upload_document(
     mock_s3_manager: MagicMock, client: AsyncClient, coordinator_token: str
 ):
-    """Test uploading a document to a notice."""
     mock_s3_manager.upload_file.return_value = "some_file_key"
-    mock_s3_manager.generate_presigned_download_url.return_value = (
-        "http://example.com/some_file_key"
-    )
+    mock_s3_manager.generate_signed_url.return_value = "http://mock-s3-url/some_file_key"
 
     headers = {"Authorization": f"Bearer {coordinator_token}"}
+    
+    now = datetime.now(timezone.utc)
     notice_data = NoticeCreate(
         title="Document Test Notice",
-        registration_start_date=datetime.now(timezone.utc),
-        registration_end_date=datetime.now(timezone.utc) + timedelta(days=10),
-        appeal_start_date=datetime.now(timezone.utc) + timedelta(days=1),
-        appeal_end_date=datetime.now(timezone.utc) + timedelta(days=11),
-        preliminary_result_date=datetime.now(timezone.utc) + timedelta(days=12),
-        final_result_date=datetime.now(timezone.utc) + timedelta(days=22),
+        registration_start_date=now,
+        registration_end_date=now + timedelta(days=10),
+        appeal_start_date=now + timedelta(days=1),
+        appeal_end_date=now + timedelta(days=11),
+        preliminary_result_date=now + timedelta(days=12),
+        final_result_date=now + timedelta(days=22),
         description="A notice for document upload tests.",
     )
+    
     create_response = await client.post(
         "/api/v1/notices/", json=notice_data.model_dump(mode="json"), headers=headers
     )
+    
     notice_id = create_response.json()["id"]
 
-    files = {"file": ("test_document.txt", b"This is a test document.", "text/plain")}
-    response = await client.post(
-        f"/api/v1/notices/{notice_id}/documents", files=files, headers=headers
-    )
+    image_path = "/home/diolinux/Documentos/Projetao/backend/app/ocr_processing/mock_images/cnh.jpg"
+    with open(image_path, "rb") as f:
+        files = {"file": ("cnh.jpg", f.read(), "image/jpeg")}
+        response = await client.post(
+            f"/api/v1/notices/{notice_id}/documents", files=files, headers=headers
+        )
 
     assert response.status_code == 200
     document = response.json()
-    assert document["name"] == "test_document.txt"
-    assert "file_url" in document
+    assert document["name"] == "cnh.jpg"
+    assert "file_key" in document
+    assert document["file_url"] == "http://mock-s3-url/some_file_key"
