@@ -268,7 +268,6 @@ class Seeder:
 
             for student_id in registered_students:
                 try:
-                    # Manually check for existing registration to avoid duplicates
                     existing_reg = await self.db.execute(
                         select(StudentRegistration).where(
                             StudentRegistration.student_id == student_id,
@@ -283,7 +282,6 @@ class Seeder:
                     if not student:
                         continue
 
-                    # Create registration directly, bypassing the service's date check
                     registration = StudentRegistration(
                         **reg_data.model_dump(),
                         student_id=student.id,
