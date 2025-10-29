@@ -35,7 +35,7 @@ class Appeal(Base):
     review_registration_id: Mapped[int] = mapped_column(
         ForeignKey("review_registrations.id"),
         nullable=False,
-        unique=True,
+        unique=False,
         index=True,
         comment="ID of the review registration being appealed (one-to-one)",
     )

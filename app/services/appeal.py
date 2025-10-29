@@ -1,6 +1,6 @@
 """Service layer for appeal operations."""
 
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -19,10 +19,10 @@ class AppealService:
     @staticmethod
     async def create_appeal(
         db: AsyncSession,
-        appeal_data: AppealCreate,
+        requested_documents_data: Dict[str, Any],
         review_registration_id: int,
         current_user: User
-    ) -> Appeal:
+    ) -> Dict[str, Any]:
         """
         Creates a new appeal for a specific review registration.
 
@@ -41,6 +41,7 @@ class AppealService:
             HTTPException 400: If an appeal already exists for this review.
         """
         
+        
         review = await db.get(
             ReviewRegistrationModel, 
             review_registration_id,
@@ -57,22 +58,17 @@ class AppealService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You can only appeal your own registration reviews."
             )
-
-        existing_appeal = await AppealService.get_appeal_by_review_id(db, review_registration_id)
-        if existing_appeal:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="An appeal already exists for this review registration."
-            )
             
         db_appeal = Appeal(
-            **appeal_data.model_dump(),
+            requested_documents=requested_documents_data,
             review_registration_id=review_registration_id
         )
+        
         db.add(db_appeal)
         await db.commit()
         await db.refresh(db_appeal)
-        return db_appeal
+        
+        return db_appeal.requested_documents
 
     @staticmethod
     async def get_appeal_by_id(db: AsyncSession, appeal_id: int) -> Optional[Appeal]:
@@ -85,14 +81,17 @@ class AppealService:
         )
 
     @staticmethod
-    async def get_appeal_by_review_id(db: AsyncSession, review_registration_id: int) -> Optional[Appeal]:
+    async def get_appeals_by_review_id(db: AsyncSession, review_registration_id: int) -> List[Appeal]:
         """Retrieves an appeal linked to a specific review registration ID."""
+        
         result = await db.execute(
             select(Appeal)
             .options(selectinload(Appeal.review_registration))
             .where(Appeal.review_registration_id == review_registration_id)
         )
-        return result.scalar_one_or_none()
+        
+        appeal_objs_list = list(result.scalars().all())
+        return [appeal.requested_documents for appeal in appeal_objs_list]
 
     @staticmethod
     async def update_appeal(

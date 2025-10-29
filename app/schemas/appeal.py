@@ -37,6 +37,7 @@ class AppealResponse(AppealBase):
     """Schema for representing an appeal in API responses."""
     id: int
     review_registration_id: int
+    requested_documents: Dict[str, Any]
     created_at: datetime
     updated_at: datetime
 

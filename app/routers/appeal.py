@@ -1,6 +1,6 @@
 """API Endpoints for managing appeal."""
 
-from typing import List # Se precisar listar apelos no futuro
+from typing import Any, Dict, List # Se precisar listar apelos no futuro
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,13 +16,13 @@ router = APIRouter(tags=["appeal"])
 
 @router.post(
     "/reviews/{review_registration_id}/appeal", 
-    response_model=AppealResponse,
+    response_model=Dict[str, Any],
     status_code=status.HTTP_201_CREATED,
     summary="Submit an appeal for a review",
 )
 async def create_appeal(
     review_registration_id: int,
-    appeal_data: AppealCreate,
+    appeal_data: Dict[str, Any],
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -34,14 +34,15 @@ async def create_appeal(
     appeal = await AppealService.create_appeal(
         db, appeal_data, review_registration_id, current_user
     )
+    
     return appeal
 
 @router.get(
     "/reviews/{review_registration_id}/appeals",
-    response_model=AppealResponse,
+    response_model=List[Dict[str, Any]],
     summary="Get the appeal for a specific review",
 )
-async def get_appeal_for_review(
+async def get_appeals_for_review(
     review_registration_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -50,18 +51,22 @@ async def get_appeal_for_review(
     Retrieves the appeal associated with a specific review registration ID.
     Accessible by the student owner or staff.
     """
-    appeal = await AppealService.get_appeal_by_review_id(db, review_registration_id)
-    if not appeal:
+    appeals = await AppealService.get_appeals_by_review_id(db, review_registration_id)
+    
+    if not appeals:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appeal not found for this review.")
 
-    review = await ReviewRegistrationService.get_review_by_id(db, appeal.review_registration_id)
+    review = await ReviewRegistrationService.get_review_by_id(
+        db, review_registration_id
+    )
+
     if not review:
          raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Associated review not found.")
          
-    if review.student_registration.student_id != current_user.id and not current_user.is_staff:
+    if review.social_worker_id != current_user.id and not current_user.is_staff:
          raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied.")
 
-    return appeal
+    return appeals
 
 @router.get(
     "/appeal/{appeal_id}",
@@ -85,7 +90,7 @@ async def get_appeal(
     if not review:
          raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Associated review not found.")
          
-    if review.student_registration.student_id != current_user.id and not current_user.is_staff:
+    if review.social_worker_id != current_user.id and not current_user.is_staff:
          raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied.")
 
     return appeal
