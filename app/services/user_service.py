@@ -3,6 +3,7 @@ User service layer for business logic and database operations.
 """
 
 from datetime import datetime, timezone
+import random
 from typing import List, Optional
 
 from sqlalchemy import select
@@ -75,7 +76,24 @@ class UserService:
 
         result = await db.execute(query)
         return list(result.scalars().all())
+    
+    @staticmethod
+    async def get_random_social_worker(db: AsyncSession) -> Optional[User]:
+        """
+        Fetches all social workers and returns one at random.
+        
+        This function may change in the future to use a different selection algorithm.
+        """
+        
+        social_workers = await UserService.get_users(
+            db, user_type=UserType.SOCIAL_WORKER, limit=1000
+        )
+        
+        if social_workers:
+            return random.choice(social_workers)
 
+        return None
+    
     @staticmethod
     async def create_user(db: AsyncSession, user_data: UserCreate) -> User:
         """

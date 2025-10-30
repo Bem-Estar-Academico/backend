@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.notice import Notice
-from app.models.registration import RegistrationStatus, StudentRegistration
+from app.models.registration import StudentRegistration
 from app.models.user import User, UserType
 from app.schemas.student_registration import (
     NoticeDetailsForRegistration,
@@ -17,6 +17,7 @@ from app.schemas.student_registration import (
     StudentRegistrationWithReviewResponse,
 )
 
+from app.models.review import RegistrationStatus
 
 class StudentRegistrationService:
     """
@@ -52,6 +53,7 @@ class StudentRegistrationService:
             HTTPException: If the user is not a student (403), notice not found (404),
                            registration period is inactive (400), or already registered (400).
         """
+        print("AAAAAAAAAAAAAAAAA Creating student registration...")
         if student.user_type != UserType.STUDENT:
             raise HTTPException(
                 status_code=403,
@@ -60,7 +62,7 @@ class StudentRegistrationService:
         notice_query = select(Notice).where(Notice.id == notice_id)
         notice_result = await db.execute(notice_query)
         notice = notice_result.scalar_one_or_none()
-
+        print("bbbbbbb Creating student registration...")
         if not notice:
             raise HTTPException(status_code=404, detail="Edital não encontrado")
 
@@ -92,7 +94,6 @@ class StudentRegistrationService:
             student_id=student.id,
             notice_id=notice_id,
             answer=registration_data.answer,
-            status=RegistrationStatus.PENDING,
         )
         db.add(registration)
         await db.commit()
@@ -171,7 +172,7 @@ class StudentRegistrationService:
         count_result = await db.execute(count_query)
         total = count_result.scalar_one()
 
-        query = query.order_by(StudentRegistration.registration_date.desc())
+        query = query.order_by(StudentRegistration.created_at.desc())
         result = await db.execute(query)
         registrations = list(result.scalars().all())
 
@@ -202,7 +203,7 @@ class StudentRegistrationService:
                 selectinload(StudentRegistration.notice),
             )
             .where(StudentRegistration.student_id == student_id)
-            .order_by(StudentRegistration.registration_date.desc())
+            .order_by(StudentRegistration.created_at.desc())
         )
 
         count_query = (

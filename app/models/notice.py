@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from sqlalchemy import (JSON, Boolean, DateTime, Enum as SQLAlchemyEnum, ForeignKey, Integer,
                         String, Text)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.sql import func
+from sqlalchemy.sql.functions import now
 
 from app.models.base import Base
 from app.models.registration import StudentRegistration
@@ -61,7 +61,7 @@ class Document(Base):
         Integer, nullable=True, comment="Tamanho do arquivo em bytes"
     )
     uploaded_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=now(), nullable=False
     )
 
     notice: Mapped["Notice"] = relationship("Notice", back_populates="documents")
@@ -98,7 +98,7 @@ class StudentDocument(Base):
         Integer, nullable=True, comment="Tamanho do arquivo em bytes"
     )
     uploaded_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=now(), nullable=False
     )
     description: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True, comment="Descrição adicional do documento"
@@ -154,7 +154,7 @@ class NoticeTeam(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     assigned_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=now(), nullable=False
     )
 
     notice: Mapped["Notice"] = relationship("Notice", back_populates="team_members")
@@ -236,12 +236,12 @@ class Notice(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
+        server_default=now(),
+        onupdate=now(),
         nullable=False,
     )
 

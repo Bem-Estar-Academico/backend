@@ -6,9 +6,10 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.registration import RegistrationStatus, StudentRegistration
-from app.schemas.notice import NoticeInfo
 from app.schemas.user import UserInfo
+from app.schemas.notice import NoticeInfo
+from app.models.registration import StudentRegistration
+from app.models.review import RegistrationStatus
 
 
 class StudentRegistrationBase(BaseModel):
@@ -60,15 +61,9 @@ class StudentRegistrationUpdate(StudentRegistrationBase):
     Schema for updating the status or observations of a student registration.
 
     Attributes:
-        status (Optional[RegistrationStatus]): The new status of the registration
-                                               (e.g., PENDENTE, APROVADO, REPROVADO).
         answer (Optional[Dict[str, Any]]): Updated observations or a dictionary
                                            with answers (e.g., notes from a social worker).
     """
-
-    status: Optional[RegistrationStatus] = Field(
-        None, description="Status atual da inscrição"
-    )
     answer: Optional[Dict[str, Any]] = Field(
         None, description="Observações atualizadas ou respostas do estudante"
     )
@@ -84,8 +79,6 @@ class StudentRegistrationResponse(StudentRegistrationBase):
         id (int): The unique identifier of the registration.
         student_id (int): The ID of the student who submitted the registration.
         notice_id (int): The ID of the notice (edital) the student is applying to.
-        status (RegistrationStatus): The current status of the registration.
-        registration_date (datetime): The original date and time the registration was submitted.
         created_at (datetime): The timestamp when the record was created in the database.
         updated_at (datetime): The timestamp when the record was last updated.
     """
@@ -93,8 +86,6 @@ class StudentRegistrationResponse(StudentRegistrationBase):
     id: int
     student_id: int
     notice_id: int
-    status: RegistrationStatus
-    registration_date: datetime
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
@@ -134,8 +125,6 @@ class StudentRegistrationWithDetails(StudentRegistrationResponse):
             id=registration_model.id,
             student_id=registration_model.student_id,
             notice_id=registration_model.notice_id,
-            status=registration_model.status,
-            registration_date=registration_model.registration_date,
             answer=registration_model.answer,
             created_at=registration_model.created_at,
             updated_at=registration_model.updated_at,

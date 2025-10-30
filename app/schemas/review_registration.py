@@ -6,14 +6,15 @@ data related to social worker reviews of student registrations.
 """
 
 from datetime import datetime
+import random
 from decimal import Decimal
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
+from pydantic import BaseModel, Field
 
-from pydantic import BaseModel, ConfigDict, Field
-
-from app.models.review import ReviewRegistrationModel
-from app.schemas.student_registration import StudentRegistrationResponse
+from app.schemas.appeal import AppealResponse
 from app.schemas.user import UserInfo
+from app.schemas.student_registration import StudentRegistrationResponse 
+from app.models.review import ReviewRegistrationModel, RegistrationStatus
 
 
 class ReviewRegistrationBase(BaseModel):
@@ -28,13 +29,11 @@ class ReviewRegistrationBase(BaseModel):
         approved_daycare_allowance (Optional[bool]): Whether daycare allowance benefit was approved.
         approved_graduation_scholarship (Optional[bool]): Whether graduation scholarship benefit was approved.
     """
+    review: Optional[dict[str, Any]] = Field(None, description="Conteúdo da avaliação em formato JSON")
+    ivs: Optional[float] = Field(None, ge=0, description="Índice de vulnerabilidade econômica (IVS)")
+    ocr_analisys: Optional[dict[str, Any]] = Field(None, description="Conteúdo do OCR em formato JSON")
+    status: RegistrationStatus = Field(..., description="Status no formato do sistema")
 
-    review: dict[str, Any] = Field(
-        ..., description="Conteúdo da avaliação em formato JSON"
-    )
-    ivs: float = Field(
-        ..., ge=0, description="Índice de vulnerabilidade econômica (IVS)"
-    )
     approved_food_allowance: Optional[bool] = Field(
         None,
         description="Indica se o auxílio alimentação foi aprovado (null se não aplicável)",
@@ -69,10 +68,12 @@ class ReviewRegistrationUpdate(BaseModel):
     All fields are optional to allow partial updates.
     """
 
+    appeal: Optional[Dict[str, Any]] | None = Field(None, description="Conteúdo relacionado aos recursos")
     review: Dict[str, Any] | None = Field(
         None, description="Conteúdo atualizado da avaliação em formato JSON"
     )
     ivs: float | None = Field(None, ge=0, description="(IVS) atualizado")
+    status: RegistrationStatus | None = Field(None, description="Status só possui esses valores PENDING, APPROVED, REJECTED, CANCELLED, APPEAL, REVIEW")
     approved_food_allowance: bool | None = Field(
         None,
         description="Indica se o auxílio alimentação foi aprovado (null se não aplicável)",
@@ -89,6 +90,11 @@ class ReviewRegistrationUpdate(BaseModel):
         None,
         description="Indica se a bolsa conclusão foi aprovada (null se não aplicável)",
     )
+    
+    def calculate_ivs(self) -> float:
+        "Calcular o IVS aqui"
+        return random.uniform(0, 100)
+      
 class ReviewRegistrationResponse(ReviewRegistrationBase):
     """
     Schema representing a basic review registration record with metadata and FKs.
@@ -97,10 +103,12 @@ class ReviewRegistrationResponse(ReviewRegistrationBase):
     id: int
     social_worker_id: int
     student_registration_id: int
+    status: RegistrationStatus
     created_at: datetime
     updated_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = {"from_attributes": True}
+    
 
 
 class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
@@ -115,6 +123,9 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
     student_registration: StudentRegistrationResponse = Field(
         ..., description="Informações da inscrição de estudante revisada."
     )
+    appeals: List[AppealResponse] = Field(
+        default_factory=list, description="Lista de recursos associados à revisão."
+    )
 
     @classmethod
     def from_model(
@@ -123,6 +134,8 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
         """
         Factory method to create the detailed schema instance from a SQLAlchemy model instance.
         """
+        from app.schemas.student_registration import StudentRegistrationResponse
+        
         ivs_value = (
             float(review_model.ivs)
             if isinstance(review_model.ivs, (Decimal, str))
@@ -134,10 +147,17 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
             student_registration_id=review_model.student_registration_id,
             review=review_model.review,
             ivs=ivs_value,
+            ocr_analisys=review_model.ocr_analisys,
+            status=review_model.status,
             created_at=review_model.created_at,
             updated_at=review_model.updated_at,
             social_worker=UserInfo.model_validate(review_model.social_worker),
             student_registration=StudentRegistrationResponse.model_validate(
                 review_model.student_registration
             ),
+            appeals=[
+                AppealResponse.model_validate(appeal)
+                for appeal in review_model.appeals
+            ],
+       
         )

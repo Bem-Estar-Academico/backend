@@ -10,11 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import AsyncSessionLocal as SessionLocal
 from app.models.notice import Notice
-from app.models.registration import RegistrationStatus, StudentRegistration
+from app.models.registration import StudentRegistration
 from app.models.user import User, UserType
-from app.models.registration import RegistrationStatus
 from app.schemas.notice import NoticeCreate
-from app.schemas.review_registration import ReviewRegistrationCreate
+from app.schemas.review_registration import ReviewRegistrationCreate, ReviewRegistrationUpdate
 from app.schemas.student_registration import (
     StudentRegistrationCreate,
     StudentRegistrationUpdate,
@@ -22,8 +21,8 @@ from app.schemas.student_registration import (
 from app.schemas.user import UserCreate
 from app.services.notice_service import NoticeService
 from app.services.review_registration_service import ReviewRegistrationService
-from app.services.student_registration_service import StudentRegistrationService
 from app.services.user_service import UserService
+from app.models.review import RegistrationStatus, ReviewRegistrationModel
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -102,15 +101,16 @@ class DataProvider:
             }
         )
 
-    def get_review(self) -> ReviewRegistrationCreate:
-        return ReviewRegistrationCreate(
-            review={"notes": self.fake.paragraph()},
-            ivs=round(random.uniform(65, 175), 2),
-            approved_food_allowance=random.choice([True, False]),
-            approved_housing_allowance=random.choice([True, False]),
-            approved_daycare_allowance=random.choice([True, False]),
-            approved_graduation_scholarship=random.choice([True, False]),
-        )
+    # def get_review(self) -> ReviewRegistrationCreate:
+    #     return ReviewRegistrationCreate(
+    #         review={"notes": self.fake.paragraph()},
+    #         ivs=round(random.uniform(65, 175), 2),
+    #         status=RegistrationStatus.PENDING,
+    #         approved_food_allowance=random.choice([True, False]),
+    #         approved_housing_allowance=random.choice([True, False]),
+    #         approved_daycare_allowance=random.choice([True, False]),
+    #         approved_graduation_scholarship=random.choice([True, False]),
+    #     )
 
 
 class Seeder:
@@ -255,7 +255,6 @@ class Seeder:
 
         logging.info("Criando inscrições de estudantes para editais passados...")
         total_registrations = 0
-        status_counts: dict[str, int] = {}
 
         for notice in notices:
             num_regs = random.randint(
@@ -286,16 +285,11 @@ class Seeder:
                         **reg_data.model_dump(),
                         student_id=student.id,
                         notice_id=notice.id,
-                        status=RegistrationStatus.PENDING,
                     )
                     self.db.add(registration)
                     await self.db.flush()
                     await self.db.refresh(registration)
 
-                    final_status = await self._randomly_update_status(registration)
-                    status_counts[final_status] = (
-                        status_counts.get(final_status, 0) + 1
-                    )
                     total_registrations += 1
                 except Exception as e:
                     logging.error(
@@ -305,12 +299,9 @@ class Seeder:
             logging.info(f"  - Edital '{notice.title}': {len(registered_students)} inscrições criadas.")
 
         logging.info(f"\nTotal de inscrições criadas: {total_registrations}")
-        logging.info("Distribuição de status:")
-        for status, count in sorted(status_counts.items()):
-            logging.info(f"  - {status:<10}: {count}")
 
     async def _randomly_update_status(
-        self, registration: StudentRegistration
+        self, review: ReviewRegistrationModel
     ) -> str:
         if not self.coordinator:
             raise ValueError("Coordenador não foi definido.")
@@ -320,56 +311,74 @@ class Seeder:
                 RegistrationStatus.APPROVED,
                 RegistrationStatus.REJECTED,
             ]
-            if random.random() < 0.2:
-                possible_statuses.append(RegistrationStatus.CANCELLED)
+            # if random.random() < 0.2:
+            #     possible_statuses.append(RegistrationStatus.CANCELLED)
 
             new_status = random.choice(possible_statuses)
-            student = await UserService.get_user_by_id(
-                self.db, registration.student_id
-            )
-            if not student:
-                return registration.status.name
-            updater = (
-                student
-                if new_status == RegistrationStatus.CANCELLED
-                else self.coordinator
-            )
+            # student = await UserService.get_user_by_id(
+            #     self.db, registration.student_id
+            # )
+            # if not student:
+            #     return registration.status.name
+            # updater = (
+            #     student
+            #     if new_status == RegistrationStatus.CANCELLED
+            #     else self.coordinator
+            # )
 
-            await StudentRegistrationService.update_registration(
+            await ReviewRegistrationService.update_review(
                 self.db,
-                registration_id=registration.id,
-                registration_data=StudentRegistrationUpdate(
-                    status=new_status, answer=registration.answer
+                review_id=review.id,
+                review_data=ReviewRegistrationUpdate(
+                    status=new_status
                 ),
-                current_user=updater,
+                current_user=self.coordinator,
             )
             return new_status.name
-        return registration.status.name
+        return review.status.name
 
     async def seed_reviews(self):
         logging.info("Criando avaliações para as inscrições...")
         result = await self.db.execute(select(StudentRegistration))
         registrations = result.scalars().all()
         review_count = 0
+        status_counts: dict[str, int] = {}
         for reg in registrations:
-            if reg.status == RegistrationStatus.CANCELLED:
-                continue
             try:
                 existing_review = (
                     await ReviewRegistrationService.get_review_by_student_registration_id(
                         self.db, reg.id
                     )
                 )
+
                 if existing_review:
                     continue
-
-                review_data = self.provider.get_review()
+                
+                
+                # review_data = {
+                #     "review": {"notes": self.provider.fake.paragraph()},
+                #     "ivs": round(random.uniform(65, 175), 2),
+                #     "approved_food_allowance": random.choice([True, False]),
+                #     "approved_housing_allowance": random.choice([True, False]),
+                #     "approved_daycare_allowance": random.choice([True, False]),
+                #     "approved_graduation_scholarship": random.choice([True, False]),
+                # }
+                default_review_data = ReviewRegistrationCreate(
+                    review={"initial_notes": "Avaliação auto-criada pelo sistema."},
+                    ivs=0.0,
+                    ocr_analisys={"initial_ocr": "OCR auto-criada pelo sistema."},
+                    status=RegistrationStatus.PENDING,
+                )
                 social_worker = random.choice(self.social_workers)
-                await ReviewRegistrationService.create_review(
-                    self.db,
+                review = await ReviewRegistrationService.create_review(
+                    db=self.db,
                     social_worker=social_worker,
                     student_registration_id=reg.id,
-                    review_data=review_data,
+                    review_data=default_review_data,
+                )
+                final_status = await self._randomly_update_status(review)
+                status_counts[final_status] = (
+                    status_counts.get(final_status, 0) + 1
                 )
                 review_count += 1
             except Exception as e:
@@ -377,6 +386,9 @@ class Seeder:
                     f"Falha ao criar avaliação para inscrição (id={reg.id}): {e}"
                 )
         logging.info(f"Total de avaliações criadas: {review_count}")
+        logging.info("Distribuição de status:")
+        for status, count in sorted(status_counts.items()):
+            logging.info(f"  - {status:<10}: {count}")
 
     async def run(self):
         logging.info("=" * 60)

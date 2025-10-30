@@ -7,18 +7,28 @@ and student registrations, storing the review details and the calculated IVS.
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, Optional
+import enum
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Numeric
+from sqlalchemy import JSON, Enum, DateTime, ForeignKey, Numeric, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.sql import func
-
+from sqlalchemy.sql.functions import now
 from app.models.base import Base
 
 if TYPE_CHECKING:
     from app.models.registration import StudentRegistration
+    from app.models.appeal import Appeal
     from app.models.user import User
 
+
+class RegistrationStatus(enum.Enum):
+    """Enumeration for the possible statuses of a student's registration for a notice."""
+    PENDING = "PENDING"  # Aguardando análise
+    APPROVED = "APPROVED"  # Aprovada
+    REJECTED = "REJECTED"  # Rejeitada
+    CANCELLED = "CANCELLED"  # Cancelada pelo estudante
+    APPEAL = "APPEAL"  # Em fase de recurso
+    REVIEW = "REVIEW" # Em análise
 
 class ReviewRegistrationModel(Base):
     """
@@ -48,6 +58,10 @@ class ReviewRegistrationModel(Base):
     __tablename__ = "review_registrations"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    appeals: Mapped[List["Appeal"]] = relationship(
+        back_populates="review_registration",
+        cascade="all, delete-orphan",
+    )
     social_worker_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"),
         nullable=False,
@@ -62,12 +76,23 @@ class ReviewRegistrationModel(Base):
     )
     review: Mapped[Dict[str, Any]] = mapped_column(
         JSON,
-        nullable=False,
+        nullable=True,
         comment="JSON payload containing the review form data",
     )
+    
+    ocr_analisys: Mapped[Dict[str, Any]] = mapped_column(
+        JSON,
+        nullable=True,
+        comment="JSON payload containing the review form data",
+    )
+    
+    status: Mapped[RegistrationStatus] = mapped_column(
+        Enum(RegistrationStatus), default=RegistrationStatus.PENDING, nullable=False
+    )
+    
     ivs: Mapped[float] = mapped_column(
-        Numeric(10, 2),
-        nullable=False,
+        Numeric(200, 0),
+        nullable=True,
         comment="Calculated Vulnerability Score (IVS)",
     )
 
@@ -93,12 +118,12 @@ class ReviewRegistrationModel(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
+        server_default=now(),
+        onupdate=now(),
         nullable=False,
     )
     social_worker: Mapped["User"] = relationship(back_populates="reviews")

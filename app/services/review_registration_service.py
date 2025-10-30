@@ -10,16 +10,18 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.review import ReviewRegistrationModel
+from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.models.user import User
 from app.schemas.review_registration import (
     ReviewRegistrationCreate,
     ReviewRegistrationUpdate,
 )
 from app.schemas.user import UserType
+from app.services.appeal_service import AppealService
 from app.services.student_registration_service import StudentRegistrationService
+from app.core.logging_config import get_logger
 
-
+logger = get_logger(__name__)
 class ReviewRegistrationService:
     """
     Service class for all business logic related to registration reviews.
@@ -134,13 +136,17 @@ class ReviewRegistrationService:
             .options(
                 selectinload(ReviewRegistrationModel.social_worker),
                 selectinload(ReviewRegistrationModel.student_registration),
+                selectinload(ReviewRegistrationModel.appeals),
             )
             .where(
                 ReviewRegistrationModel.student_registration_id == student_registration_id
             )
         )
         result = await db.execute(query)
-        return result.scalar_one_or_none()
+
+        data = result.scalar_one_or_none()
+        
+        return data
 
     @staticmethod
     async def update_review(
@@ -150,20 +156,9 @@ class ReviewRegistrationService:
         current_user: User,
     ) -> Optional[ReviewRegistrationModel]:
         """
-        Updates an existing review.
-
-        Args:
-            db (AsyncSession): The database session.
-            review_id (int): The ID of the review to update.
-            review_data (ReviewRegistrationUpdate): The data to update.
-            current_user (User): The user performing the update.
-
-        Returns:
-            Optional[ReviewRegistrationModel]: The updated review object, or None if not found.
-
-        Raises:
-            HTTPException: If the user does not have permission.
+        Updates an existing review and handles appeal creation/update if status is APPEAL.
         """
+
         review = await ReviewRegistrationService.get_review_by_id(db, review_id)
         if not review:
             return None
@@ -177,14 +172,62 @@ class ReviewRegistrationService:
             )
 
         update_data = review_data.model_dump(exclude_unset=True)
+        appeal_data = update_data.pop('appeal', None)
+        calculated_ivs: Optional[float] = None
+        new_status = review_data.status
+
+        if new_status:
+            if new_status in [RegistrationStatus.APPROVED, RegistrationStatus.REJECTED]:
+                if not appeal_data:
+                    calculated_ivs = review_data.calculate_ivs()
+                    update_data.pop('ivs', None)
+                else:
+                   raise HTTPException(
+                        status_code=400,
+                        detail="The 'appeal' field must not be provided when setting status to APPROVED or REJECTED."
+                    ) 
+
+            elif new_status == RegistrationStatus.APPEAL:
+                if not appeal_data:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="The 'appeal' field is required when setting status to APPEAL."
+                    )
+                else:
+                    try:
+                        created_appeal = await AppealService.create_appeal(
+                            db=db,
+                            requested_documents_data=appeal_data,
+                            review_registration_id=review_id,
+                            current_user=current_user
+                        )
+                        if not created_appeal:
+                            raise HTTPException(
+                                status_code=500, detail="Failed to save appeal data.")
+                    except HTTPException as http_exc:
+                        raise http_exc
+                    except Exception as e:
+                        logger.error(
+                            "Erro inesperado ao criar apelo para review %s: %s", review_id, e)
+                        raise HTTPException(
+                            status_code=500, detail=f"Internal error saving appeal")
+
         for field, value in update_data.items():
             setattr(review, field, value)
 
+        if calculated_ivs is not None:
+            review.ivs = calculated_ivs
+
         review.updated_at = datetime.now(timezone.utc)
 
-        await db.commit()
-        await db.refresh(review)
-        return review
+        try:
+            await db.commit()
+            await db.refresh(review)
+            return review
+        except Exception as e:
+            await db.rollback()
+            logger.error("Erro durante o commit ao atualizar review %s: %s", review_id, e)
+            raise HTTPException(status_code=500, detail=f"Internal server error")
 
     @staticmethod
     async def delete_review(db: AsyncSession, review_id: int, current_user: User) -> bool:
