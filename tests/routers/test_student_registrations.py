@@ -112,6 +112,7 @@ async def test_create_student_registration(
     db_session: AsyncSession,
     coordinator_token: str,
     student_token: str,
+    social_worker_user: User,
 ):
     """Test creating a student registration successfully."""
     notice_data = NoticeCreate(
@@ -136,14 +137,6 @@ async def test_create_student_registration(
     )
     assert create_notice_response.status_code == 201
     notice_id = create_notice_response.json()["id"]
-
-    social_worker_data = UserCreate(
-        email="social_worker.reg@example.com",
-        full_name="Test Social Worker Reg",
-        user_type=UserType.SOCIAL_WORKER,
-        password="social_workerpassword",
-    ) # type: ignore
-    await UserService.create_user(db_session, social_worker_data)
 
     registration_data: Dict[str, Any] = {
         "answer": {"a": ["Answer 1", "Answer 2", "Answer 3", "Answer 4", "Answer 5"], "b": "Detailed answer text."},
@@ -340,8 +333,8 @@ async def test_get_registrations_by_notice_new_format(
     client: AsyncClient,
     db_session: AsyncSession,
     coordinator_token: str,
-    notice_instance: Notice, 
-    student_user: User,      
+    notice_instance: Notice,
+    student_user: User,
     other_student_user: User,
     social_worker_user: User,
 ):
@@ -410,3 +403,121 @@ async def test_get_registrations_by_notice_new_format(
     assert pending_reg_response["review"]["status"] == "PENDING"
     assert pending_reg_response["review"]["progress"] == 25
     assert pending_reg_response["review"]["reviewer"] is None
+
+
+@pytest.mark.asyncio
+async def test_update_review_status_by_coordinator(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    notice_instance: Notice,
+    student_user: User,
+    social_worker_user: User,
+    coordinator_token: str,
+):
+    """Test that a coordinator can update a review's status."""
+    registration = StudentRegistration(
+        student_id=student_user.id, notice_id=notice_instance.id
+    )
+    db_session.add(registration)
+    await db_session.commit()
+    await db_session.refresh(registration)
+
+    review = ReviewRegistrationModel(
+        student_registration_id=registration.id,
+        social_worker_id=social_worker_user.id,
+        status=RegistrationStatus.PENDING,
+    )
+    db_session.add(review)
+    await db_session.commit()
+    await db_session.refresh(review)
+
+    update_data = {"status": RegistrationStatus.APPROVED.value}
+    headers = {"Authorization": f"Bearer {coordinator_token}"}
+    response = await client.put(
+        f"/api/v1/student-registrations/reviews/{review.id}",
+        json=update_data,
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    response_data = response.json()
+    assert response_data["id"] == review.id
+    assert response_data["status"] == RegistrationStatus.APPROVED.value
+
+    await db_session.refresh(review)
+    assert review.status == RegistrationStatus.APPROVED
+
+
+@pytest.mark.asyncio
+async def test_update_review_status_by_student_to_cancelled_fails(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    notice_instance: Notice,
+    student_user: User,
+    social_worker_user: User,
+    student_token: str,
+):
+    """Test that a student cannot cancel a review directly."""
+    registration = StudentRegistration(
+        student_id=student_user.id, notice_id=notice_instance.id
+    )
+    db_session.add(registration)
+    await db_session.commit()
+    await db_session.refresh(registration)
+
+    review = ReviewRegistrationModel(
+        student_registration_id=registration.id,
+        social_worker_id=social_worker_user.id,
+        status=RegistrationStatus.PENDING,
+    )
+    db_session.add(review)
+    await db_session.commit()
+    await db_session.refresh(review)
+
+    update_data = {"status": RegistrationStatus.CANCELLED.value}
+    headers = {"Authorization": f"Bearer {student_token}"}
+    response = await client.put(
+        f"/api/v1/student-registrations/reviews/{review.id}",
+        json=update_data,
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_update_review_status_by_student_to_approved_fails(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    notice_instance: Notice,
+    student_user: User,
+    social_worker_user: User,
+    student_token: str,
+):
+    """Test that a student CANNOT change a review status to anything."""
+    registration = StudentRegistration(
+        student_id=student_user.id, notice_id=notice_instance.id
+    )
+    db_session.add(registration)
+    await db_session.commit()
+    await db_session.refresh(registration)
+
+    review = ReviewRegistrationModel(
+        student_registration_id=registration.id,
+        social_worker_id=social_worker_user.id,
+        status=RegistrationStatus.PENDING,
+    )
+    db_session.add(review)
+    await db_session.commit()
+    await db_session.refresh(review)
+
+    update_data = {"status": RegistrationStatus.APPROVED.value}
+    headers = {"Authorization": f"Bearer {student_token}"}
+    response = await client.put(
+        f"/api/v1/student-registrations/reviews/{review.id}",
+        json=update_data,
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+
