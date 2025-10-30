@@ -1,6 +1,7 @@
 """Tests for the student registration routes."""
 
 from datetime import datetime, timedelta, timezone
+from typing import Any, Dict
 
 import pytest
 from httpx import AsyncClient
@@ -71,7 +72,31 @@ async def other_student_user(db_session: AsyncSession) -> User:
 
 
 @pytest.fixture
-async def student_token(client: AsyncClient, db_session: AsyncSession, student_user: User) -> str:
+async def social_worker_user(db_session: AsyncSession) -> User:
+    """Create a social_worker user directly in the DB and return the User object."""
+    user = await UserService.get_user_by_email(
+        db_session, "social_worker.test@example.com"
+    )
+    if user:
+        user.is_active = True
+        await db_session.commit()
+        await db_session.refresh(user)
+        return user
+
+    user_data = UserCreate(
+        email="social_worker.test@example.com",
+        full_name="Test social_worker",
+        user_type=UserType.SOCIAL_WORKER,
+        password="social_workerpassword",
+    ) # type: ignore
+    created_user = await UserService.create_user(db_session, user_data)
+    return created_user
+
+
+@pytest.fixture
+async def student_token(
+    client: AsyncClient, db_session: AsyncSession, student_user: User
+) -> str:
     """Create a student user and return an auth token."""
     password = "studentpassword"
     login_data = {"username": student_user.email, "password": password}
@@ -106,7 +131,7 @@ async def test_create_student_registration(
     )
     assert create_notice_response.status_code == 201
     notice_id = create_notice_response.json()["id"]
-    registration_data = {"answer": {"a": ["Answer 1", "Answer 2", "Answer 3", "Answer 4", "Answer 5"], "b": "Detailed answer text."}}
+    registration_data: Dict[str, Any] = {"answer": {"a": ["Answer 1", "Answer 2", "Answer 3", "Answer 4", "Answer 5"], "b": "Detailed answer text."}}
     headers_student = {"Authorization": f"Bearer {student_token}"}
 
     response = await client.post(

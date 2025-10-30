@@ -166,7 +166,7 @@ def extract_fields_with_llm(raw_text: str) -> Dict[str, Union[str, Dict[str, Any
                     f"Extraia o campo '{field_key}'. Formate-o de forma limpa."
                 )
                 
-                print(f"Campo '{field_key}' falhou. Tentando Fallback Focado...")
+                logging.warning(f"Campo '{field_key}' falhou. Tentando Fallback Focado...")
                 
                 fallback_value = extract_single_field_fallback(
                     raw_text,
@@ -176,9 +176,9 @@ def extract_fields_with_llm(raw_text: str) -> Dict[str, Union[str, Dict[str, Any
                 
                 if fallback_value not in [None, 'null']:
                     data[field_key] = fallback_value
-                    print(f"Fallback SUCCEEDED para {field_key}.")
+                    logging.warning(f"Fallback SUCCEEDED para {field_key}.")
                 else:
-                    print(f"Fallback FAILED para {field_key}.")
+                    logging.warning(f"Fallback FAILED para {field_key}.")
 
         return {"extracted_fields": data}
 

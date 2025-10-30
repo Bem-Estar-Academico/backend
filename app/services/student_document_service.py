@@ -45,7 +45,7 @@ class StudentDocumentService:
             document = doc_result.scalar_one_or_none()
 
             if not document:
-                print(f"Document with ID {document_id} not found.")
+                logging.warning(f"Document with ID {document_id} not found.")
                 return
 
             storage = get_storage_manager()
@@ -63,7 +63,7 @@ class StudentDocumentService:
             await db.commit()
 
         except Exception as e:
-            print(
+            logging.warning(
                 f"An error occurred during OCR processing for document {document_id}: {e}"
             )
             if document:
