@@ -2,5 +2,6 @@ from app.models.notice import Document, Notice, NoticeTeam
 from app.models.registration import StudentRegistration
 from app.models.review import ReviewRegistrationModel
 from app.models.user import User
+from app.models.appeal import Appeal
 
-__all__ = ["User", "Notice", "Document", "NoticeTeam", "StudentRegistration", "ReviewRegistrationModel"]
+__all__ = ["User", "Notice", "Document", "NoticeTeam", "StudentRegistration", "ReviewRegistrationModel", "Appeal"]
