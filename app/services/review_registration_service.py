@@ -60,6 +60,16 @@ class ReviewRegistrationService:
             raise HTTPException(
                 status_code=404, detail="Student registration not found."
             )
+        now = datetime.now(timezone.utc)
+        if not (
+            registration.notice.registration_start_date
+            and registration.notice.registration_end_date
+            and registration.notice.registration_start_date <= now <= registration.notice.registration_end_date
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Reviews can only be created during the notice's active registration period.",
+            )
 
         existing_review = (
             await ReviewRegistrationService.get_review_by_student_registration_id(

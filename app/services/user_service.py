@@ -163,6 +163,19 @@ class UserService:
                 update_data.pop("password")
             )
 
+        is_student = update_data.get("user_type", user.user_type) == UserType.STUDENT
+
+        if is_student:
+            if update_data.get("cpf") is None and user.cpf is None:
+                raise ValueError("CPF is required for students.")
+            if update_data.get("registration_number") is None and user.registration_number is None:
+                raise ValueError("Registration number is required for students.")
+        else:
+            if "cpf" in update_data and update_data["cpf"] is not None:
+                raise ValueError("CPF should not be provided for staff members.")
+            if "registration_number" in update_data and update_data["registration_number"] is not None:
+                raise ValueError("Registration number should not be provided for staff members.")
+
         for field, value in update_data.items():
             setattr(user, field, value)
 

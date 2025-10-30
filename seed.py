@@ -31,9 +31,10 @@ logging.basicConfig(
 
 NUM_STUDENTS = 50
 NUM_NOTICES = 10
-MAX_REGISTRATIONS_PER_NOTICE = 30
+MAX_REGISTRATIONS_PER_NOTICE = 50
 MIN_REGISTRATIONS_PER_NOTICE = 15
-NUM_SOCIAL_WORKERS = 5
+NUM_SOCIAL_WORKERS = 10
+NUM_COORDINATORS = 10
 
 
 class DataProvider:
@@ -62,19 +63,33 @@ class DataProvider:
         )
 
     def get_notice(self) -> NoticeCreate:
-        start_date = datetime.now() + timedelta(days=-10)
+        registration_end_date = datetime.now(timezone.utc) + timedelta(
+            days=random.randint(45, 75)
+        )
+        registration_start_date = datetime.now(timezone.utc) - timedelta(
+            days=random.randint(45,75)
+        )
+        appeal_start_date = registration_end_date + timedelta(days=random.randint(1, 5))
+        appeal_end_date = appeal_start_date + timedelta(days=random.randint(5, 10))
+        preliminary_result_date = appeal_end_date + timedelta(
+            days=random.randint(1, 3)
+        )
+        final_result_date = preliminary_result_date + timedelta(
+            days=random.randint(5, 10)
+        )
+
         return NoticeCreate(
             title=f"Edital de Cadastramento Socioeconômico {self.fake.year()}",
-            registration_start_date=start_date,
-            registration_end_date=start_date + timedelta(days=random.randint(15, 45)),
+            registration_start_date=registration_start_date,
+            registration_end_date=registration_end_date,
             description=self.fake.paragraph(nb_sentences=5),
             food_allowance=random.choice([True, False]),
             housing_allowance=random.choice([True, False]),
             daycare_allowance=random.choice([True, False]),
-            appeal_start_date=datetime.now(timezone.utc) + timedelta(days=1),
-            appeal_end_date=datetime.now(timezone.utc) + timedelta(days=11),
-            preliminary_result_date=datetime.now(timezone.utc) + timedelta(days=12),
-            final_result_date=datetime.now(timezone.utc) + timedelta(days=22),
+            appeal_start_date=appeal_start_date,
+            appeal_end_date=appeal_end_date,
+            preliminary_result_date=preliminary_result_date,
+            final_result_date=final_result_date,
             graduation_scholarship=random.choice([True, False]),
             team_members=[],
         )
@@ -91,6 +106,10 @@ class DataProvider:
         return ReviewRegistrationCreate(
             review={"notes": self.fake.paragraph()},
             ivs=round(random.uniform(65, 175), 2),
+            approved_food_allowance=random.choice([True, False]),
+            approved_housing_allowance=random.choice([True, False]),
+            approved_daycare_allowance=random.choice([True, False]),
+            approved_graduation_scholarship=random.choice([True, False]),
         )
 
 
@@ -119,9 +138,13 @@ class Seeder:
                 logging.info(f"  - Tabela '{table}' limpa.")
 
             await self.db.execute(
-                text("DELETE FROM users WHERE user_type IN ('STUDENT', 'SOCIAL_WORKER');")
+                text(
+                    "DELETE FROM users WHERE user_type IN ('STUDENT', 'SOCIAL_WORKER', 'COORDINATOR');"
+                )
             )
-            logging.info("  - Usuários dos tipos 'STUDENT' e 'SOCIAL_WORKER' deletados.")
+            logging.info(
+                "  - Usuários dos tipos 'STUDENT', 'SOCIAL_WORKER' e 'COORDINATOR' deletados."
+            )
 
             await self.db.commit()
             logging.info("Limpeza do banco de dados concluída com sucesso.")
@@ -169,6 +192,25 @@ class Seeder:
                 "Nenhum assistente social disponível para semear avaliações."
             )
 
+    async def seed_coordinators(self, num_coordinators: int):
+        logging.info(f"Criando {num_coordinators} coordenadores aleatórios...")
+        created_count = 0
+        for i in range(num_coordinators):
+            user_data = self.provider.get_user(UserType.COORDINATOR)
+            try:
+                user = await UserService.create_user(self.db, user_data)
+                created_count += 1
+                logging.info(
+                    f"  [{i+1:02d}/{num_coordinators}] Coordenador aleatório criado: {user.full_name}"
+                )
+            except ValueError:
+                logging.warning(
+                    f"E-mail/CPF/Matrícula duplicado para: {user_data.email}. Ignorando."
+                )
+            except Exception as e:
+                logging.error(f"Erro ao criar coordenador aleatório {user_data.email}: {e}")
+        logging.info(f"Total de coordenadores aleatórios criados: {created_count}")
+
     async def seed_students(self, num_students: int):
         logging.info(f"Criando {num_students} estudantes...")
         created_count = 0
@@ -211,7 +253,7 @@ class Seeder:
         if not self.coordinator:
             raise ValueError("Coordenador não foi definido.")
 
-        logging.info("Criando inscrições de estudantes com status variados...")
+        logging.info("Criando inscrições de estudantes para editais passados...")
         total_registrations = 0
         status_counts: dict[str, int] = {}
 
@@ -221,23 +263,35 @@ class Seeder:
                 MAX_REGISTRATIONS_PER_NOTICE,
             )
             registered_students = random.sample(
-                self.student_ids, min(num_regs, len(self.student_ids))
+                self.student_ids, min(num_regs, len(self.student_ids) // 2)
             )
 
             for student_id in registered_students:
                 try:
+                    existing_reg = await self.db.execute(
+                        select(StudentRegistration).where(
+                            StudentRegistration.student_id == student_id,
+                            StudentRegistration.notice_id == notice.id,
+                        )
+                    )
+                    if existing_reg.scalar_one_or_none():
+                        continue
+
                     reg_data = self.provider.get_registration()
                     student = await UserService.get_user_by_id(self.db, student_id)
                     if not student:
                         continue
-                    registration = (
-                        await StudentRegistrationService.create_registration(
-                            notice_id=notice.id,
-                            db=self.db,
-                            registration_data=reg_data,
-                            student=student,
-                        )
+
+                    registration = StudentRegistration(
+                        **reg_data.model_dump(),
+                        student_id=student.id,
+                        notice_id=notice.id,
+                        status=RegistrationStatus.PENDING,
                     )
+                    self.db.add(registration)
+                    await self.db.flush()
+                    await self.db.refresh(registration)
+
                     final_status = await self._randomly_update_status(registration)
                     status_counts[final_status] = (
                         status_counts.get(final_status, 0) + 1
@@ -248,7 +302,7 @@ class Seeder:
                         f"Falha ao criar inscrição (student_id={student_id}, notice_id={notice.id}): {e}"
                     )
 
-            logging.info(f"  - Edital: {len(registered_students)} inscrições criadas.")
+            logging.info(f"  - Edital '{notice.title}': {len(registered_students)} inscrições criadas.")
 
         logging.info(f"\nTotal de inscrições criadas: {total_registrations}")
         logging.info("Distribuição de status:")
@@ -284,7 +338,9 @@ class Seeder:
             await StudentRegistrationService.update_registration(
                 self.db,
                 registration_id=registration.id,
-                registration_data=StudentRegistrationUpdate(status=new_status),
+                registration_data=StudentRegistrationUpdate(
+                    status=new_status, answer=registration.answer
+                ),
                 current_user=updater,
             )
             return new_status.name
@@ -330,6 +386,7 @@ class Seeder:
         try:
             await self.clean_database()
             self.coordinator = await self._get_or_create_coordinator()
+            await self.seed_coordinators(NUM_COORDINATORS)
             await self.seed_students(NUM_STUDENTS)
             await self._get_or_create_social_workers(NUM_SOCIAL_WORKERS)
 

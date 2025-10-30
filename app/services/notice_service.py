@@ -245,12 +245,12 @@ class NoticeService:
 
         result = await db.execute(query)
 
-        notices_data = []
+        notices_data: List[Dict[str, Any]] = []
         for row in result:
             notice = row.Notice
             is_registered = row.is_registered
 
-            notice_dict = {
+            notice_dict: Dict[str, Any] = {
                 "id": notice.id,
                 "title": notice.title,
                 "registration_start_date": notice.registration_start_date,
@@ -500,14 +500,12 @@ class NoticeService:
         )
 
         result = await db.execute(q)
-
-        team_members_formatted = []
+        
+        team_members_formatted: List[Dict[str, Any]] = []
         for row in result.mappings():
-            member_data = dict(row)
-
-            member_data["progress"] = random.randint(
-                0, 100
-            )  # TO DO: logica do progresso
+            member_data: Dict[str, Any] = dict(row)
+            
+            member_data["progress"] = random.randint(0, 100) # TO DO: logica do progresso
             team_members_formatted.append(member_data)
 
         return team_members_formatted

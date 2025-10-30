@@ -18,12 +18,6 @@ class Settings(BaseSettings):
     API_V1_STR: str = Field(default="/api/v1", env="API_V1_STR")
     PROJECT_VERSION: str = Field(default="1.0.0", env="PROJECT_VERSION")
     REDIS_URL: str = Field(default="redis://localhost:6379/0", env="REDIS_URL")
-    CELERY_BROKER_URL: str = Field(
-        default="redis://localhost:6379/0", env="CELERY_BROKER_URL"
-    )
-    CELERY_RESULT_BACKEND: str = Field(
-        default="redis://localhost:6379/0", env="CELERY_RESULT_BACKEND"
-    )
     SMTP_SERVER: Optional[str] = Field(default=None, env="SMTP_SERVER")
     SMTP_PORT: Optional[int] = Field(default=587, env="SMTP_PORT")
     SMTP_USER: Optional[str] = Field(default=None, env="SMTP_USER")

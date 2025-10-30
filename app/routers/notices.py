@@ -6,7 +6,7 @@ It also includes endpoints for managing documents and team members associated wi
 and enforces role-based access control for certain operations.
 """
 
-from typing import List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -353,6 +353,7 @@ async def get_team_to_notice(
             status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
         )
 
-    team_members = await NoticeService.get_team_for_notice(db, notice_id=notice_id)
+    team_members_raw: List[Dict[str, Any]] = await NoticeService.get_team_for_notice(db, notice_id=notice_id)
+    team_members: List[TeamMemberResponse] = [TeamMemberResponse(**tm) for tm in team_members_raw]
 
     return team_members

@@ -57,28 +57,19 @@ class UserCreate(UserBase):
 
     @field_validator("registration_number", "cpf")
     @classmethod
-    def validate_student_fields(cls, value: Optional[str], validation_info: ValidationInfo):
+    def validate_student_fields(cls, value: Optional[str], info: ValidationInfo):
         """
-        Validates that 'registration_number' and 'cpf' are only provided if the user_type is STUDENT.
-
-        Args:
-            value (Optional[str]): The value of the field being validated (registration_number or cpf).
-            validation_info (ValidationInfo): Information about the validation context.
-
-        Raises:
-            ValueError: If 'registration_number' or 'cpf' are provided for a non-student user_type.
-
-        Returns:
-            Optional[str]: The validated field value.
+        Validates that 'registration_number' and 'cpf' are provided if the user_type is STUDENT,
+        and not provided if the user_type is not STUDENT.
         """
-        if value is None and validation_info.data.get("user_type") == UserType.STUDENT:
-            raise ValueError(
-                "registration_number and cpf should be provided for students"
-            )
-        if value is not None and validation_info.data.get("user_type") != UserType.STUDENT:
-            raise ValueError(
-                "registration_number and cpf can only be provided for students"
-            )
+        is_student = info.data.get("user_type") == UserType.STUDENT
+        
+        if is_student and value is None:
+            raise ValueError("CPF and registration number are required for students.")
+        
+        if not is_student and value is not None:
+            raise ValueError("CPF and registration number should not be provided for staff members.")
+        
         return value
 
     model_config = ConfigDict(

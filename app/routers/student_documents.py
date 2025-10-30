@@ -1,5 +1,6 @@
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     File,
     Form,
@@ -9,7 +10,9 @@ from fastapi import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.dependencies import require_staff
 from app.db.database import get_db
+from app.models.notice import OCRStatus
 from app.models.user import User, UserType
 from app.routers.auth import get_current_user
 from app.schemas.student_document import (
@@ -168,3 +171,77 @@ async def delete_document(
         )
 
     return {"message": "Documento deletado com sucesso"}
+
+
+@router.post("/{document_id}/trigger-ocr", status_code=status.HTTP_202_ACCEPTED)
+async def trigger_ocr_processing(
+    document_id: int,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_staff),
+):
+    """
+    Triggers the OCR processing for a specific document.
+    This is intended to be called on-demand by a social worker.
+    """
+    doc = await StudentDocumentService.get_document_by_id(db, document_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+
+    if doc.ocr_status in [OCRStatus.SUCCESS, OCRStatus.PROCESSING]:
+        return {
+            "message": "Documento já processado ou em processamento.",
+            "status": doc.ocr_status.value,
+        }
+    doc.ocr_status = OCRStatus.PROCESSING
+    db.add(doc)
+    await db.commit()
+
+    # Schedule the OCR task to run in the background
+    background_tasks.add_task(
+        StudentDocumentService.process_document_ocr_background, db, document_id
+    )
+
+    return {"message": "Processamento OCR iniciado.", "status": "PROCESSING"}
+
+
+@router.get("/{document_id}/ocr-result")
+async def get_ocr_result(
+    document_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_staff),
+):
+    """
+    Fetches the result of the OCR processing for a document,
+    including a comparison with profile and form data.
+    """
+    doc = await StudentDocumentService.get_document_by_id(db, document_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+
+    response = {
+        "status": doc.ocr_status.value,
+        "extracted_data": doc.ocr_results,
+        "comparison": None,
+    }
+
+    # If processing was successful, perform the comparison
+    if doc.ocr_status == OCRStatus.SUCCESS and doc.ocr_results:
+        student = doc.student_registration.student
+        registration_answers = doc.student_registration.answer or {}
+
+        response["comparison"] = {
+            "document_vs_profile": {
+                "name_match": student.full_name.upper() == doc.ocr_results.get("nome"),
+                "cpf_match": student.cpf == doc.ocr_results.get("cpf"),
+            },
+            "profile_data": {
+                "full_name": student.full_name,
+                "cpf": student.cpf,
+            },
+            "form_data": {  # Assumes these keys exist in the registration form JSON
+                "full_name": registration_answers.get("full_name"),
+                "cpf": registration_answers.get("cpf"),
+            },
+        }
+    return response
