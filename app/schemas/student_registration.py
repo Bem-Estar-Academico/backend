@@ -184,3 +184,41 @@ class StudentRegistrationWithReviewResponse(BaseModel):
     notice: NoticeDetailsForRegistration
     review: Optional[ReviewDetailsForRegistration] = None
     model_config = ConfigDict(from_attributes=True)
+
+
+# Schemas for the new endpoint GET /api/v1/student-registrations/notice/{notice_id}
+
+class ReviewerResponse(BaseModel):
+    id: int
+    name: str
+
+class ReviewerWrapper(BaseModel):
+    reviewer: Optional[ReviewerResponse]
+
+class ReviewForRegistrationList(BaseModel):
+    progress: int
+    status: str
+    qtd_document: int
+    reviewer: Optional[ReviewerResponse] = None
+
+class StudentForRegistrationList(BaseModel):
+    id: int
+    cpf: Optional[str] = None
+    name: str
+    registration_number: Optional[str] = None
+    created_at: datetime
+
+class RegistrationForNoticeList(BaseModel):
+    id: int
+    registration_date: datetime
+    student: StudentForRegistrationList
+    review: ReviewForRegistrationList
+
+class RegistrationListResponse(BaseModel):
+    registrations: List[RegistrationForNoticeList]
+    pending_count: int
+    approved_count: int
+    rejected_count: int
+    review_count: int
+    appeal_count: int
+    cancelled_count: int

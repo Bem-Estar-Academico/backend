@@ -15,9 +15,26 @@ from app.schemas.student_registration import (
     StudentRegistrationBase,
     StudentRegistrationUpdate,
     StudentRegistrationWithReviewResponse,
+    RegistrationListResponse,
+    RegistrationForNoticeList,
+    StudentForRegistrationList,
+    ReviewForRegistrationList,
+    ReviewerResponse,
 )
 
-from app.models.review import RegistrationStatus
+from app.models.review import RegistrationStatus, ReviewRegistrationModel
+
+
+def _get_progress_from_status(status: RegistrationStatus) -> int:
+    if status == RegistrationStatus.PENDING:
+        return 25
+    if status == RegistrationStatus.REVIEW:
+        return 50
+    if status == RegistrationStatus.APPEAL:
+        return 75
+    if status in [RegistrationStatus.APPROVED, RegistrationStatus.REJECTED, RegistrationStatus.CANCELLED]:
+        return 100
+    return 0
 
 class StudentRegistrationService:
     """
@@ -26,6 +43,84 @@ class StudentRegistrationService:
     Handles creation, retrieval, updating, and deletion of registrations, including
     permission checks and validation against notice periods.
     """
+
+    @staticmethod
+    async def get_registrations_for_notice_list(
+        db: AsyncSession,
+        notice_id: int,
+    ) -> RegistrationListResponse:
+        query = (
+            select(StudentRegistration)
+            .options(
+                selectinload(StudentRegistration.student),
+                selectinload(StudentRegistration.documents),
+                selectinload(StudentRegistration.review).options(
+                    selectinload(ReviewRegistrationModel.social_worker)
+                ),
+            )
+            .where(StudentRegistration.notice_id == notice_id)
+        )
+
+        result = await db.execute(query)
+        registrations = result.scalars().all()
+
+        counts = {status.value: 0 for status in RegistrationStatus}
+
+        response_registrations = []
+        for reg in registrations:
+            student_data = StudentForRegistrationList(
+                id=reg.student.id,
+                cpf=reg.student.cpf,
+                name=reg.student.full_name,
+                registration_number=reg.student.registration_number,
+                created_at=reg.student.created_at,
+            )
+
+            if reg.review:
+                status = reg.review.status
+                counts[status.value] += 1
+                reviewer = (
+                    ReviewerResponse(
+                        id=reg.review.social_worker.id,
+                        name=reg.review.social_worker.full_name,
+                    )
+                    if reg.review.social_worker
+                    else None
+                )
+                review_data = ReviewForRegistrationList(
+                    progress=_get_progress_from_status(status),
+                    status=status.value,
+                    qtd_document=len(reg.documents),
+                    reviewer=reviewer,
+                )
+            else:
+                status = RegistrationStatus.PENDING
+                counts[status.value] += 1
+                review_data = ReviewForRegistrationList(
+                    progress=_get_progress_from_status(status),
+                    status=status.value,
+                    qtd_document=len(reg.documents),
+                    reviewer=None,
+                )
+
+            response_registrations.append(
+                RegistrationForNoticeList(
+                    id=reg.id,
+                    registration_date=reg.created_at,
+                    student=student_data,
+                    review=review_data,
+                )
+            )
+
+        return RegistrationListResponse(
+            registrations=response_registrations,
+            pending_count=counts.get(RegistrationStatus.PENDING.value, 0),
+            approved_count=counts.get(RegistrationStatus.APPROVED.value, 0),
+            rejected_count=counts.get(RegistrationStatus.REJECTED.value, 0),
+            review_count=counts.get(RegistrationStatus.REVIEW.value, 0),
+            appeal_count=counts.get(RegistrationStatus.APPEAL.value, 0),
+            cancelled_count=counts.get(RegistrationStatus.CANCELLED.value, 0),
+        )
 
     @staticmethod
     async def create_registration(

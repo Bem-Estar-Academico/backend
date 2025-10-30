@@ -24,6 +24,7 @@ from app.schemas.student_registration import (
     StudentRegistrationWithDetails,
     StudentRegistrationCreate,
     StudentRegistrationWithReviewResponse,
+    RegistrationListResponse,
 )
 from app.schemas.user import UserType
 from app.services.review_registration_service import ReviewRegistrationService
@@ -170,24 +171,23 @@ async def get_student_registration(
 
 @router.get(
     "/notice/{notice_id}",
-    response_model=StudentRegistrationList,
-    summary="Get registrations by notice",
-    description="Get all registrations for a specific notice",
+    response_model=RegistrationListResponse,
+    summary="Get registrations by notice with aggregated counts",
+    description="Get all registrations for a specific notice with the new JSON structure",
 )
 async def get_registrations_by_notice(
     notice_id: int,
-    status_filter: Optional[RegistrationStatus] = Query(None, alias="status"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> StudentRegistrationList:
+) -> RegistrationListResponse:
     """
-    Retrieves all student registrations for a specific notice.
+    Retrieves all student registrations for a specific notice, formatted
+    with aggregated status counts.
 
     This endpoint is restricted to staff members.
 
     Args:
         notice_id (int): The ID of the notice to retrieve registrations for.
-        status_filter (Optional[RegistrationStatus]): Optional. Filter registrations by their status.
         current_user (User): The authenticated staff user.
         db (AsyncSession): The database session.
 
@@ -195,24 +195,18 @@ async def get_registrations_by_notice(
         HTTPException: If the user is not authorized.
 
     Returns:
-        StudentRegistrationList: A list of student registrations for the notice.
+        RegistrationListResponse: A list of student registrations and status counts.
     """
     if not current_user.is_staff:
         raise HTTPException(
             status_code=403, detail="Sem permissão para ver inscrições de editais"
         )
-    registrations, total = await StudentRegistrationService.get_registrations_by_notice(
-        db, notice_id, status_filter
+    
+    response = await StudentRegistrationService.get_registrations_for_notice_list(
+        db, notice_id
     )
 
-    registration_details = [
-        StudentRegistrationWithDetails.from_model(reg) for reg in registrations
-    ]
-
-    return StudentRegistrationList(
-        registrations=registration_details,
-        total=total,
-    )
+    return response
 
 
 @router.get(
