@@ -1,8 +1,8 @@
 """init
 
-Revision ID: be83c1967485
+Revision ID: 441f0804fdd7
 Revises: 
-Create Date: 2025-10-23 14:39:33.829506
+Create Date: 2025-10-30 10:22:20.950384
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'be83c1967485'
+revision = '441f0804fdd7'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -80,9 +80,11 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('student_id', sa.Integer(), nullable=False),
     sa.Column('notice_id', sa.Integer(), nullable=False),
-    sa.Column('status', sa.Enum('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'APPEAL', 'REVIEW', name='registrationstatus'), nullable=False),
-    sa.Column('registration_date', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('answer', sa.JSON(), nullable=True, comment="JSON data containing the student's answers to the notice questions"),
+    sa.Column('requested_food_allowance', sa.Boolean(), nullable=False),
+    sa.Column('requested_housing_allowance', sa.Boolean(), nullable=False),
+    sa.Column('requested_daycare_allowance', sa.Boolean(), nullable=False),
+    sa.Column('requested_graduation_scholarship', sa.Boolean(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['notice_id'], ['notices.id'], ),
@@ -94,8 +96,14 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('social_worker_id', sa.Integer(), nullable=False, comment='ID of the social worker (user) who submitted the review'),
     sa.Column('student_registration_id', sa.Integer(), nullable=False, comment='ID of the student registration being reviewed (one-to-one)'),
-    sa.Column('review', sa.JSON(), nullable=False, comment='JSON payload containing the review form data'),
-    sa.Column('ivs', sa.Numeric(precision=10, scale=2), nullable=False, comment='Calculated Vulnerability Score (IVS)'),
+    sa.Column('review', sa.JSON(), nullable=True, comment='JSON payload containing the review form data'),
+    sa.Column('ocr_analisys', sa.JSON(), nullable=True, comment='JSON payload containing the review form data'),
+    sa.Column('status', sa.Enum('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'APPEAL', 'REVIEW', name='registrationstatus'), nullable=False),
+    sa.Column('ivs', sa.Numeric(precision=200, scale=0), nullable=False, comment='Calculated Vulnerability Score (IVS)'),
+    sa.Column('approved_food_allowance', sa.Boolean(), nullable=True, comment='Whether food allowance benefit was approved (null if not applicable)'),
+    sa.Column('approved_housing_allowance', sa.Boolean(), nullable=True, comment='Whether housing allowance benefit was approved (null if not applicable)'),
+    sa.Column('approved_daycare_allowance', sa.Boolean(), nullable=True, comment='Whether daycare allowance benefit was approved (null if not applicable)'),
+    sa.Column('approved_graduation_scholarship', sa.Boolean(), nullable=True, comment='Whether graduation scholarship benefit was approved (null if not applicable)'),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['social_worker_id'], ['users.id'], ),
@@ -105,11 +113,40 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_review_registrations_id'), 'review_registrations', ['id'], unique=False)
     op.create_index(op.f('ix_review_registrations_social_worker_id'), 'review_registrations', ['social_worker_id'], unique=False)
+    op.create_table('student_documents',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('student_registration_id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(length=255), nullable=False, comment='Nome original do arquivo'),
+    sa.Column('file_key', sa.String(length=512), nullable=False, comment='Chave do arquivo no storage'),
+    sa.Column('file_type', sa.String(length=50), nullable=True, comment='MIME type do arquivo'),
+    sa.Column('file_size', sa.Integer(), nullable=True, comment='Tamanho do arquivo em bytes'),
+    sa.Column('uploaded_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('description', sa.Text(), nullable=True, comment='Descrição adicional do documento'),
+    sa.ForeignKeyConstraint(['student_registration_id'], ['student_registrations.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_student_documents_id'), 'student_documents', ['id'], unique=False)
+    op.create_table('appeals',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('review_registration_id', sa.Integer(), nullable=False, comment='ID of the review registration being appealed (one-to-one)'),
+    sa.Column('requested_documents', sa.JSON(), nullable=False, comment='JSON detailing requested documents and reasons for appeal'),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['review_registration_id'], ['review_registrations.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_appeals_id'), 'appeals', ['id'], unique=False)
+    op.create_index(op.f('ix_appeals_review_registration_id'), 'appeals', ['review_registration_id'], unique=False)
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_index(op.f('ix_appeals_review_registration_id'), table_name='appeals')
+    op.drop_index(op.f('ix_appeals_id'), table_name='appeals')
+    op.drop_table('appeals')
+    op.drop_index(op.f('ix_student_documents_id'), table_name='student_documents')
+    op.drop_table('student_documents')
     op.drop_index(op.f('ix_review_registrations_social_worker_id'), table_name='review_registrations')
     op.drop_index(op.f('ix_review_registrations_id'), table_name='review_registrations')
     op.drop_table('review_registrations')

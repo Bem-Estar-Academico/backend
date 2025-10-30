@@ -7,20 +7,14 @@ data related to social worker reviews of student registrations.
 
 from datetime import datetime
 import random
-from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field, ConfigDict
 from decimal import Decimal
+from typing import Any, Dict, Optional, List, cast
+from pydantic import BaseModel, Field, ConfigDict
+
+from app.schemas.appeal import AppealResponse
 from app.schemas.user import UserInfo
 from app.schemas.student_registration import StudentRegistrationResponse 
 from app.models.review import ReviewRegistrationModel, RegistrationStatus
-from decimal import Decimal
-from typing import Any, Dict, Optional
-
-from pydantic import BaseModel, ConfigDict, Field
-
-from app.models.review import ReviewRegistrationModel
-from app.schemas.student_registration import StudentRegistrationResponse
-from app.schemas.user import UserInfo
 
 
 class ReviewRegistrationBase(BaseModel):
@@ -35,17 +29,11 @@ class ReviewRegistrationBase(BaseModel):
         approved_daycare_allowance (Optional[bool]): Whether daycare allowance benefit was approved.
         approved_graduation_scholarship (Optional[bool]): Whether graduation scholarship benefit was approved.
     """
-    review: dict[str, Any] = Field(..., description="Conteúdo da avaliação em formato JSON")
-    ivs: float = Field(..., ge=0, description="Índice de vulnerabilidade econômica (IVS)")
-    ocr_analisys: dict[str, Any] = Field(..., description="Conteúdo do OCR em formato JSON")
+    review: Optional[dict[str, Any]] = Field(None, description="Conteúdo da avaliação em formato JSON")
+    ivs: Optional[float] = Field(None, ge=0, description="Índice de vulnerabilidade econômica (IVS)")
+    ocr_analisys: Optional[dict[str, Any]] = Field(None, description="Conteúdo do OCR em formato JSON")
     status: RegistrationStatus = Field(..., description="Status no formato do sistema")
 
-    review: dict[str, Any] = Field(
-        ..., description="Conteúdo da avaliação em formato JSON"
-    )
-    ivs: float = Field(
-        ..., ge=0, description="Índice de vulnerabilidade econômica (IVS)"
-    )
     approved_food_allowance: Optional[bool] = Field(
         None,
         description="Indica se o auxílio alimentação foi aprovado (null se não aplicável)",
@@ -103,7 +91,7 @@ class ReviewRegistrationUpdate(BaseModel):
         description="Indica se a bolsa conclusão foi aprovada (null se não aplicável)",
     )
     
-    def calculete_ivs(self) -> float:
+    def calculate_ivs(self) -> float:
         "Calcular o IVS aqui"
         return random.uniform(0, 100)
       
@@ -116,11 +104,10 @@ class ReviewRegistrationResponse(ReviewRegistrationBase):
     social_worker_id: int
     student_registration_id: int
     status: RegistrationStatus
-    ocr_analisys: Dict[str, Any]
     created_at: datetime
     updated_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = {"from_attributes": True}
     
 
 
@@ -135,6 +122,9 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
     )
     student_registration: StudentRegistrationResponse = Field(
         ..., description="Informações da inscrição de estudante revisada."
+    )
+    appeals: List[AppealResponse] = Field(
+        default_factory=list, description="Lista de recursos associados à revisão."
     )
 
     @classmethod
@@ -165,4 +155,9 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
             student_registration=StudentRegistrationResponse.model_validate(
                 review_model.student_registration
             ),
+            appeals=[
+                AppealResponse.model_validate(appeal)
+                for appeal in review_model.appeals
+            ],
+       
         )

@@ -3,9 +3,9 @@
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.sql import func
+from sqlalchemy.sql.functions import now
 
 from app.models.base import Base
 
@@ -66,12 +66,12 @@ class StudentRegistration(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
+        server_default=now(),
+        onupdate=now(),
         nullable=False,
     )
     student: Mapped["User"] = relationship("User", foreign_keys=[student_id])

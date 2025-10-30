@@ -8,14 +8,11 @@ and student registrations, storing the review details and the calculated IVS.
 
 from datetime import datetime
 import enum
-import random
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from sqlalchemy import JSON, Enum, DateTime, ForeignKey, Numeric
+from sqlalchemy import JSON, Enum, DateTime, ForeignKey, Numeric, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.sql import func
-
-from app.models.appeal import Appeal
+from sqlalchemy.sql.functions import now
 from app.models.base import Base
 
 if TYPE_CHECKING:
@@ -61,10 +58,9 @@ class ReviewRegistrationModel(Base):
     __tablename__ = "review_registrations"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    appeal: Mapped[Optional["Appeal"]] = relationship(
+    appeals: Mapped[List["Appeal"]] = relationship(
         back_populates="review_registration",
         cascade="all, delete-orphan",
-        uselist=False
     ) #isso é para o relacionamento!!!
     social_worker_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"),
@@ -96,7 +92,7 @@ class ReviewRegistrationModel(Base):
     
     ivs: Mapped[float] = mapped_column(
         Numeric(200, 0),
-        nullable=False,
+        nullable=True,
         comment="Calculated Vulnerability Score (IVS)",
     )
 
@@ -122,12 +118,12 @@ class ReviewRegistrationModel(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
+        server_default=now(),
+        onupdate=now(),
         nullable=False,
     )
     social_worker: Mapped["User"] = relationship(back_populates="reviews")

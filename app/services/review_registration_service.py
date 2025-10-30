@@ -19,8 +19,9 @@ from app.schemas.review_registration import (
 from app.schemas.user import UserType
 from app.services.appeal_service import AppealService
 from app.services.student_registration_service import StudentRegistrationService
+from app.core.logging_config import get_logger
 
-
+logger = get_logger(__name__)
 class ReviewRegistrationService:
     """
     Service class for all business logic related to registration reviews.
@@ -125,13 +126,17 @@ class ReviewRegistrationService:
             .options(
                 selectinload(ReviewRegistrationModel.social_worker),
                 selectinload(ReviewRegistrationModel.student_registration),
+                selectinload(ReviewRegistrationModel.appeals),
             )
             .where(
                 ReviewRegistrationModel.student_registration_id == student_registration_id
             )
         )
         result = await db.execute(query)
-        return result.scalar_one_or_none()
+
+        data = result.scalar_one_or_none()
+        
+        return data
 
     @staticmethod
     async def update_review(
@@ -164,19 +169,19 @@ class ReviewRegistrationService:
         if new_status:
             if new_status in [RegistrationStatus.APPROVED, RegistrationStatus.REJECTED]:
                 if not appeal_data:
-                    calculated_ivs = review_data.calculete_ivs()
+                    calculated_ivs = review_data.calculate_ivs()
                     update_data.pop('ivs', None)
                 else:
                    raise HTTPException(
                         status_code=400,
-                        detail="The 'appeals' field is required when setting status to APPEAL."
+                        detail="The 'appeal' field must not be provided when setting status to APPROVED or REJECTED."
                     ) 
 
             elif new_status == RegistrationStatus.APPEAL:
                 if not appeal_data:
                     raise HTTPException(
                         status_code=400,
-                        detail="The 'appeals' field is required when setting status to APPEAL."
+                        detail="The 'appeal' field is required when setting status to APPEAL."
                     )
                 else:
                     try:
@@ -195,7 +200,7 @@ class ReviewRegistrationService:
                         print(
                             f"Erro inesperado ao criar apelo para review {review_id}: {e}")
                         raise HTTPException(
-                            status_code=500, detail=f"Internal error saving appeal: {e}")
+                            status_code=500, detail=f"Internal error saving appeal")
 
         for field, value in update_data.items():
             setattr(review, field, value)
@@ -211,8 +216,8 @@ class ReviewRegistrationService:
             return review
         except Exception as e:
             await db.rollback()
-            print(f"Erro durante o commit ao atualizar review {review_id}: {e}")
-            raise HTTPException(status_code=500, detail=f"Database commit error: {e}")
+            logger.error("Erro durante o commit ao atualizar review %s: %s", review_id, e)
+            raise HTTPException(status_code=500, detail=f"Internal server error")
 
     @staticmethod
     async def delete_review(db: AsyncSession, review_id: int, current_user: User) -> bool:

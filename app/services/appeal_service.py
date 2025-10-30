@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 from app.models.appeal import Appeal
 from app.models.review import ReviewRegistrationModel
 from app.models.user import User
-from app.schemas.appeal import AppealCreate, AppealUpdate
+from app.schemas.appeal import AppealUpdate
 
 
 class AppealService:

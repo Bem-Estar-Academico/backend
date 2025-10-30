@@ -82,7 +82,7 @@ class UserService:
         """
         Fetches all social workers and returns one at random.
         
-        Essa função pode ter mudanças no futuro 'get_social_worker_random'.
+        This function may change in the future to use a different selection algorithm.
         """
         
         social_workers = await UserService.get_users(

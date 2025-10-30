@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Dict
 
 from sqlalchemy import JSON, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.sql import func
+from sqlalchemy.sql.functions import now
 
 from app.models.base import Base
 
@@ -47,15 +47,17 @@ class Appeal(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
+        server_default=now(),
+        onupdate=now(),
         nullable=False,
     )
 
     review_registration: Mapped["ReviewRegistrationModel"] = relationship(
-        back_populates="appeal"
+        back_populates="appeals"
     )
+
+    model_config = {"from_attributes": True}

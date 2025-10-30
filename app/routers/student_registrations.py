@@ -159,40 +159,6 @@ async def get_registrations_by_notice(
     Returns:
         StudentRegistrationList: A list of student registrations for the notice.
     """
-    """
-    Retrieves all student registrations for a specific notice.
-
-    This endpoint is restricted to staff members.
-
-    Args:
-        notice_id (int): The ID of the notice to retrieve registrations for.
-        status_filter (Optional[RegistrationStatus]): Optional. Filter registrations by their status.
-        current_user (User): The authenticated staff user.
-        db (AsyncSession): The database session.
-
-    Raises:
-        HTTPException: If the user is not authorized.
-
-    Returns:
-        StudentRegistrationList: A list of student registrations for the notice.
-    """
-    """
-    Retrieves all student registrations for a specific notice.
-
-    This endpoint is restricted to staff members.
-
-    Args:
-        notice_id (int): The ID of the notice to retrieve registrations for.
-        status_filter (Optional[RegistrationStatus]): Optional. Filter registrations by their status.
-        current_user (User): The authenticated staff user.
-        db (AsyncSession): The database session.
-
-    Raises:
-        HTTPException: If the user is not authorized.
-
-    Returns:
-        StudentRegistrationList: A list of student registrations for the notice.
-    """
     if not current_user.is_staff:
         raise HTTPException(
             status_code=403, detail="Sem permissão para ver inscrições de editais"
@@ -356,16 +322,13 @@ async def get_review_registration(
     )
     if not registration:
         raise HTTPException(status_code=404, detail="Review not found")
-
     is_owner = registration.student_registration.student_id == current_user.id
     is_reviewer = registration.social_worker_id == current_user.id
     is_coordinator = current_user.user_type == UserType.COORDINATOR
-
     if not is_owner and not is_reviewer and not is_coordinator:
         raise HTTPException(
             status_code=403, detail="Not enough permissions to view this review."
         )
-
     return ReviewRegistrationResponseWithDetails.from_model(registration)
 
 

@@ -5,9 +5,6 @@ from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field, ConfigDict
 
-from app.schemas.review_registration import ReviewRegistrationResponse
-
-
 class AppealBase(BaseModel):
     """Base schema for appeal data, containing the requested documents."""
     requested_documents: Dict[str, Any] = Field(
@@ -34,11 +31,11 @@ class AppealUpdate(BaseModel):
 
 
 class AppealResponse(AppealBase):
-    """Schema for representing an appeal in API responses."""
+    """Schema for representing an appeal with its ID."""
+
     id: int
-    review_registration_id: int
-    requested_documents: Dict[str, Any]
     created_at: datetime
     updated_at: datetime
+    review_registration_id: int
 
     model_config = ConfigDict(from_attributes=True)
