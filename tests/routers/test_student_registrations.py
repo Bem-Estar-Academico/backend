@@ -329,7 +329,7 @@ async def test_list_registrations_by_student_as_other_student_fails(
 
 
 @pytest.mark.asyncio
-async def test_get_registrations_by_notice_new_format(
+async def test_get_registrations_by_notice(
     client: AsyncClient,
     db_session: AsyncSession,
     coordinator_token: str,
