@@ -8,13 +8,28 @@ data related to social worker reviews of student registrations.
 from datetime import datetime
 import random
 from decimal import Decimal
-from typing import Any, Dict, Optional, List
-from pydantic import BaseModel, Field
+from typing import Any, Dict, Optional, List, TYPE_CHECKING
+from pydantic import BaseModel, Field, ConfigDict
+
+from app.schemas.user import UserInfo
+from app.models.review import ReviewRegistrationModel, RegistrationStatus
 
 from app.schemas.appeal import AppealResponse
-from app.schemas.user import UserInfo
-from app.schemas.student_registration import StudentRegistrationResponse 
-from app.models.review import ReviewRegistrationModel, RegistrationStatus
+
+if TYPE_CHECKING:
+    from app.schemas.student_registration import StudentRegistrationResponse
+
+
+class ReviewDetailsForRegistration(BaseModel):
+    """
+    Schema for review details included in student registration responses.
+    """
+
+    id: int
+    status: RegistrationStatus
+    ivs: Optional[float] = None
+    expires_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ReviewRegistrationBase(BaseModel):
@@ -101,7 +116,7 @@ class ReviewRegistrationResponse(ReviewRegistrationBase):
     """
 
     id: int
-    social_worker_id: int
+    social_worker_id: Optional[int]
     student_registration_id: int
     status: RegistrationStatus
     created_at: datetime
@@ -120,10 +135,10 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
     social_worker: UserInfo = Field(
         ..., description="Informações do assistente social que realizou a revisão."
     )
-    student_registration: StudentRegistrationResponse = Field(
+    student_registration: "StudentRegistrationResponse" = Field(
         ..., description="Informações da inscrição de estudante revisada."
     )
-    appeals: List[AppealResponse] = Field(
+    appeals: List["AppealResponse"] = Field( # type: ignore
         default_factory=list, description="Lista de recursos associados à revisão."
     )
 
@@ -135,6 +150,7 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
         Factory method to create the detailed schema instance from a SQLAlchemy model instance.
         """
         from app.schemas.student_registration import StudentRegistrationResponse
+        from app.schemas.appeal import AppealResponse
         
         ivs_value = (
             float(review_model.ivs)
@@ -151,6 +167,10 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
             status=review_model.status,
             created_at=review_model.created_at,
             updated_at=review_model.updated_at,
+            approved_food_allowance=review_model.approved_food_allowance,
+            approved_housing_allowance=review_model.approved_housing_allowance,
+            approved_daycare_allowance=review_model.approved_daycare_allowance,
+            approved_graduation_scholarship=review_model.approved_graduation_scholarship,
             social_worker=UserInfo.model_validate(review_model.social_worker),
             student_registration=StudentRegistrationResponse.model_validate(
                 review_model.student_registration
@@ -161,3 +181,5 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
             ],
        
         )
+
+ReviewRegistrationResponseWithDetails.model_rebuild()
