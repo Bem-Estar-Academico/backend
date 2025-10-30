@@ -213,7 +213,6 @@ class NoticeInfo(NoticeBase):
     """
 
     id: int
-
     model_config = {"from_attributes": True}
 
 

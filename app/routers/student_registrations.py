@@ -7,7 +7,7 @@ to manage their own registrations and for staff members (coordinators, social wo
 to view and manage registrations.
 """
 
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +23,7 @@ from app.schemas.student_registration import (
     StudentRegistrationUpdate,
     StudentRegistrationWithDetails,
     StudentRegistrationCreate,
+    StudentRegistrationWithReviewResponse,
 )
 from app.schemas.user import UserType
 from app.services.review_registration_service import ReviewRegistrationService
@@ -83,6 +84,41 @@ async def create_student_registration(
         print(f"Alerta: A inscrição {registration.id} foi criada, mas a 'review' falhou: {e}")
 
     return StudentRegistrationResponse.model_validate(registration)
+
+
+@router.get(
+    "/me",
+    response_model=List[StudentRegistrationWithReviewResponse],
+    summary="Get my registrations with review results",
+    description="Retrieves all registrations for the currently authenticated student, including the final review result for each.",
+)
+async def get_my_registrations_with_reviews(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> List[StudentRegistrationWithReviewResponse]:
+    """
+    Retrieves all registrations for the currently authenticated student, including details
+    about the notice and the final review result.
+
+    Args:
+        current_user (User): The authenticated student user, injected by dependency.
+        db (AsyncSession): The database session.
+
+    Returns:
+        List[StudentRegistrationWithReviewResponse]: A list of the student's registrations with review details.
+    """
+    if current_user.user_type != UserType.STUDENT:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This endpoint is only available for students.",
+        )
+
+    registrations = (
+        await StudentRegistrationService.get_student_registrations_with_reviews(
+            db=db, student_id=current_user.id
+        )
+    )
+    return registrations
 
 
 @router.get(

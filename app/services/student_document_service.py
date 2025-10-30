@@ -1,11 +1,15 @@
+import io
 from typing import List, Optional
 
+from PIL import Image
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.storage_factory import get_storage_manager
-from app.models.notice import StudentDocument, StudentRegistration
+from app.models.notice import OCRStatus, StudentDocument, StudentRegistration
+from app.models.registration import StudentRegistration
+from app.ocr_processing.improved_ocr import ocr
 from app.schemas.student_document import StudentDocumentCreate
 
 
@@ -18,10 +22,56 @@ class StudentDocumentService:
     ) -> Optional[StudentDocument]:
         result = await db.execute(
             select(StudentDocument)
-            .options(selectinload(StudentDocument.student_registration))
+            .options(
+                selectinload(StudentDocument.student_registration).selectinload(
+                    StudentRegistration.student
+                )
+            )
             .where(StudentDocument.id == document_id)
         )
         return result.scalar_one_or_none()
+
+    @staticmethod
+    async def process_document_ocr_background(db: AsyncSession, document_id: int):
+        """
+        Processes a student document with OCR in the background,
+        updates its status, and saves the results.
+        """
+        document = None
+        try:
+            doc_result = await db.execute(
+                select(StudentDocument).where(StudentDocument.id == document_id)
+            )
+            document = doc_result.scalar_one_or_none()
+
+            if not document:
+                logging.warning(f"Document with ID {document_id} not found.")
+                return
+
+            storage = get_storage_manager()
+            file_content = storage.download_file_content(document.file_key) # type: ignore
+            image = Image.open(io.BytesIO(file_content)) # type: ignore
+            ocr_result = ocr(image)
+
+            if "error" in ocr_result:
+                document.ocr_status = OCRStatus.FAILED
+                document.ocr_results = ocr_result
+            else:
+                document.ocr_status = OCRStatus.SUCCESS
+                document.ocr_results = ocr_result.get("extracted_fields") # type: ignore
+
+            await db.commit()
+
+        except Exception as e:
+            logging.warning(
+                f"An error occurred during OCR processing for document {document_id}: {e}"
+            )
+            if document:
+                await db.rollback()
+                document.ocr_status = OCRStatus.FAILED
+                document.ocr_results = {"error": str(e)}
+                await db.commit()
+
 
     @staticmethod
     async def get_documents_by_registration(
@@ -73,7 +123,9 @@ class StudentDocumentService:
 
         except Exception as e:
             await db.rollback()
+            # Re-raise the exception to be handled by the caller
             raise Exception(f"Erro ao fazer upload do documento: {str(e)}")
+
 
     @staticmethod
     async def delete_document(db: AsyncSession, document_id: int) -> bool:

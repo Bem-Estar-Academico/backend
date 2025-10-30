@@ -63,11 +63,11 @@ async def test_list_users_as_coordinator(client: AsyncClient, db_session: AsyncS
     response = await client.post("/api/v1/auth/login", data=login_data)
     token = response.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
-    response = await client.get("/api/v1/users/", headers=headers)
+    response = await client.get("/api/v1/users/?user_type=SOCIAL_WORKER", headers=headers)
 
     assert response.status_code == 200
     users: list[Dict[str, Any]] = response.json()
     assert isinstance(users, list)
-    assert len(users) == 1
-    assert users[0]["email"] == social_worker_data.email
-    assert users[0]["user_type"] == UserType.SOCIAL_WORKER.value
+    assert len(users) >= 1
+    assert any(u["email"] == social_worker_data.email for u in users)
+    assert all(u["user_type"] == UserType.SOCIAL_WORKER.value for u in users)

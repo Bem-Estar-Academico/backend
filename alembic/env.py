@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 from app.core.config import settings
-from app.models import user, notice  # noqa: F401
 from app.models.base import Base
 
 # this is the Alembic Config object, which provides
@@ -66,6 +65,8 @@ async def run_async_migrations() -> None:
 
     """
     configuration = config.get_section(config.config_ini_section)
+    if configuration is None:
+        configuration = {}
     configuration["sqlalchemy.url"] = settings.DATABASE_URL
 
     connectable = async_engine_from_config(

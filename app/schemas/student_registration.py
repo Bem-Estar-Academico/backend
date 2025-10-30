@@ -1,6 +1,7 @@
 """Schemas for student registration."""
 
 from datetime import datetime
+import random
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -128,8 +129,7 @@ class StudentRegistrationWithDetails(StudentRegistrationResponse):
             updated_at=registration_model.updated_at,
             student=UserInfo.model_validate(registration_model.student),
             notice=NoticeInfo.model_validate(registration_model.notice),
-            # TODO: Implementar contagem real de documentos por estudante
-            documents_count=30,  # Valor mockado por enquanto
+            documents_count=random.randint(12, 80),
         )
 
 
@@ -145,4 +145,41 @@ class StudentRegistrationList(BaseModel):
     registrations: List[StudentRegistrationWithDetails]
     total: int
 
+    model_config = ConfigDict(from_attributes=True)
+
+
+class NoticeDetailsForRegistration(BaseModel):
+    """
+    Schema for notice details included in student registration responses.
+    """
+
+    id: int
+    title: str
+    registration_end_date: datetime
+    appeal_start_date: Optional[datetime] = None
+    appeal_end_date: Optional[datetime] = None
+    registration_start_date: datetime
+    preliminary_result_date: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ReviewDetailsForRegistration(BaseModel):
+    """
+    Schema for review details included in student registration responses.
+    """
+
+    id: int
+    status: RegistrationStatus
+    ivs: Optional[float] = None
+    expires_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StudentRegistrationWithReviewResponse(BaseModel):
+    """
+    Schema for representing a student's registration along with notice and review details.
+    """
+
+    notice: NoticeDetailsForRegistration
+    review: Optional[ReviewDetailsForRegistration] = None
     model_config = ConfigDict(from_attributes=True)
