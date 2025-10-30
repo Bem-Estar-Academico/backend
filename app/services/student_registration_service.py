@@ -4,7 +4,7 @@ from typing import List, Optional
 from fastapi import HTTPException
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, contains_eager
 
 from app.models.notice import Notice
 from app.models.registration import StudentRegistration
@@ -48,25 +48,39 @@ class StudentRegistrationService:
     async def get_registrations_for_notice_list(
         db: AsyncSession,
         notice_id: int,
+        status: Optional[RegistrationStatus] = None,
     ) -> RegistrationListResponse:
         query = (
             select(StudentRegistration)
             .options(
                 selectinload(StudentRegistration.student),
                 selectinload(StudentRegistration.documents),
-                selectinload(StudentRegistration.review).options(
-                    selectinload(ReviewRegistrationModel.social_worker)
+                contains_eager(StudentRegistration.review).selectinload(
+                    ReviewRegistrationModel.social_worker
                 ),
             )
+            .outerjoin(StudentRegistration.review)
             .where(StudentRegistration.notice_id == notice_id)
         )
 
+        if status:
+            if status == RegistrationStatus.PENDING:
+                query = query.where(ReviewRegistrationModel.id.is_(None))
+            else:
+                query = query.where(ReviewRegistrationModel.status == status)
+
         result = await db.execute(query)
-        registrations = result.scalars().all()
+        registrations = result.unique().scalars().all()
 
-        counts = {status.value: 0 for status in RegistrationStatus}
+        # Since the query is now filtered, we calculate counts from the filtered list
+        # For a full count, a separate query would be needed, but for now this is consistent
+        # with the filtered data being returned.
+        counts = {s.value: 0 for s in RegistrationStatus}
+        for reg in registrations:
+            current_status = reg.review.status if reg.review else RegistrationStatus.PENDING
+            counts[current_status.value] += 1
 
-        response_registrations = []
+        response_registrations: List[RegistrationForNoticeList] = []
         for reg in registrations:
             student_data = StudentForRegistrationList(
                 id=reg.student.id,
@@ -76,32 +90,20 @@ class StudentRegistrationService:
                 created_at=reg.student.created_at,
             )
 
-            if reg.review:
-                status = reg.review.status
-                counts[status.value] += 1
-                reviewer = (
-                    ReviewerResponse(
-                        id=reg.review.social_worker.id,
-                        name=reg.review.social_worker.full_name,
-                    )
-                    if reg.review.social_worker
-                    else None
+            current_status = reg.review.status if reg.review else RegistrationStatus.PENDING
+            reviewer_data = None
+            if reg.review and reg.review.social_worker:
+                reviewer_data = ReviewerResponse(
+                    id=reg.review.social_worker.id,
+                    name=reg.review.social_worker.full_name,
                 )
-                review_data = ReviewForRegistrationList(
-                    progress=_get_progress_from_status(status),
-                    status=status.value,
-                    qtd_document=len(reg.documents),
-                    reviewer=reviewer,
-                )
-            else:
-                status = RegistrationStatus.PENDING
-                counts[status.value] += 1
-                review_data = ReviewForRegistrationList(
-                    progress=_get_progress_from_status(status),
-                    status=status.value,
-                    qtd_document=len(reg.documents),
-                    reviewer=None,
-                )
+
+            review_data = ReviewForRegistrationList(
+                progress=_get_progress_from_status(current_status),
+                status=current_status.value,
+                qtd_document=len(reg.documents),
+                reviewer=reviewer_data,
+            )
 
             response_registrations.append(
                 RegistrationForNoticeList(
@@ -148,7 +150,6 @@ class StudentRegistrationService:
             HTTPException: If the user is not a student (403), notice not found (404),
                            registration period is inactive (400), or already registered (400).
         """
-        print("AAAAAAAAAAAAAAAAA Creating student registration...")
         if student.user_type != UserType.STUDENT:
             raise HTTPException(
                 status_code=403,
@@ -157,7 +158,6 @@ class StudentRegistrationService:
         notice_query = select(Notice).where(Notice.id == notice_id)
         notice_result = await db.execute(notice_query)
         notice = notice_result.scalar_one_or_none()
-        print("bbbbbbb Creating student registration...")
         if not notice:
             raise HTTPException(status_code=404, detail="Edital não encontrado")
 
@@ -198,7 +198,8 @@ class StudentRegistrationService:
 
     @staticmethod
     async def get_registration_by_id(
-        db: AsyncSession, registration_id: int
+        db: AsyncSession,
+        registration_id: int
     ) -> Optional[StudentRegistration]:
         """
         Retrieves a single student registration by its ID, eagerly loading student and notice details.
@@ -215,6 +216,7 @@ class StudentRegistrationService:
             .options(
                 selectinload(StudentRegistration.student),
                 selectinload(StudentRegistration.notice),
+                selectinload(StudentRegistration.review),
             )
             .where(StudentRegistration.id == registration_id)
         )
@@ -248,12 +250,13 @@ class StudentRegistrationService:
             .options(
                 selectinload(StudentRegistration.student),
                 selectinload(StudentRegistration.notice),
+                selectinload(StudentRegistration.review),
             )
             .where(StudentRegistration.notice_id == notice_id)
         )
 
         if status:
-            query = query.where(StudentRegistration.status == status)
+            query = query.join(ReviewRegistrationModel).where(ReviewRegistrationModel.status == status)
 
         count_query = (
             select(func.count())
@@ -262,7 +265,7 @@ class StudentRegistrationService:
         )
 
         if status:
-            count_query = count_query.where(StudentRegistration.status == status)
+            count_query = count_query.join(ReviewRegistrationModel).where(ReviewRegistrationModel.status == status)
 
         count_result = await db.execute(count_query)
         total = count_result.scalar_one()
@@ -351,10 +354,7 @@ class StudentRegistrationService:
                     status_code=403,
                     detail="Você só pode modificar suas próprias inscrições",
                 )
-            if (
-                registration_data.status
-                and registration_data.status != RegistrationStatus.CANCELLED
-            ):
+            if registration_data.status and registration_data.status != RegistrationStatus.CANCELLED:
                 raise HTTPException(
                     status_code=403,
                     detail="Estudantes só podem cancelar suas inscrições",
@@ -365,10 +365,17 @@ class StudentRegistrationService:
                 status_code=403, detail="Sem permissão para modificar inscrições"
             )
 
-        if registration_data.status is not None:
-            registration.status = registration_data.status
         if registration_data.answer is not None:
             registration.answer = registration_data.answer
+
+        if registration_data.status is not None:
+            if not registration.review:
+                registration.review = ReviewRegistrationModel(
+                    student_registration_id=registration.id,
+                    status=registration_data.status,
+                )
+            else:
+                registration.review.status = registration_data.status
 
         await db.commit()
         await db.refresh(registration)
@@ -409,7 +416,6 @@ class StudentRegistrationService:
                     status_code=403,
                     detail="Você só pode deletar suas próprias inscrições",
                 )
-        # Assuming that 'is_staff' is an attribute available on User for Coordinator/SocialWorker roles
         elif not current_user.is_staff:
             raise HTTPException(
                 status_code=403, detail="Sem permissão para deletar inscrições"
@@ -474,7 +480,7 @@ class StudentRegistrationService:
                 selectinload(StudentRegistration.review),
             )
             .where(StudentRegistration.student_id == student_id)
-            .order_by(StudentRegistration.registration_date.desc())
+            .order_by(StudentRegistration.created_at.desc())
         )
 
         result = await db.execute(query)
@@ -492,7 +498,7 @@ class StudentRegistrationService:
 
                 review_details = ReviewDetailsForRegistration(
                     id=reg.review.id,
-                    status=reg.status,
+                    status=reg.review.status,
                     ivs=reg.review.ivs,
                     expires_at=expires_at,
                 )

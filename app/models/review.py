@@ -62,9 +62,9 @@ class ReviewRegistrationModel(Base):
         back_populates="review_registration",
         cascade="all, delete-orphan",
     )
-    social_worker_id: Mapped[int] = mapped_column(
+    social_worker_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("users.id"),
-        nullable=False,
+        nullable=True,
         index=True,
         comment="ID of the social worker (user) who submitted the review",
     )
@@ -126,7 +126,7 @@ class ReviewRegistrationModel(Base):
         onupdate=now(),
         nullable=False,
     )
-    social_worker: Mapped["User"] = relationship(back_populates="reviews")
+    social_worker: Mapped[Optional["User"]] = relationship(back_populates="reviews")
     student_registration: Mapped["StudentRegistration"] = relationship(
         back_populates="review"
     )

@@ -177,6 +177,7 @@ async def get_student_registration(
 )
 async def get_registrations_by_notice(
     notice_id: int,
+    status: Optional[RegistrationStatus] = Query(None, description="Filter registrations by status"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> RegistrationListResponse:
@@ -188,6 +189,7 @@ async def get_registrations_by_notice(
 
     Args:
         notice_id (int): The ID of the notice to retrieve registrations for.
+        status (Optional[RegistrationStatus]): Optional status to filter registrations.
         current_user (User): The authenticated staff user.
         db (AsyncSession): The database session.
 
@@ -203,7 +205,7 @@ async def get_registrations_by_notice(
         )
     
     response = await StudentRegistrationService.get_registrations_for_notice_list(
-        db, notice_id
+        db, notice_id, status=status
     )
 
     return response

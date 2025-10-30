@@ -5,7 +5,9 @@ from typing import Any, Dict
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.notice import Notice
 from app.models.registration import StudentRegistration
@@ -520,4 +522,117 @@ async def test_update_review_status_by_student_to_approved_fails(
     )
 
     assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_student_can_cancel_own_registration(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    notice_instance: Notice,
+    student_user: User,
+    student_token: str,
+):
+    """Test that a student can cancel their own registration."""
+    registration = StudentRegistration(
+        student_id=student_user.id, notice_id=notice_instance.id
+    )
+    db_session.add(registration)
+    await db_session.commit()
+    await db_session.refresh(registration)
+
+    update_data = {"status": RegistrationStatus.CANCELLED.value}
+    headers = {"Authorization": f"Bearer {student_token}"}
+    response = await client.put(
+        f"/api/v1/student-registrations/{registration.id}",
+        json=update_data,
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+
+    result = await db_session.execute(
+        select(StudentRegistration).filter_by(id=registration.id).options(selectinload(StudentRegistration.review))
+    )
+    updated_registration = result.scalar_one()
+
+    assert updated_registration.review is not None
+    assert updated_registration.review.status == RegistrationStatus.CANCELLED
+
+
+@pytest.mark.asyncio
+async def test_update_status_creates_review(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    notice_instance: Notice,
+    student_user: User,
+    coordinator_token: str,
+):
+    """Test that updating status creates a review if one doesn't exist."""
+    registration = StudentRegistration(
+        student_id=student_user.id, notice_id=notice_instance.id
+    )
+    db_session.add(registration)
+    await db_session.commit()
+    await db_session.refresh(registration)
+
+    update_data = {"status": RegistrationStatus.REVIEW.value}
+    headers = {"Authorization": f"Bearer {coordinator_token}"}
+    response = await client.put(
+        f"/api/v1/student-registrations/{registration.id}",
+        json=update_data,
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+
+    result = await db_session.execute(
+        select(StudentRegistration).filter_by(id=registration.id).options(selectinload(StudentRegistration.review))
+    )
+    updated_registration = result.scalar_one()
+
+    assert updated_registration.review is not None
+    assert updated_registration.review.status == RegistrationStatus.REVIEW
+
+
+@pytest.mark.asyncio
+async def test_list_registrations_by_notice_with_status_filter(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    notice_instance: Notice,
+    student_user: User,
+    other_student_user: User,
+    coordinator_token: str,
+    social_worker_user: User,
+):
+    """Test filtering registrations by status for a notice."""
+    # Registration 1: Approved
+    reg1 = StudentRegistration(student_id=student_user.id, notice_id=notice_instance.id)
+    db_session.add(reg1)
+    await db_session.commit()
+    review1 = ReviewRegistrationModel(
+        student_registration_id=reg1.id, 
+        status=RegistrationStatus.APPROVED,
+        social_worker_id=social_worker_user.id
+    )
+    db_session.add(review1)
+
+    # Registration 2: Pending (no review object)
+    reg2 = StudentRegistration(student_id=other_student_user.id, notice_id=notice_instance.id)
+    db_session.add(reg2)
+
+    await db_session.commit()
+
+    headers = {"Authorization": f"Bearer {coordinator_token}"}
+    # Filter for APPROVED status
+    response = await client.get(
+        f"/api/v1/student-registrations/notice/{notice_instance.id}?status=APPROVED",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    response_data = response.json()
+    assert len(response_data["registrations"]) == 1
+    assert response_data["registrations"][0]["id"] == reg1.id
+    assert response_data["approved_count"] == 1
+    assert response_data["pending_count"] == 0 # Because we are filtering
 

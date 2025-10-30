@@ -56,16 +56,20 @@ class StudentRegistrationCreate(StudentRegistrationBase):
     pass
 
 
-class StudentRegistrationUpdate(StudentRegistrationBase):
+class StudentRegistrationUpdate(BaseModel):
     """
     Schema for updating the status or observations of a student registration.
 
     Attributes:
         answer (Optional[Dict[str, Any]]): Updated observations or a dictionary
                                            with answers (e.g., notes from a social worker).
+        status (Optional[RegistrationStatus]): The new status for the registration review.
     """
     answer: Optional[Dict[str, Any]] = Field(
         None, description="Observações atualizadas ou respostas do estudante"
+    )
+    status: Optional[RegistrationStatus] = Field(
+        None, description="Novo status da inscrição"
     )
 
 
@@ -185,8 +189,6 @@ class StudentRegistrationWithReviewResponse(BaseModel):
     review: Optional[ReviewDetailsForRegistration] = None
     model_config = ConfigDict(from_attributes=True)
 
-
-# Schemas for the new endpoint GET /api/v1/student-registrations/notice/{notice_id}
 
 class ReviewerResponse(BaseModel):
     id: int
