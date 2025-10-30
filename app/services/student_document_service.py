@@ -63,7 +63,7 @@ class StudentDocumentService:
             await db.commit()
 
         except Exception as e:
-            print(
+            logging.warning(
                 f"An error occurred during OCR processing for document {document_id}: {e}"
             )
             if document:
