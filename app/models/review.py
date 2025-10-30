@@ -98,22 +98,26 @@ class ReviewRegistrationModel(Base):
 
     approved_food_allowance: Mapped[Optional[bool]] = mapped_column(
         Boolean,
-        nullable=True,
+        nullable=False,
+        default=False,
         comment="Whether food allowance benefit was approved (null if not applicable)",
     )
     approved_housing_allowance: Mapped[Optional[bool]] = mapped_column(
         Boolean,
-        nullable=True,
+        nullable=False,
+        default=False,
         comment="Whether housing allowance benefit was approved (null if not applicable)",
     )
     approved_daycare_allowance: Mapped[Optional[bool]] = mapped_column(
         Boolean,
-        nullable=True,
+        nullable=False,
+        default=False,
         comment="Whether daycare allowance benefit was approved (null if not applicable)",
     )
     approved_graduation_scholarship: Mapped[Optional[bool]] = mapped_column(
         Boolean,
-        nullable=True,
+        nullable=False,
+        default=False,
         comment="Whether graduation scholarship benefit was approved (null if not applicable)",
     )
 

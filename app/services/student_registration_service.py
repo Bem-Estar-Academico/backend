@@ -379,7 +379,7 @@ class StudentRegistrationService:
                 selectinload(StudentRegistration.review),
             )
             .where(StudentRegistration.student_id == student_id)
-            .order_by(StudentRegistration.registration_date.desc())
+            .order_by(StudentRegistration.created_at.desc())
         )
 
         result = await db.execute(query)
@@ -397,7 +397,7 @@ class StudentRegistrationService:
 
                 review_details = ReviewDetailsForRegistration(
                     id=reg.review.id,
-                    status=reg.status,
+                    status=reg.review.status,
                     ivs=reg.review.ivs,
                     expires_at=expires_at,
                 )
