@@ -53,19 +53,20 @@ async def create_student_registration(
     Este processo automaticamente dispara a criação de uma 'ReviewRegistration'
     e a atribui a um assistente social aleatório disponível.
     """
-    
+    print("Creating student registration...")
     registration = await StudentRegistrationService.create_registration(
         notice_id, db, registration_data, current_user
     )
-
+    print("Student registration created:", registration.id)
     random_social_worker = await UserService.get_random_social_worker(db)
-    
+    print("Random social worker selected:", random_social_worker.id if random_social_worker else "None")
     if not random_social_worker:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Nenhum assistente social disponível no sistema para atribuir a avaliação."
         )
 
+    print("Creating review registration...")
     default_review_data = ReviewRegistrationCreate(
         review={"initial_notes": "Avaliação auto-criada pelo sistema."},
         ivs=0.0,
@@ -80,6 +81,7 @@ async def create_student_registration(
             student_registration_id=registration.id,
             review_data=default_review_data
         )
+        print("Review registration created for registration:", registration.id)
     except Exception as e:
         print(f"Alerta: A inscrição {registration.id} foi criada, mas a 'review' falhou: {e}")
 

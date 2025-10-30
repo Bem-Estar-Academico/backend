@@ -53,6 +53,7 @@ class StudentRegistrationService:
             HTTPException: If the user is not a student (403), notice not found (404),
                            registration period is inactive (400), or already registered (400).
         """
+        print("AAAAAAAAAAAAAAAAA Creating student registration...")
         if student.user_type != UserType.STUDENT:
             raise HTTPException(
                 status_code=403,
@@ -61,7 +62,7 @@ class StudentRegistrationService:
         notice_query = select(Notice).where(Notice.id == notice_id)
         notice_result = await db.execute(notice_query)
         notice = notice_result.scalar_one_or_none()
-
+        print("bbbbbbb Creating student registration...")
         if not notice:
             raise HTTPException(status_code=404, detail="Edital não encontrado")
 
