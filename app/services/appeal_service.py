@@ -28,7 +28,7 @@ class AppealService:
 
         Args:
             db: The database session.
-            appeal_data: The data for the new appeal.
+            requested_documents_data: The data for the new appeal.
             review_registration_id: The ID of the review being appealed.
             current_user: The user creating the appeal.
 
@@ -56,7 +56,7 @@ class AppealService:
         if review.social_worker_id != current_user.id:
              raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You can only appeal your own registration reviews."
+                detail="You can only create appeals for reviews assigned to you."
             )
             
         db_appeal = Appeal(

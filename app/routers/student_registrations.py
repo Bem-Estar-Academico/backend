@@ -66,7 +66,7 @@ async def create_student_registration(
         )
 
     default_review_data = ReviewRegistrationCreate(
-        review={"initial_notes": "Avaliacap auto-criada pelo sistema."},
+        review={"initial_notes": "Avaliação auto-criada pelo sistema."},
         ivs=0.0,
         ocr_analisys={"initial_ocr": "OCR auto-criada pelo sistema."},
         status=RegistrationStatus.PENDING,

@@ -8,8 +8,8 @@ data related to social worker reviews of student registrations.
 from datetime import datetime
 import random
 from decimal import Decimal
-from typing import Any, Dict, Optional, List, cast
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Any, Dict, Optional, List
+from pydantic import BaseModel, Field
 
 from app.schemas.appeal import AppealResponse
 from app.schemas.user import UserInfo

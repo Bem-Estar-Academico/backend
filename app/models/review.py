@@ -61,7 +61,7 @@ class ReviewRegistrationModel(Base):
     appeals: Mapped[List["Appeal"]] = relationship(
         back_populates="review_registration",
         cascade="all, delete-orphan",
-    ) #isso é para o relacionamento!!!
+    )
     social_worker_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"),
         nullable=False,

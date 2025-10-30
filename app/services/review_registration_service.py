@@ -142,7 +142,7 @@ class ReviewRegistrationService:
     async def update_review(
         db: AsyncSession,
         review_id: int,
-        review_data: ReviewRegistrationUpdate,  # Objeto Pydantic vindo da rota
+        review_data: ReviewRegistrationUpdate,
         current_user: User,
     ) -> Optional[ReviewRegistrationModel]:
         """
@@ -197,8 +197,8 @@ class ReviewRegistrationService:
                     except HTTPException as http_exc:
                         raise http_exc
                     except Exception as e:
-                        print(
-                            f"Erro inesperado ao criar apelo para review {review_id}: {e}")
+                        logger.error(
+                            "Erro inesperado ao criar apelo para review %s: %s", review_id, e)
                         raise HTTPException(
                             status_code=500, detail=f"Internal error saving appeal")
 

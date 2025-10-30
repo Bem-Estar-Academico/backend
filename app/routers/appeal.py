@@ -1,6 +1,6 @@
 """API Endpoints for managing appeal."""
 
-from typing import Any, Dict, List # Se precisar listar apelos no futuro
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,7 +10,7 @@ from app.models.user import User
 from app.routers.auth import get_current_user
 from app.schemas.appeal import AppealResponse, AppealUpdate
 from app.services.appeal_service import AppealService
-from app.services.review_registration_service import ReviewRegistrationService # Para verificar permissões
+from app.services.review_registration_service import ReviewRegistrationService
 
 router = APIRouter(tags=["appeal"])
 
