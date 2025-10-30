@@ -73,6 +73,10 @@ async def create_student_registration(
         ivs=0.0,
         ocr_analisys={"initial_ocr": "OCR auto-criada pelo sistema."},
         status=RegistrationStatus.PENDING,
+        approved_food_allowance=False,
+        approved_housing_allowance=False,
+        approved_daycare_allowance=False,
+        approved_graduation_scholarship=False,
     )
 
     try:
