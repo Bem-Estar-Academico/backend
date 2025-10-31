@@ -158,6 +158,6 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
             appeals=[
                 AppealResponse.model_validate(appeal)
                 for appeal in review_model.appeals
-            ],
+            ] if review_model.appeals else [],
        
         )
