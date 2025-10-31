@@ -1,10 +1,3 @@
-"""Router for user-related operations."""
-
-"""
-This module defines the API endpoints for managing users, including listing users
-and enforcing role-based access control.
-"""
-
 from typing import List
 
 from fastapi import APIRouter, Depends
@@ -17,7 +10,15 @@ from app.schemas.user import User as UserSchema
 from app.schemas.user import UserType
 from app.services.user_service import UserService
 
+"""Router for user-related operations."""
+
+"""
+This module defines the API endpoints for managing users, including listing users
+and enforcing role-based access control.
+"""
+
 router = APIRouter(prefix="/users", tags=["users"])
+
 
 @router.get("/", response_model=List[UserSchema])
 async def list_users(

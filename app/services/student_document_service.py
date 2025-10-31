@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.storage_factory import get_storage_manager
-from app.models.notice import OCRStatus, StudentDocument, StudentRegistration
+from app.models.notice import OCRStatus, StudentDocument
 from app.models.registration import StudentRegistration
 from app.ocr_processing.improved_ocr import ocr
 from app.schemas.student_document import StudentDocumentCreate
@@ -50,8 +50,8 @@ class StudentDocumentService:
                 return
 
             storage = get_storage_manager()
-            file_content = storage.download_file_content(document.file_key) # type: ignore
-            image = Image.open(io.BytesIO(file_content)) # type: ignore
+            file_content = storage.download_file_content(document.file_key)  # type: ignore
+            image = Image.open(io.BytesIO(file_content))  # type: ignore
             ocr_result = ocr(image)
 
             if "error" in ocr_result:
@@ -59,7 +59,7 @@ class StudentDocumentService:
                 document.ocr_results = ocr_result
             else:
                 document.ocr_status = OCRStatus.SUCCESS
-                document.ocr_results = ocr_result.get("extracted_fields") # type: ignore
+                document.ocr_results = ocr_result.get("extracted_fields")  # type: ignore
 
             await db.commit()
 
@@ -72,7 +72,6 @@ class StudentDocumentService:
                 document.ocr_status = OCRStatus.FAILED
                 document.ocr_results = {"error": str(e)}
                 await db.commit()
-
 
     @staticmethod
     async def get_documents_by_registration(
@@ -126,7 +125,6 @@ class StudentDocumentService:
             await db.rollback()
             # Re-raise the exception to be handled by the caller
             raise Exception(f"Erro ao fazer upload do documento: {str(e)}")
-
 
     @staticmethod
     async def delete_document(db: AsyncSession, document_id: int) -> bool:

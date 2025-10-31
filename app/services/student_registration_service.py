@@ -36,6 +36,7 @@ def _get_progress_from_status(status: RegistrationStatus) -> int:
         return 100
     return 0
 
+
 class StudentRegistrationService:
     """
     Service class responsible for managing student registrations for notices (editais).

@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from app.schemas.user import UserInfo
 from app.schemas.notice import Notice
 
+
 class IVSData(BaseModel):
     """Schema for returning IVS data."""
 

@@ -1,12 +1,3 @@
-"""Router for managing student registrations for notices."""
-
-"""
-This module defines the API endpoints for creating, retrieving, updating, and deleting
-student registrations for various notices. It includes functionalities for students
-to manage their own registrations and for staff members (coordinators, social workers)
-to view and manage registrations.
-"""
-
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -31,7 +22,18 @@ from app.services.review_registration_service import ReviewRegistrationService
 from app.services.student_registration_service import StudentRegistrationService
 from app.services.user_service import UserService
 
+"""Router for managing student registrations for notices."""
+
+"""
+This module defines the API endpoints for creating, retrieving, updating, and deleting
+student registrations for various notices. It includes functionalities for students
+to manage their own registrations and for staff members (coordinators, social workers)
+to view and manage registrations.
+"""
+
+
 router = APIRouter(prefix="/student-registrations", tags=["student-registrations"])
+
 
 @router.post(
     "/{notice_id}",
@@ -50,7 +52,6 @@ async def create_student_registration(
 ) -> StudentRegistrationResponse:
     """
     Cria uma nova inscrição para o estudante atual em um edital específico.
-    
     Este processo automaticamente dispara a criação de uma 'ReviewRegistration'
     e a atribui a um assistente social aleatório disponível.
     """
@@ -207,7 +208,6 @@ async def get_registrations_by_notice(
         raise HTTPException(
             status_code=403, detail="Sem permissão para ver inscrições de editais"
         )
-    
     response = await StudentRegistrationService.get_registrations_for_notice_list(
         db, notice_id, status=status
     )
@@ -328,9 +328,9 @@ async def delete_student_registration(
         None
     """
     await StudentRegistrationService.delete_registration(db, student_registration_id, current_user)
-    
-    
-#------------------- REVIEW REGISTRATION ------------------------
+
+# ------------------- REVIEW REGISTRATION ------------------------
+
 
 @router.get(
     "/{student_registration_id}/review",

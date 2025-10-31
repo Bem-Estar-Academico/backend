@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
+
 class AppealBase(BaseModel):
     """Base schema for appeal data, containing the requested documents."""
     requested_documents: Dict[str, Any] = Field(

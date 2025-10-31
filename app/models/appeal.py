@@ -31,7 +31,6 @@ class Appeal(Base):
     __tablename__ = "appeals"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    
     review_registration_id: Mapped[int] = mapped_column(
         ForeignKey("review_registrations.id"),
         nullable=False,
@@ -39,7 +38,6 @@ class Appeal(Base):
         index=True,
         comment="ID of the review registration being appealed (one-to-one)",
     )
-    
     requested_documents: Mapped[Dict[str, Any]] = mapped_column(
         JSON,
         nullable=False,

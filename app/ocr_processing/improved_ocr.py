@@ -14,14 +14,13 @@ from google.genai import types
 load_dotenv()
 
 TESSERACT_LANG: str = "por+eng"
-TESSERACT_CONFIG: str = "--oem 3 --psm 3" 
-
+TESSERACT_CONFIG: str = "--oem 3 --psm 3"
 SCHEMA_RG: Dict[str, Any] = {
     "type": "object",
     "properties": {
         "nome": {"type": "string", "description": "O nome completo extraído, em CAIXA ALTA."},
         "cpf": {"type": "string", "description": "O CPF extraído, no formato 000.000.000-00."},
-        "rg": {"type": "string", "description": "O RG ou Personal Number do documento. Se for o novo RG (CIN), use o valor do CPF."}, 
+        "rg": {"type": "string", "description": "O RG ou Personal Number do documento. Se for o novo RG (CIN), use o valor do CPF."},
         "data_nascimento": {"type": "string", "description": "A data de nascimento extraída, no formato DD/MM/AAAA."},
     },
     "required": ["nome", "cpf", "rg", "data_nascimento"],
@@ -63,16 +62,15 @@ PROMPT_CNH = (
     "Texto OCR: {}"
 )
 
+
 def extract_single_field_fallback(
     raw_text: str,
     field_key: str,
     field_description: str,
     model: str = 'gemini-2.5-pro'
 ) -> Union[str, None]:
-    
     try:
         client = genai.Client()
-        
         fallback_schema: Dict[str, Any] = {
             "type": "object",
             "properties": {
@@ -87,7 +85,6 @@ def extract_single_field_fallback(
             f"Sua resposta DEVE ser um objeto JSON com a chave '{field_key}'.\n\n"
             f"Texto OCR: {raw_text}"
         )
-        
         config = types.GenerateContentConfig(
             response_mime_type="application/json",
             response_schema=fallback_schema
@@ -97,15 +94,13 @@ def extract_single_field_fallback(
             contents=[fallback_prompt],
             config=config,
         )
-        
         if response.text:
             data = json.loads(response.text)
             return data.get(field_key)
-            
     except Exception:
         pass
-        
     return None
+
 
 def identify_document_type(raw_text: str) -> str:
     text_upper = raw_text.upper()
@@ -128,7 +123,6 @@ def identify_document_type(raw_text: str) -> str:
 def extract_fields_with_llm(raw_text: str) -> Dict[str, Union[str, Dict[str, Any]]]:
     if not os.getenv("GEMINI_API_KEY"):
         return {"error": "GEMINI_API_KEY not found. Cannot use LLM."}
-    
     doc_type = identify_document_type(raw_text)
 
     if doc_type == "CNH":
@@ -142,7 +136,6 @@ def extract_fields_with_llm(raw_text: str) -> Dict[str, Union[str, Dict[str, Any
 
     try:
         client = genai.Client()
-        
         config = types.GenerateContentConfig(
             response_mime_type="application/json",
             response_schema=response_schema
@@ -152,29 +145,22 @@ def extract_fields_with_llm(raw_text: str) -> Dict[str, Union[str, Dict[str, Any
             contents=[prompt],
             config=config,
         )
-        
         if response.text is None:
             return {"error": "LLM returned empty response on main pass"}
-        
         data = json.loads(response.text)
-        
         required_fields: List[str] = response_schema.get("required", [])
-
         for field_key in required_fields:
             if data.get(field_key) in [None, 'null']:
                 field_description = FALLBACK_DESCRIPTIONS.get(
-                    field_key, 
+                    field_key,
                     f"Extraia o campo '{field_key}'. Formate-o de forma limpa."
                 )
-                
                 logging.warning(f"Campo '{field_key}' falhou. Tentando Fallback Focado...")
-                
                 fallback_value = extract_single_field_fallback(
                     raw_text,
                     field_key,
                     field_description
                 )
-                
                 if fallback_value not in [None, 'null']:
                     data[field_key] = fallback_value
                     logging.warning(f"Fallback SUCCEEDED para {field_key}.")
@@ -186,21 +172,20 @@ def extract_fields_with_llm(raw_text: str) -> Dict[str, Union[str, Dict[str, Any
     except Exception as e:
         return {"error": f"LLM Extraction failed: {e}"}
 
+
 def ocr(
     path_or_pil: Union[str, Image.Image]
 ) -> Dict[str, Union[str, Dict[str, Any]]]:
-    
     pil: Image.Image
     if isinstance(path_or_pil, str):
         pil = Image.open(path_or_pil)
     else:
         pil = path_or_pil
     full_text: str = str(pytesseract.image_to_string(  # type: ignore
-        pil, 
-        lang=TESSERACT_LANG, 
+        pil,
+        lang=TESSERACT_LANG,
         config=TESSERACT_CONFIG
     )).strip()
 
     extracted_result = extract_fields_with_llm(full_text)
-    
     return extracted_result

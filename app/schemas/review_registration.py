@@ -105,11 +105,12 @@ class ReviewRegistrationUpdate(BaseModel):
         None,
         description="Indica se a bolsa conclusão foi aprovada (null se não aplicável)",
     )
-    
+
     def calculate_ivs(self) -> float:
         "Calcular o IVS aqui"
         return random.uniform(0, 100)
-      
+
+
 class ReviewRegistrationResponse(ReviewRegistrationBase):
     """
     Schema representing a basic review registration record with metadata and FKs.
@@ -123,7 +124,6 @@ class ReviewRegistrationResponse(ReviewRegistrationBase):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
-    
 
 
 class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
@@ -138,7 +138,7 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
     student_registration: "StudentRegistrationResponse" = Field(
         ..., description="Informações da inscrição de estudante revisada."
     )
-    appeals: List["AppealResponse"] = Field( # type: ignore
+    appeals: List["AppealResponse"] = Field(  # type: ignore
         default_factory=list, description="Lista de recursos associados à revisão."
     )
 
@@ -151,7 +151,6 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
         """
         from app.schemas.student_registration import StudentRegistrationResponse
         from app.schemas.appeal import AppealResponse
-        
         ivs_value = (
             float(review_model.ivs)
             if isinstance(review_model.ivs, (Decimal, str))
@@ -179,7 +178,7 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
                 AppealResponse.model_validate(appeal)
                 for appeal in review_model.appeals
             ],
-       
         )
+
 
 ReviewRegistrationResponseWithDetails.model_rebuild()

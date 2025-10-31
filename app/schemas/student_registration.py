@@ -192,6 +192,7 @@ class ReviewForRegistrationList(BaseModel):
     qtd_document: int
     reviewer: Optional[ReviewerResponse] = None
 
+
 class StudentForRegistrationList(BaseModel):
     id: int
     cpf: Optional[str] = None
@@ -199,11 +200,13 @@ class StudentForRegistrationList(BaseModel):
     registration_number: Optional[str] = None
     created_at: datetime
 
+
 class RegistrationForNoticeList(BaseModel):
     id: int
     registration_date: datetime
     student: StudentForRegistrationList
     review: ReviewForRegistrationList
+
 
 class RegistrationListResponse(BaseModel):
     registrations: List[RegistrationForNoticeList]
@@ -213,5 +216,6 @@ class RegistrationListResponse(BaseModel):
     review_count: int
     appeal_count: int
     cancelled_count: int
+
 
 StudentRegistrationWithReviewResponse.model_rebuild()

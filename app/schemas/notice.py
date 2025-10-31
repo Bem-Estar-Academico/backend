@@ -1,3 +1,7 @@
+from datetime import datetime
+from typing import List, Optional, cast
+from pydantic import BaseModel, Field
+
 """Module for defining Pydantic schemas for notice-related data."""
 
 """
@@ -5,11 +9,6 @@ This module defines various Pydantic schemas used for validating and serializing
 data related to notices, including documents, team members, and student registrations.
 It covers schemas for creating, updating, and retrieving notice information.
 """
-
-from datetime import datetime
-from typing import List, Optional, cast
-
-from pydantic import BaseModel, Field
 
 
 class DocumentBase(BaseModel):

@@ -1,11 +1,3 @@
-"""Module for defining the ReviewRegistration model."""
-
-"""
-This module defines the `ReviewRegistration` SQLAlchemy model, representing a
-social worker's review of a student's registration. It links users (social workers)
-and student registrations, storing the review details and the calculated IVS.
-"""
-
 from datetime import datetime
 import enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
@@ -20,6 +12,14 @@ if TYPE_CHECKING:
     from app.models.appeal import Appeal
     from app.models.user import User
 
+"""Module for defining the ReviewRegistration model."""
+
+"""
+This module defines the `ReviewRegistration` SQLAlchemy model, representing a
+social worker's review of a student's registration. It links users (social workers)
+and student registrations, storing the review details and the calculated IVS.
+"""
+
 
 class RegistrationStatus(enum.Enum):
     """Enumeration for the possible statuses of a student's registration for a notice."""
@@ -28,7 +28,8 @@ class RegistrationStatus(enum.Enum):
     REJECTED = "REJECTED"  # Rejeitada
     CANCELLED = "CANCELLED"  # Cancelada pelo estudante
     APPEAL = "APPEAL"  # Em fase de recurso
-    REVIEW = "REVIEW" # Em análise
+    REVIEW = "REVIEW"  # Em análise
+
 
 class ReviewRegistrationModel(Base):
     """
@@ -79,17 +80,14 @@ class ReviewRegistrationModel(Base):
         nullable=True,
         comment="JSON payload containing the review form data",
     )
-    
     ocr_analisys: Mapped[Dict[str, Any]] = mapped_column(
         JSON,
         nullable=True,
         comment="JSON payload containing the review form data",
     )
-    
     status: Mapped[RegistrationStatus] = mapped_column(
         Enum(RegistrationStatus), default=RegistrationStatus.PENDING, nullable=False
     )
-    
     ivs: Mapped[float] = mapped_column(
         Numeric(200, 0),
         nullable=True,

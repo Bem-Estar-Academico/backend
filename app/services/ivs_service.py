@@ -10,6 +10,7 @@ from app.models.registration import StudentRegistration
 from app.models.notice import Notice, NoticeTeam
 from app.schemas.ivs import IVSData
 
+
 async def get_ivs_data(db: AsyncSession) -> List[IVSData]:
     """
     Fetches the most recent IVS data for each student (PostgreSQL optimized).
@@ -28,12 +29,10 @@ async def get_ivs_data(db: AsyncSession) -> List[IVSData]:
             contains_eager(ReviewRegistrationModel.student_registration)
             .contains_eager(StudentRegistration.notice)
             .selectinload(Notice.documents),
-            
             contains_eager(ReviewRegistrationModel.student_registration)
             .contains_eager(StudentRegistration.notice)
             .selectinload(Notice.team_members)
             .joinedload(NoticeTeam.user),
-            
             contains_eager(ReviewRegistrationModel.student_registration)
             .joinedload(StudentRegistration.student),
         )

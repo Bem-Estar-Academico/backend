@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from app.models.review import ReviewRegistrationModel
     from app.models.user import User
 
+
 class StudentRegistration(Base):
     """
     Represents a student's registration for a specific notice.
