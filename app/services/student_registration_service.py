@@ -72,9 +72,6 @@ class StudentRegistrationService:
         result = await db.execute(query)
         registrations = result.unique().scalars().all()
 
-        # Since the query is now filtered, we calculate counts from the filtered list
-        # For a full count, a separate query would be needed, but for now this is consistent
-        # with the filtered data being returned.
         counts = {s.value: 0 for s in RegistrationStatus}
         for reg in registrations:
             current_status = reg.review.status if reg.review else RegistrationStatus.PENDING
