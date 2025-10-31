@@ -13,7 +13,7 @@ from app.models.registration import StudentRegistration
 if TYPE_CHECKING:
     from app.models.user import User
 
-"""Module for defining notice-related models."""  
+"""Module for defining notice-related models."""
 """
 This module defines several SQLAlchemy models related to notices, including:
 - `RegistrationStatus`: An enumeration for the status of student registrations.
