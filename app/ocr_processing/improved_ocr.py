@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytesseract
 import os
 import json
+import logging
 from PIL import Image
 from typing import Union, Dict, Any, List
 from dotenv import load_dotenv
