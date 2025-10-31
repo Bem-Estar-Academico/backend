@@ -16,6 +16,9 @@ from app.routers.student_documents import router as student_documents_router
 from app.routers.student_registrations import router as student_registrations_router
 from app.routers.users import router as users_router
 
+from app.schemas.review_registration import ReviewRegistrationResponseWithDetails, ReviewDetailsForRegistration
+from app.schemas.student_registration import StudentRegistrationResponse, StudentRegistrationWithReviewResponse
+
 # Setup logging first
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -78,3 +81,8 @@ async def root():
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy"}
+
+
+# Rebuild Pydantic models to resolve forward references
+ReviewRegistrationResponseWithDetails.model_rebuild()
+StudentRegistrationWithReviewResponse.model_rebuild()

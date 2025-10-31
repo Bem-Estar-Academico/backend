@@ -188,3 +188,4 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
                 AppealResponse.model_validate(appeal) for appeal in review_model.appeals
             ],
         )
+
