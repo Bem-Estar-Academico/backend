@@ -81,7 +81,7 @@ class AppealService:
         )
 
     @staticmethod
-    async def get_appeals_by_review_id(db: AsyncSession, review_registration_id: int) -> List[Appeal]:
+    async def get_appeals_by_review_id(db: AsyncSession, review_registration_id: int) -> List[Dict[str, Any]]:
         """Retrieves an appeal linked to a specific review registration ID."""
         
         result = await db.execute(
