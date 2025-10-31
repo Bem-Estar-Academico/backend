@@ -49,20 +49,20 @@ class ReviewRegistrationBase(BaseModel):
     ocr_analisys: Optional[dict[str, Any]] = Field(None, description="Conteúdo do OCR em formato JSON")
     status: RegistrationStatus = Field(..., description="Status no formato do sistema")
 
-    approved_food_allowance: Optional[bool] = Field(
-        None,
+    approved_food_allowance: bool = Field(
+        False,
         description="Indica se o auxílio alimentação foi aprovado (null se não aplicável)",
     )
-    approved_housing_allowance: Optional[bool] = Field(
-        None,
+    approved_housing_allowance: bool = Field(
+        False,
         description="Indica se o auxílio moradia foi aprovado (null se não aplicável)",
     )
-    approved_daycare_allowance: Optional[bool] = Field(
-        None,
+    approved_daycare_allowance: bool = Field(
+        False,
         description="Indica se o auxílio creche foi aprovado (null se não aplicável)",
     )
-    approved_graduation_scholarship: Optional[bool] = Field(
-        None,
+    approved_graduation_scholarship: bool = Field(
+        False,
         description="Indica se a bolsa conclusão foi aprovada (null se não aplicável)",
     )
 
@@ -162,6 +162,10 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
             ivs=ivs_value,
             ocr_analisys=review_model.ocr_analisys,
             status=review_model.status,
+            approved_food_allowance=review_model.approved_food_allowance,
+            approved_housing_allowance=review_model.approved_housing_allowance,
+            approved_daycare_allowance=review_model.approved_daycare_allowance,
+            approved_graduation_scholarship=review_model.approved_graduation_scholarship,
             created_at=review_model.created_at,
             updated_at=review_model.updated_at,
             approved_food_allowance=review_model.approved_food_allowance,
