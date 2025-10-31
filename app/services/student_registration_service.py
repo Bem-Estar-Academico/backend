@@ -256,22 +256,12 @@ class StudentRegistrationService:
                     status_code=403,
                     detail="Você só pode modificar suas próprias inscrições",
                 )
-            if (
-                registration_data.status
-                and registration_data.status != RegistrationStatus.CANCELLED
-            ):
-                raise HTTPException(
-                    status_code=403,
-                    detail="Estudantes só podem cancelar suas inscrições",
-                )
 
         elif not current_user.is_staff:
             raise HTTPException(
                 status_code=403, detail="Sem permissão para modificar inscrições"
             )
 
-        if registration_data.status is not None:
-            registration.status = registration_data.status
         if registration_data.answer is not None:
             registration.answer = registration_data.answer
 
@@ -379,7 +369,7 @@ class StudentRegistrationService:
                 selectinload(StudentRegistration.review),
             )
             .where(StudentRegistration.student_id == student_id)
-            .order_by(StudentRegistration.registration_date.desc())
+            .order_by(StudentRegistration.created_at.desc())
         )
 
         result = await db.execute(query)
@@ -397,7 +387,7 @@ class StudentRegistrationService:
 
                 review_details = ReviewDetailsForRegistration(
                     id=reg.review.id,
-                    status=reg.status,
+                    status=reg.review.status,
                     ivs=reg.review.ivs,
                     expires_at=expires_at,
                 )
