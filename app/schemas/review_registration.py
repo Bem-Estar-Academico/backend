@@ -8,28 +8,14 @@ data related to social worker reviews of student registrations.
 from datetime import datetime
 import random
 from decimal import Decimal
-from typing import Any, Dict, Optional, List, TYPE_CHECKING
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Any, Dict, Optional, List
+from pydantic import BaseModel, Field
 
 from app.schemas.user import UserInfo
 from app.models.review import ReviewRegistrationModel, RegistrationStatus
 
 from app.schemas.appeal import AppealResponse
-
-if TYPE_CHECKING:
-    from app.schemas.student_registration import StudentRegistrationResponse
-
-
-class ReviewDetailsForRegistration(BaseModel):
-    """
-    Schema for review details included in student registration responses.
-    """
-
-    id: int
-    status: RegistrationStatus
-    ivs: Optional[float] = None
-    expires_at: Optional[datetime] = None
-    model_config = ConfigDict(from_attributes=True)
+from app.schemas.student_registration import StudentRegistrationResponse
 
 
 class ReviewRegistrationBase(BaseModel):
@@ -162,16 +148,12 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
             ivs=ivs_value,
             ocr_analisys=review_model.ocr_analisys,
             status=review_model.status,
-            approved_food_allowance=review_model.approved_food_allowance,
-            approved_housing_allowance=review_model.approved_housing_allowance,
-            approved_daycare_allowance=review_model.approved_daycare_allowance,
-            approved_graduation_scholarship=review_model.approved_graduation_scholarship,
+            approved_food_allowance=review_model.approved_food_allowance,  # type: ignore
+            approved_housing_allowance=review_model.approved_housing_allowance,  # type: ignore
+            approved_daycare_allowance=review_model.approved_daycare_allowance,  # type: ignore
+            approved_graduation_scholarship=review_model.approved_graduation_scholarship,  # type: ignore
             created_at=review_model.created_at,
             updated_at=review_model.updated_at,
-            approved_food_allowance=review_model.approved_food_allowance,
-            approved_housing_allowance=review_model.approved_housing_allowance,
-            approved_daycare_allowance=review_model.approved_daycare_allowance,
-            approved_graduation_scholarship=review_model.approved_graduation_scholarship,
             social_worker=UserInfo.model_validate(review_model.social_worker),
             student_registration=StudentRegistrationResponse.model_validate(
                 review_model.student_registration
@@ -181,3 +163,6 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
                 for appeal in review_model.appeals
             ],
         )
+
+
+ReviewRegistrationResponseWithDetails.model_rebuild()

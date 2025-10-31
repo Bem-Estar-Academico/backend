@@ -2,7 +2,7 @@
 
 from datetime import datetime
 import random
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -11,8 +11,17 @@ from app.schemas.notice import NoticeInfo
 from app.models.registration import StudentRegistration
 from app.models.review import RegistrationStatus
 
-if TYPE_CHECKING:
-    from app.schemas.review_registration import ReviewDetailsForRegistration
+
+class ReviewDetailsForRegistration(BaseModel):
+    """
+    Schema for review details included in student registration responses.
+    """
+
+    id: int
+    status: RegistrationStatus
+    ivs: Optional[float] = None
+    expires_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
 
 
 class StudentRegistrationBase(BaseModel):
@@ -216,3 +225,5 @@ class RegistrationListResponse(BaseModel):
     review_count: int
     appeal_count: int
     cancelled_count: int
+
+StudentRegistrationWithReviewResponse.model_rebuild()
