@@ -34,7 +34,6 @@ def _get_progress_from_status(status: RegistrationStatus) -> int:
         return 75
     if status in [RegistrationStatus.APPROVED, RegistrationStatus.REJECTED, RegistrationStatus.CANCELLED]:
         return 100
-    return 0
 
 class StudentRegistrationService:
     """
