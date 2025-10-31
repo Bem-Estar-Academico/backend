@@ -10,12 +10,10 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Dict, Optional, List
 from pydantic import BaseModel, Field
-
-from pydantic import BaseModel, ConfigDict, Field
-
 from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.schemas.appeal import AppealResponse
 from app.schemas.student_registration import StudentRegistrationResponse
+from app.schemas.user import UserInfo
 
 
 class ReviewRegistrationBase(BaseModel):
