@@ -1,11 +1,3 @@
-"""Router for managing notices and related operations."""
-
-"""
-This module defines the API endpoints for creating, retrieving, updating, and deleting notices.
-It also includes endpoints for managing documents and team members associated with notices,
-and enforces role-based access control for certain operations.
-"""
-
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -26,6 +18,14 @@ from app.schemas.user import TeamMemberResponse
 from app.services.notice_service import NoticeService
 
 router = APIRouter(prefix="/notices", tags=["notices"])
+
+"""Router for managing notices and related operations."""
+
+"""
+This module defines the API endpoints for creating, retrieving, updating, and deleting notices.
+It also includes endpoints for managing documents and team members associated with notices,
+and enforces role-based access control for certain operations.
+"""
 
 
 @router.get("/", response_model=Union[List[NoticeSchema], List[NoticeForStudent]])

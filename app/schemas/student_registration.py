@@ -2,7 +2,7 @@
 
 from datetime import datetime
 import random
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -10,6 +10,9 @@ from app.schemas.user import UserInfo
 from app.schemas.notice import NoticeInfo
 from app.models.registration import StudentRegistration
 from app.models.review import RegistrationStatus
+
+if TYPE_CHECKING:
+    from app.schemas.review_registration import ReviewDetailsForRegistration
 
 
 class StudentRegistrationBase(BaseModel):
@@ -56,16 +59,20 @@ class StudentRegistrationCreate(StudentRegistrationBase):
     pass
 
 
-class StudentRegistrationUpdate(StudentRegistrationBase):
+class StudentRegistrationUpdate(BaseModel):
     """
     Schema for updating the status or observations of a student registration.
 
     Attributes:
         answer (Optional[Dict[str, Any]]): Updated observations or a dictionary
                                            with answers (e.g., notes from a social worker).
+        status (Optional[RegistrationStatus]): The new status for the registration review.
     """
     answer: Optional[Dict[str, Any]] = Field(
         None, description="Observações atualizadas ou respostas do estudante"
+    )
+    status: Optional[RegistrationStatus] = Field(
+        None, description="Novo status da inscrição"
     )
 
 
@@ -164,23 +171,48 @@ class NoticeDetailsForRegistration(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class ReviewDetailsForRegistration(BaseModel):
-    """
-    Schema for review details included in student registration responses.
-    """
-
-    id: int
-    status: RegistrationStatus
-    ivs: Optional[float] = None
-    expires_at: Optional[datetime] = None
-    model_config = ConfigDict(from_attributes=True)
-
-
 class StudentRegistrationWithReviewResponse(BaseModel):
     """
     Schema for representing a student's registration along with notice and review details.
     """
 
     notice: NoticeDetailsForRegistration
-    review: Optional[ReviewDetailsForRegistration] = None
+    review: Optional["ReviewDetailsForRegistration"] = None
     model_config = ConfigDict(from_attributes=True)
+
+
+class ReviewerResponse(BaseModel):
+    id: int
+    name: str
+
+
+class ReviewForRegistrationList(BaseModel):
+    progress: int
+    status: str
+    qtd_document: int
+    reviewer: Optional[ReviewerResponse] = None
+
+
+class StudentForRegistrationList(BaseModel):
+    id: int
+    cpf: Optional[str] = None
+    name: str
+    registration_number: Optional[str] = None
+    created_at: datetime
+
+
+class RegistrationForNoticeList(BaseModel):
+    id: int
+    registration_date: datetime
+    student: StudentForRegistrationList
+    review: ReviewForRegistrationList
+
+
+class RegistrationListResponse(BaseModel):
+    registrations: List[RegistrationForNoticeList]
+    pending_count: int
+    approved_count: int
+    rejected_count: int
+    review_count: int
+    appeal_count: int
+    cancelled_count: int
