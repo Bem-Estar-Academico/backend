@@ -185,8 +185,6 @@ class ReviewerResponse(BaseModel):
     id: int
     name: str
 
-class ReviewerWrapper(BaseModel):
-    reviewer: Optional[ReviewerResponse]
 
 class ReviewForRegistrationList(BaseModel):
     progress: int
