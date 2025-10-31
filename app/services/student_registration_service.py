@@ -9,9 +9,9 @@ from sqlalchemy.orm import selectinload, contains_eager
 from app.models.notice import Notice
 from app.models.registration import StudentRegistration
 from app.models.user import User, UserType
+from app.schemas.review_registration import ReviewDetailsForRegistration
 from app.schemas.student_registration import (
     NoticeDetailsForRegistration,
-    ReviewDetailsForRegistration,
     StudentRegistrationBase,
     StudentRegistrationUpdate,
     StudentRegistrationWithReviewResponse,

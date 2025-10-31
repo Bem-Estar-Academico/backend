@@ -149,8 +149,6 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
         """
         Factory method to create the detailed schema instance from a SQLAlchemy model instance.
         """
-        from app.schemas.student_registration import StudentRegistrationResponse
-        from app.schemas.appeal import AppealResponse
         ivs_value = (
             float(review_model.ivs)
             if isinstance(review_model.ivs, (Decimal, str))
@@ -179,6 +177,3 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
                 for appeal in review_model.appeals
             ],
         )
-
-
-ReviewRegistrationResponseWithDetails.model_rebuild()

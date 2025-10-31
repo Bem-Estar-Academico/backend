@@ -216,6 +216,3 @@ class RegistrationListResponse(BaseModel):
     review_count: int
     appeal_count: int
     cancelled_count: int
-
-
-StudentRegistrationWithReviewResponse.model_rebuild()
