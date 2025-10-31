@@ -5,15 +5,15 @@ This module defines Pydantic models used to validate and serialize
 data related to social worker reviews of student registrations.
 """
 
-from datetime import datetime
 import random
+from datetime import datetime
 from decimal import Decimal
 from typing import Any, Dict, Optional, List
 from pydantic import BaseModel, Field
 
-from app.schemas.user import UserInfo
-from app.models.review import ReviewRegistrationModel, RegistrationStatus
+from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.schemas.appeal import AppealResponse
 from app.schemas.student_registration import StudentRegistrationResponse
 
@@ -30,9 +30,16 @@ class ReviewRegistrationBase(BaseModel):
         approved_daycare_allowance (Optional[bool]): Whether daycare allowance benefit was approved.
         approved_graduation_scholarship (Optional[bool]): Whether graduation scholarship benefit was approved.
     """
-    review: Optional[dict[str, Any]] = Field(None, description="Conteúdo da avaliação em formato JSON")
-    ivs: Optional[float] = Field(None, ge=0, description="Índice de vulnerabilidade econômica (IVS)")
-    ocr_analisys: Optional[dict[str, Any]] = Field(None, description="Conteúdo do OCR em formato JSON")
+
+    review: Optional[dict[str, Any]] = Field(
+        None, description="Conteúdo da avaliação em formato JSON"
+    )
+    ivs: Optional[float] = Field(
+        None, ge=0, description="Índice de vulnerabilidade econômica (IVS)"
+    )
+    ocr_analisys: Optional[dict[str, Any]] = Field(
+        None, description="Conteúdo do OCR em formato JSON"
+    )
     status: RegistrationStatus = Field(..., description="Status no formato do sistema")
 
     approved_food_allowance: bool = Field(
@@ -69,12 +76,17 @@ class ReviewRegistrationUpdate(BaseModel):
     All fields are optional to allow partial updates.
     """
 
-    appeal: Optional[Dict[str, Any]] | None = Field(None, description="Conteúdo relacionado aos recursos")
+    appeal: Optional[Dict[str, Any]] | None = Field(
+        None, description="Conteúdo relacionado aos recursos"
+    )
     review: Dict[str, Any] | None = Field(
         None, description="Conteúdo atualizado da avaliação em formato JSON"
     )
     ivs: float | None = Field(None, ge=0, description="(IVS) atualizado")
-    status: RegistrationStatus | None = Field(None, description="Status só possui esses valores PENDING, APPROVED, REJECTED, CANCELLED, APPEAL, REVIEW")
+    status: RegistrationStatus | None = Field(
+        None,
+        description="Status só possui esses valores PENDING, APPROVED, REJECTED, CANCELLED, APPEAL, REVIEW",
+    )
     approved_food_allowance: bool | None = Field(
         None,
         description="Indica se o auxílio alimentação foi aprovado (null se não aplicável)",
@@ -159,8 +171,7 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
                 review_model.student_registration
             ),
             appeals=[
-                AppealResponse.model_validate(appeal)
-                for appeal in review_model.appeals
+                AppealResponse.model_validate(appeal) for appeal in review_model.appeals
             ],
         )
 
