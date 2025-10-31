@@ -29,6 +29,7 @@ async def require_coordinator(current_user: User = Depends(get_current_user)) ->
         )
     return current_user
 
+
 async def require_social_worker(current_user: User = Depends(get_current_user)) -> User:
     """
     Dependency that checks if the current user is a coordinator.
@@ -51,6 +52,7 @@ async def require_social_worker(current_user: User = Depends(get_current_user)) 
             detail="Only social workers can perform this action",
         )
     return current_user
+
 
 async def require_staff(current_user: User = Depends(get_current_user)) -> User:
     """

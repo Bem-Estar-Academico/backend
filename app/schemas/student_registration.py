@@ -1,18 +1,16 @@
 """Schemas for student registration."""
 
-from datetime import datetime
 import random
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.user import UserInfo
-from app.schemas.notice import NoticeInfo
 from app.models.registration import StudentRegistration
 from app.models.review import RegistrationStatus
-
-if TYPE_CHECKING:
-    from app.schemas.review_registration import ReviewDetailsForRegistration
+from app.schemas.notice import NoticeInfo
+from app.schemas.review_registration import ReviewDetailsForRegistration
+from app.schemas.user import UserInfo
 
 
 class StudentRegistrationBase(BaseModel):
@@ -68,6 +66,7 @@ class StudentRegistrationUpdate(BaseModel):
                                            with answers (e.g., notes from a social worker).
         status (Optional[RegistrationStatus]): The new status for the registration review.
     """
+
     answer: Optional[Dict[str, Any]] = Field(
         None, description="Observações atualizadas ou respostas do estudante"
     )
@@ -216,3 +215,6 @@ class RegistrationListResponse(BaseModel):
     review_count: int
     appeal_count: int
     cancelled_count: int
+
+
+StudentRegistrationWithReviewResponse.model_rebuild()

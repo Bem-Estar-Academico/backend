@@ -8,13 +8,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.logging_config import setup_logging
 from app.core.middleware import RequestLoggingMiddleware
+from app.routers.appeal import router as appeal_router
 from app.routers.auth import router as auth_router
+from app.routers.ivs import router as ivs_router
 from app.routers.notices import router as notices_router
 from app.routers.student_documents import router as student_documents_router
 from app.routers.student_registrations import router as student_registrations_router
 from app.routers.users import router as users_router
-from app.routers.ivs import router as ivs_router
-from app.routers.appeal import router as appeal_router
 
 # Setup logging first
 setup_logging()
@@ -27,7 +27,7 @@ app = FastAPI(
     description="BEA API",
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
 )
-logger.info(f"Starting BEA API v1.0.0")
+logger.info("Starting BEA API v1.0.0")
 logger.info(f"Environment: {settings.ENVIRONMENT}")
 
 # CORS setup

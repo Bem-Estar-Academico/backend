@@ -353,7 +353,11 @@ async def get_team_to_notice(
             status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
         )
 
-    team_members_raw: List[Dict[str, Any]] = await NoticeService.get_team_for_notice(db, notice_id=notice_id)
-    team_members: List[TeamMemberResponse] = [TeamMemberResponse(**tm) for tm in team_members_raw]
+    team_members_raw: List[Dict[str, Any]] = await NoticeService.get_team_for_notice(
+        db, notice_id=notice_id
+    )
+    team_members: List[TeamMemberResponse] = [
+        TeamMemberResponse(**tm) for tm in team_members_raw
+    ]
 
     return team_members

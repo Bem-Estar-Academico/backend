@@ -2,9 +2,10 @@ import random
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import case, select
+from sqlalchemy import case, extract, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
 from app.core.storage_factory import get_storage_manager
 from app.models.notice import Document, Notice, NoticeTeam, StudentRegistration
 from app.models.review import ReviewRegistrationModel
@@ -74,7 +75,7 @@ class NoticeService:
         )
 
         if year:
-            query = query.where(Notice.year == year)
+            query = query.where(extract("year", Notice.created_at) == year)
 
         result = await db.execute(query)
         return list(result.scalars().all())
@@ -303,7 +304,7 @@ class NoticeService:
                 selectinload(Notice.documents),
                 selectinload(Notice.team_members).selectinload(NoticeTeam.user),
             )
-            .where(Notice.year == year)
+            .where(extract("year", Notice.created_at) == year)
         )
         return list(result.scalars().all())
 
@@ -438,7 +439,6 @@ class NoticeService:
     async def get_document_download_url(
         db: AsyncSession, document_id: int, expiration: int = 3600
     ) -> Optional[str]:
-
         # First, get the document
         """
         Generates a temporary, presigned URL for direct download of a document from S3.
@@ -503,6 +503,8 @@ class NoticeService:
         team_members_formatted: List[Dict[str, Any]] = []
         for row in result.mappings():
             member_data: Dict[str, Any] = dict(row)
-            member_data["progress"] = random.randint(0, 100)  # TO DO: logica do progresso
+            member_data["progress"] = random.randint(
+                0, 100
+            )  # TO DO: logica do progresso
             team_members_formatted.append(member_data)
         return team_members_formatted

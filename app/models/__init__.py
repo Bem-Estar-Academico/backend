@@ -3,4 +3,11 @@ from app.models.registration import StudentRegistration
 from app.models.review import ReviewRegistrationModel
 from app.models.user import User
 
-__all__ = ["User", "Notice", "Document", "NoticeTeam", "StudentRegistration", "ReviewRegistrationModel"]
+__all__ = [
+    "User",
+    "Notice",
+    "Document",
+    "NoticeTeam",
+    "StudentRegistration",
+    "ReviewRegistrationModel",
+]

@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.logging_config import get_logger
 from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.models.user import User
 from app.schemas.review_registration import (
@@ -19,7 +20,6 @@ from app.schemas.review_registration import (
 from app.schemas.user import UserType
 from app.services.appeal_service import AppealService
 from app.services.student_registration_service import StudentRegistrationService
-from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -68,7 +68,9 @@ class ReviewRegistrationService:
         if not (
             registration.notice.registration_start_date
             and registration.notice.registration_end_date
-            and registration.notice.registration_start_date <= now <= registration.notice.registration_end_date
+            and registration.notice.registration_start_date
+            <= now
+            <= registration.notice.registration_end_date
         ):
             raise HTTPException(
                 status_code=400,
@@ -86,9 +88,11 @@ class ReviewRegistrationService:
                 detail="A review for this registration already exists.",
             )
 
-        db_review = ReviewRegistrationModel(**review_data.model_dump(),
-                                            social_worker_id=social_worker.id,
-                                            student_registration_id=student_registration_id)
+        db_review = ReviewRegistrationModel(
+            **review_data.model_dump(),
+            social_worker_id=social_worker.id,
+            student_registration_id=student_registration_id,
+        )
         db.add(db_review)
         await db.commit()
         await db.refresh(db_review)
@@ -141,7 +145,8 @@ class ReviewRegistrationService:
                 selectinload(ReviewRegistrationModel.appeals),
             )
             .where(
-                ReviewRegistrationModel.student_registration_id == student_registration_id
+                ReviewRegistrationModel.student_registration_id
+                == student_registration_id
             )
         )
         result = await db.execute(query)
@@ -173,7 +178,7 @@ class ReviewRegistrationService:
             )
 
         update_data = review_data.model_dump(exclude_unset=True)
-        appeal_data = update_data.pop('appeal', None)
+        appeal_data = update_data.pop("appeal", None)
         calculated_ivs: Optional[float] = None
         new_status = review_data.status
 
@@ -181,18 +186,18 @@ class ReviewRegistrationService:
             if new_status in [RegistrationStatus.APPROVED, RegistrationStatus.REJECTED]:
                 if not appeal_data:
                     calculated_ivs = review_data.calculate_ivs()
-                    update_data.pop('ivs', None)
+                    update_data.pop("ivs", None)
                 else:
                     raise HTTPException(
                         status_code=400,
-                        detail="The 'appeal' field must not be provided when setting status to APPROVED or REJECTED."
+                        detail="The 'appeal' field must not be provided when setting status to APPROVED or REJECTED.",
                     )
 
             elif new_status == RegistrationStatus.APPEAL:
                 if not appeal_data:
                     raise HTTPException(
                         status_code=400,
-                        detail="The 'appeal' field is required when setting status to APPEAL."
+                        detail="The 'appeal' field is required when setting status to APPEAL.",
                     )
                 else:
                     try:
@@ -200,18 +205,23 @@ class ReviewRegistrationService:
                             db=db,
                             requested_documents_data=appeal_data,
                             review_registration_id=review_id,
-                            current_user=current_user
+                            current_user=current_user,
                         )
                         if not created_appeal:
                             raise HTTPException(
-                                status_code=500, detail="Failed to save appeal data.")
+                                status_code=500, detail="Failed to save appeal data."
+                            )
                     except HTTPException as http_exc:
                         raise http_exc
                     except Exception as e:
                         logger.error(
-                            "Erro inesperado ao criar apelo para review %s: %s", review_id, e)
+                            "Erro inesperado ao criar apelo para review %s: %s",
+                            review_id,
+                            e,
+                        )
                         raise HTTPException(
-                            status_code=500, detail="Internal error saving appeal")
+                            status_code=500, detail="Internal error saving appeal"
+                        )
 
         for field, value in update_data.items():
             setattr(review, field, value)
@@ -227,11 +237,15 @@ class ReviewRegistrationService:
             return review
         except Exception as e:
             await db.rollback()
-            logger.error("Erro durante o commit ao atualizar review %s: %s", review_id, e)
+            logger.error(
+                "Erro durante o commit ao atualizar review %s: %s", review_id, e
+            )
             raise HTTPException(status_code=500, detail="Internal server error")
 
     @staticmethod
-    async def delete_review(db: AsyncSession, review_id: int, current_user: User) -> bool:
+    async def delete_review(
+        db: AsyncSession, review_id: int, current_user: User
+    ) -> bool:
         """
         Deletes a review.
 

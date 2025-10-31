@@ -1,10 +1,10 @@
+import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.user_service import UserService
-from app.schemas.user import UserCreate
-from app.models.user import UserType
 
-import pytest
+from app.models.user import UserType
+from app.schemas.user import UserCreate
+from app.services.user_service import UserService
 
 
 @pytest.mark.asyncio
@@ -19,7 +19,7 @@ async def test_login_success(client: AsyncClient, db_session: AsyncSession):
         user_type=UserType.STUDENT,
         password=password,
         cpf="00000000000",
-        registration_number="11111111"
+        registration_number="11111111",
     )
     await UserService.create_user(db_session, user_data)
 
@@ -44,7 +44,7 @@ async def test_login_wrong_password(client: AsyncClient, db_session: AsyncSessio
         user_type=UserType.STUDENT,
         password=password,
         cpf="00000000000",
-        registration_number="11111111"
+        registration_number="11111111",
     )
     await UserService.create_user(db_session, user_data)
 
