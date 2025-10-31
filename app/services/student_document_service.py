@@ -1,4 +1,5 @@
 import io
+import logging
 from typing import List, Optional
 
 from PIL import Image
