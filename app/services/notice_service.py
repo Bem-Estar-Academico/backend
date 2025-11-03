@@ -1,14 +1,13 @@
-import random
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import case, extract, select
+from sqlalchemy import case, extract, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.storage_factory import get_storage_manager
 from app.models.notice import Document, Notice, NoticeTeam, StudentRegistration
-from app.models.review import ReviewRegistrationModel
+from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.models.user import User
 from app.schemas.notice import NoticeCreate, NoticeUpdate
 
@@ -510,12 +509,38 @@ class NoticeService:
             .order_by(User.full_name)
         )
 
+        total_registrations_result = await db.execute(
+            select(func.count(StudentRegistration.id)).where(
+                StudentRegistration.notice_id == notice_id
+            )
+        )
+        total_registrations = total_registrations_result.scalar_one()
+
+        progress = 0
+        if total_registrations > 0:
+            final_status_registrations_result = await db.execute(
+                select(func.count(StudentRegistration.id))
+                .join(ReviewRegistrationModel)
+                .where(StudentRegistration.notice_id == notice_id)
+                .where(
+                    ReviewRegistrationModel.status.in_(
+                        [
+                            RegistrationStatus.APPROVED,
+                            RegistrationStatus.REJECTED,
+                            RegistrationStatus.CANCELLED,
+                        ]
+                    )
+                )
+            )
+            final_status_registrations = (
+                final_status_registrations_result.scalar_one()
+            )
+            progress = (final_status_registrations / total_registrations) * 100
+
         result = await db.execute(q)
         team_members_formatted: List[Dict[str, Any]] = []
         for row in result.mappings():
             member_data: Dict[str, Any] = dict(row)
-            member_data["progress"] = random.randint(
-                0, 100
-            )  # TO DO: logica do progresso
+            member_data["progress"] = round(progress)
             team_members_formatted.append(member_data)
         return team_members_formatted

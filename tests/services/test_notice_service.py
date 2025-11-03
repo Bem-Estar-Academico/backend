@@ -172,7 +172,7 @@ async def test_create_notice_with_team_members(
     mock_notice_create_data.team_members = [
         mock_coordinator_user.id,
         99,
-    ]  # Add another user
+    ]
     created_notice = Notice(
         **mock_notice_create_data.model_dump(exclude={"team_members"}), id=1
     )
@@ -185,14 +185,12 @@ async def test_create_notice_with_team_members(
         )
         assert (
             mocked_db_session.add.call_count == 3
-        )  # Notice, creator, and additional member
+        )
         mocked_db_session.flush.assert_called_once()
         mocked_db_session.commit.assert_called_once()
         mocked_db_session.refresh.assert_called_once()
         assert notice.title == mock_notice_create_data.title
 
-
-# Test update_notice
 @pytest.mark.asyncio
 async def test_update_notice_success(
     mocked_db_session: AsyncMock,
@@ -253,7 +251,6 @@ async def test_get_active_notices(mocked_db_session: AsyncMock, mock_notice: Mag
     assert active_notices[0] == mock_notice
 
 
-# Test get_notices_for_student
 @pytest.mark.asyncio
 async def test_get_notices_for_student_registered(
     mocked_db_session: AsyncMock, mock_notice: MagicMock, mock_student_user: MagicMock
@@ -313,7 +310,7 @@ async def test_add_team_member_to_notice_success(
     ]
     mocked_db_session.execute.return_value.scalar_one.return_value = MagicMock(
         spec=NoticeTeam
-    )  # For the refresh
+    )
     team_member = await NoticeService.add_team_member_to_notice(
         mocked_db_session, mock_notice.id, mock_coordinator_user.id
     )
