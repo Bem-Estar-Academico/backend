@@ -70,7 +70,11 @@ class EmailService:
                 subject = f"⚠️ Documentos Solicitados - {notice_title}"
             else:
                 logger.warning(f"Unknown status for email: {status}")
-                return False
+                return EmailSendResult(
+                    success=False,
+                    message="Unknown status for email",
+                    email_address=student_email,
+                )
 
             template = self.jinja_env.get_template(template_name)
             html_content = template.render(
