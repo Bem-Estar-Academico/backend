@@ -1,12 +1,3 @@
-"""Module for defining notice-related models."""  
-"""
-This module defines several SQLAlchemy models related to notices, including:
-- `RegistrationStatus`: An enumeration for the status of student registrations.
-- `Document`: Represents documents associated with a notice.
-- `NoticeTeam`: Represents team members assigned to a specific notice.
-- `Notice`: The main model for notices, containing details about various allowances and dates.
-- `StudentRegistration`: Represents a student's registration for a notice.
-"""
 import enum
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
@@ -21,6 +12,16 @@ from app.models.registration import StudentRegistration
 
 if TYPE_CHECKING:
     from app.models.user import User
+
+"""Module for defining notice-related models."""
+"""
+This module defines several SQLAlchemy models related to notices, including:
+- `RegistrationStatus`: An enumeration for the status of student registrations.
+- `Document`: Represents documents associated with a notice.
+- `NoticeTeam`: Represents team members assigned to a specific notice.
+- `Notice`: The main model for notices, containing details about various allowances and dates.
+- `StudentRegistration`: Represents a student's registration for a notice.
+"""
 
 
 class OCRStatus(enum.Enum):

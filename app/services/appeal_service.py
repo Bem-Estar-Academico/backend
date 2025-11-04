@@ -40,12 +40,10 @@ class AppealService:
             HTTPException 403: If the user is not the owner of the registration.
             HTTPException 400: If an appeal already exists for this review.
         """
-        
-        
         review = await db.get(
-            ReviewRegistrationModel, 
+            ReviewRegistrationModel,
             review_registration_id,
-            options=[selectinload(ReviewRegistrationModel.student_registration)] 
+            options=[selectinload(ReviewRegistrationModel.student_registration)]
         )
         if not review:
             raise HTTPException(
@@ -54,42 +52,36 @@ class AppealService:
             )
 
         if review.social_worker_id != current_user.id:
-             raise HTTPException(
+            raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You can only create appeals for reviews assigned to you."
             )
-            
         db_appeal = Appeal(
             requested_documents=requested_documents_data,
             review_registration_id=review_registration_id
         )
-        
         db.add(db_appeal)
         await db.commit()
         await db.refresh(db_appeal)
-        
         return db_appeal.requested_documents
 
     @staticmethod
     async def get_appeal_by_id(db: AsyncSession, appeal_id: int) -> Optional[Appeal]:
         """Retrieves an appeal by its ID."""
-        
         return await db.get(
-            Appeal, 
-            appeal_id, 
+            Appeal,
+            appeal_id,
             options=[selectinload(Appeal.review_registration)]
         )
 
     @staticmethod
-    async def get_appeals_by_review_id(db: AsyncSession, review_registration_id: int) -> List[Appeal]:
+    async def get_appeals_by_review_id(db: AsyncSession, review_registration_id: int) -> List[Dict[str, Any]]:
         """Retrieves an appeal linked to a specific review registration ID."""
-        
         result = await db.execute(
             select(Appeal)
             .options(selectinload(Appeal.review_registration))
             .where(Appeal.review_registration_id == review_registration_id)
         )
-        
         appeal_objs_list = list(result.scalars().all())
         return [appeal.requested_documents for appeal in appeal_objs_list]
 

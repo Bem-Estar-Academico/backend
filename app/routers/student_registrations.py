@@ -1,12 +1,3 @@
-"""Router for managing student registrations for notices."""
-
-"""
-This module defines the API endpoints for creating, retrieving, updating, and deleting
-student registrations for various notices. It includes functionalities for students
-to manage their own registrations and for staff members (coordinators, social workers)
-to view and manage registrations.
-"""
-
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -24,13 +15,25 @@ from app.schemas.student_registration import (
     StudentRegistrationWithDetails,
     StudentRegistrationCreate,
     StudentRegistrationWithReviewResponse,
+    RegistrationListResponse,
 )
 from app.schemas.user import UserType
 from app.services.review_registration_service import ReviewRegistrationService
 from app.services.student_registration_service import StudentRegistrationService
 from app.services.user_service import UserService
 
+"""Router for managing student registrations for notices."""
+
+"""
+This module defines the API endpoints for creating, retrieving, updating, and deleting
+student registrations for various notices. It includes functionalities for students
+to manage their own registrations and for staff members (coordinators, social workers)
+to view and manage registrations.
+"""
+
+
 router = APIRouter(prefix="/student-registrations", tags=["student-registrations"])
+
 
 @router.post(
     "/{notice_id}",
@@ -49,7 +52,6 @@ async def create_student_registration(
 ) -> StudentRegistrationResponse:
     """
     Cria uma nova inscrição para o estudante atual em um edital específico.
-    
     Este processo automaticamente dispara a criação de uma 'ReviewRegistration'
     e a atribui a um assistente social aleatório disponível.
     """
@@ -72,6 +74,10 @@ async def create_student_registration(
         ivs=0.0,
         ocr_analisys={"initial_ocr": "OCR auto-criada pelo sistema."},
         status=RegistrationStatus.PENDING,
+        approved_food_allowance=False,
+        approved_housing_allowance=False,
+        approved_daycare_allowance=False,
+        approved_graduation_scholarship=False,
     )
 
     try:
@@ -170,24 +176,25 @@ async def get_student_registration(
 
 @router.get(
     "/notice/{notice_id}",
-    response_model=StudentRegistrationList,
-    summary="Get registrations by notice",
-    description="Get all registrations for a specific notice",
+    response_model=RegistrationListResponse,
+    summary="Get registrations by notice with aggregated counts",
+    description="Get all registrations for a specific notice with the new JSON structure",
 )
 async def get_registrations_by_notice(
     notice_id: int,
-    status_filter: Optional[RegistrationStatus] = Query(None, alias="status"),
+    status: Optional[RegistrationStatus] = Query(None, description="Filter registrations by status"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> StudentRegistrationList:
+) -> RegistrationListResponse:
     """
-    Retrieves all student registrations for a specific notice.
+    Retrieves all student registrations for a specific notice, formatted
+    with aggregated status counts.
 
     This endpoint is restricted to staff members.
 
     Args:
         notice_id (int): The ID of the notice to retrieve registrations for.
-        status_filter (Optional[RegistrationStatus]): Optional. Filter registrations by their status.
+        status (Optional[RegistrationStatus]): Optional status to filter registrations.
         current_user (User): The authenticated staff user.
         db (AsyncSession): The database session.
 
@@ -195,24 +202,17 @@ async def get_registrations_by_notice(
         HTTPException: If the user is not authorized.
 
     Returns:
-        StudentRegistrationList: A list of student registrations for the notice.
+        RegistrationListResponse: A list of student registrations and status counts.
     """
     if not current_user.is_staff:
         raise HTTPException(
             status_code=403, detail="Sem permissão para ver inscrições de editais"
         )
-    registrations, total = await StudentRegistrationService.get_registrations_by_notice(
-        db, notice_id, status_filter
+    response = await StudentRegistrationService.get_registrations_for_notice_list(
+        db, notice_id, status=status
     )
 
-    registration_details = [
-        StudentRegistrationWithDetails.from_model(reg) for reg in registrations
-    ]
-
-    return StudentRegistrationList(
-        registrations=registration_details,
-        total=total,
-    )
+    return response
 
 
 @router.get(
@@ -328,9 +328,9 @@ async def delete_student_registration(
         None
     """
     await StudentRegistrationService.delete_registration(db, student_registration_id, current_user)
-    
-    
-#------------------- REVIEW REGISTRATION ------------------------
+
+# ------------------- REVIEW REGISTRATION ------------------------
+
 
 @router.get(
     "/{student_registration_id}/review",

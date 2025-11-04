@@ -6,6 +6,7 @@ from app.models.user import UserType
 
 import pytest
 
+
 @pytest.mark.asyncio
 async def test_login_success(client: AsyncClient, db_session: AsyncSession):
     """

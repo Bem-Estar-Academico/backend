@@ -14,8 +14,9 @@ from app.services.review_registration_service import ReviewRegistrationService
 
 router = APIRouter(tags=["appeal"])
 
+
 @router.post(
-    "/reviews/{review_registration_id}/appeal", 
+    "/reviews/{review_registration_id}/appeal",
     response_model=Dict[str, Any],
     status_code=status.HTTP_201_CREATED,
     summary="Submit an appeal for a review",
@@ -30,12 +31,11 @@ async def create_appeal(
     Submits a new appeal against a specific review registration decision.
     Only the student who owns the registration can create an appeal.
     """
-    
     appeal = await AppealService.create_appeal(
         db, appeal_data, review_registration_id, current_user
     )
-    
     return appeal
+
 
 @router.get(
     "/reviews/{review_registration_id}/appeals",
@@ -52,7 +52,6 @@ async def get_appeals_for_review(
     Accessible by the student owner or staff.
     """
     appeals = await AppealService.get_appeals_by_review_id(db, review_registration_id)
-    
     if not appeals:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appeal not found for this review.")
 
@@ -61,12 +60,12 @@ async def get_appeals_for_review(
     )
 
     if not review:
-         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Associated review not found.")
-         
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Associated review not found.")
     if review.social_worker_id != current_user.id and not current_user.is_staff:
-         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied.")
 
     return appeals
+
 
 @router.get(
     "/appeal/{appeal_id}",
@@ -88,12 +87,12 @@ async def get_appeal(
 
     review = await ReviewRegistrationService.get_review_by_id(db, appeal.review_registration_id)
     if not review:
-         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Associated review not found.")
-         
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Associated review not found.")
     if review.social_worker_id != current_user.id and not current_user.is_staff:
-         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied.")
 
     return appeal
+
 
 @router.put(
     "/appeal/{appeal_id}",
@@ -110,11 +109,11 @@ async def update_appeal(
     Updates an existing appeal.
     (Permission logic needs to be defined based on business rules, e.g., only staff).
     """
-    
     updated_appeal = await AppealService.update_appeal(db, appeal_id, appeal_data, current_user)
     if not updated_appeal:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appeal not found.")
     return updated_appeal
+
 
 @router.delete(
     "/appeal/{appeal_id}",

@@ -22,6 +22,8 @@ from app.services.student_registration_service import StudentRegistrationService
 from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
+
+
 class ReviewRegistrationService:
     """
     Service class for all business logic related to registration reviews.
@@ -145,7 +147,6 @@ class ReviewRegistrationService:
         result = await db.execute(query)
 
         data = result.scalar_one_or_none()
-        
         return data
 
     @staticmethod
@@ -182,10 +183,10 @@ class ReviewRegistrationService:
                     calculated_ivs = review_data.calculate_ivs()
                     update_data.pop('ivs', None)
                 else:
-                   raise HTTPException(
+                    raise HTTPException(
                         status_code=400,
                         detail="The 'appeal' field must not be provided when setting status to APPROVED or REJECTED."
-                    ) 
+                    )
 
             elif new_status == RegistrationStatus.APPEAL:
                 if not appeal_data:
@@ -210,7 +211,7 @@ class ReviewRegistrationService:
                         logger.error(
                             "Erro inesperado ao criar apelo para review %s: %s", review_id, e)
                         raise HTTPException(
-                            status_code=500, detail=f"Internal error saving appeal")
+                            status_code=500, detail="Internal error saving appeal")
 
         for field, value in update_data.items():
             setattr(review, field, value)
@@ -227,7 +228,7 @@ class ReviewRegistrationService:
         except Exception as e:
             await db.rollback()
             logger.error("Erro durante o commit ao atualizar review %s: %s", review_id, e)
-            raise HTTPException(status_code=500, detail=f"Internal server error")
+            raise HTTPException(status_code=500, detail="Internal server error")
 
     @staticmethod
     async def delete_review(db: AsyncSession, review_id: int, current_user: User) -> bool:
