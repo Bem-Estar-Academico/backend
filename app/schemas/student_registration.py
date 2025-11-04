@@ -1,16 +1,24 @@
 """Schemas for student registration."""
 
 import random
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.registration import StudentRegistration
 from app.models.review import RegistrationStatus
-from app.schemas.notice import NoticeInfo
-from app.schemas.review_registration import ReviewDetailsForRegistration
-from app.schemas.user import UserInfo
+
+
+class ReviewDetailsForRegistration(BaseModel):
+    """
+    Schema for review details included in student registration responses.
+    """
+
+    id: int
+    status: RegistrationStatus
+    ivs: Optional[float] = None
+    expires_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
 
 
 class StudentRegistrationBase(BaseModel):
@@ -215,6 +223,5 @@ class RegistrationListResponse(BaseModel):
     review_count: int
     appeal_count: int
     cancelled_count: int
-
 
 StudentRegistrationWithReviewResponse.model_rebuild()

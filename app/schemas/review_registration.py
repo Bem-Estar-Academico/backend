@@ -8,28 +8,12 @@ data related to social worker reviews of student registrations.
 import random
 from datetime import datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
-
-from pydantic import BaseModel, ConfigDict, Field
-
+from typing import Any, Dict, Optional, List
+from pydantic import BaseModel, Field
 from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.schemas.appeal import AppealResponse
+from app.schemas.student_registration import StudentRegistrationResponse
 from app.schemas.user import UserInfo
-
-if TYPE_CHECKING:
-    from app.schemas.student_registration import StudentRegistrationResponse
-
-
-class ReviewDetailsForRegistration(BaseModel):
-    """
-    Schema for review details included in student registration responses.
-    """
-
-    id: int
-    status: RegistrationStatus
-    ivs: Optional[float] = None
-    expires_at: Optional[datetime] = None
-    model_config = ConfigDict(from_attributes=True)
 
 
 class ReviewRegistrationBase(BaseModel):
@@ -56,20 +40,20 @@ class ReviewRegistrationBase(BaseModel):
     )
     status: RegistrationStatus = Field(..., description="Status no formato do sistema")
 
-    approved_food_allowance: Optional[bool] = Field(
-        None,
+    approved_food_allowance: bool = Field(
+        False,
         description="Indica se o auxílio alimentação foi aprovado (null se não aplicável)",
     )
-    approved_housing_allowance: Optional[bool] = Field(
-        None,
+    approved_housing_allowance: bool = Field(
+        False,
         description="Indica se o auxílio moradia foi aprovado (null se não aplicável)",
     )
-    approved_daycare_allowance: Optional[bool] = Field(
-        None,
+    approved_daycare_allowance: bool = Field(
+        False,
         description="Indica se o auxílio creche foi aprovado (null se não aplicável)",
     )
-    approved_graduation_scholarship: Optional[bool] = Field(
-        None,
+    approved_graduation_scholarship: bool = Field(
+        False,
         description="Indica se a bolsa conclusão foi aprovada (null se não aplicável)",
     )
 
@@ -174,12 +158,12 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
             ivs=ivs_value,
             ocr_analisys=review_model.ocr_analisys,
             status=review_model.status,
+            approved_food_allowance=review_model.approved_food_allowance,  # type: ignore
+            approved_housing_allowance=review_model.approved_housing_allowance,  # type: ignore
+            approved_daycare_allowance=review_model.approved_daycare_allowance,  # type: ignore
+            approved_graduation_scholarship=review_model.approved_graduation_scholarship,  # type: ignore
             created_at=review_model.created_at,
             updated_at=review_model.updated_at,
-            approved_food_allowance=review_model.approved_food_allowance,
-            approved_housing_allowance=review_model.approved_housing_allowance,
-            approved_daycare_allowance=review_model.approved_daycare_allowance,
-            approved_graduation_scholarship=review_model.approved_graduation_scholarship,
             social_worker=UserInfo.model_validate(review_model.social_worker),
             student_registration=StudentRegistrationResponse.model_validate(
                 review_model.student_registration
@@ -187,5 +171,8 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
             appeals=[
                 AppealResponse.model_validate(appeal) for appeal in review_model.appeals
             ],
+       
         )
 
+
+ReviewRegistrationResponseWithDetails.model_rebuild()

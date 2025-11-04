@@ -18,6 +18,10 @@ from app.schemas.review_registration import (
     ReviewRegistrationCreate,
     ReviewRegistrationUpdate,
 )
+from app.schemas.student_registration import (
+    StudentRegistrationCreate,
+    StudentRegistrationUpdate,
+)
 from app.schemas.student_registration import StudentRegistrationCreate
 from app.schemas.user import UserCreate
 from app.services.notice_service import NoticeService
@@ -242,7 +246,27 @@ class Seeder:
                     self.db, notice_data, self.coordinator.id
                 )
                 notices.append(notice)
-                logging.info(f"  [{i+1:02d}/{num_notices}] {notice.title}")
+
+                num_social_workers_per_notice = random.randint(
+                    2, min(5, len(self.social_workers))
+                )
+                selected_social_workers = random.sample(
+                    self.social_workers, num_social_workers_per_notice
+                )
+
+                for social_worker in selected_social_workers:
+                    try:
+                        await NoticeService.add_team_member_to_notice(
+                            self.db, notice.id, social_worker.id
+                        )
+                    except Exception as e:
+                        logging.error(
+                            f"Erro ao adicionar assistente social {social_worker.id} ao edital {notice.id}: {e}"
+                        )
+
+                logging.info(
+                    f"  [{i+1:02d}/{num_notices}] {notice.title} - {num_social_workers_per_notice} assistentes sociais adicionados à equipe"
+                )
             except Exception as e:
                 logging.error(f"Erro ao criar edital: {e}")
         return notices
@@ -339,6 +363,7 @@ class Seeder:
         registrations = result.scalars().all()
         review_count = 0
         status_counts: dict[str, int] = {}
+
         for reg in registrations:
             try:
                 existing_review = await ReviewRegistrationService.get_review_by_student_registration_id(
@@ -348,21 +373,33 @@ class Seeder:
                 if existing_review:
                     continue
 
-                # review_data = {
-                #     "review": {"notes": self.provider.fake.paragraph()},
-                #     "ivs": round(random.uniform(65, 175), 2),
-                #     "approved_food_allowance": random.choice([True, False]),
-                #     "approved_housing_allowance": random.choice([True, False]),
-                #     "approved_daycare_allowance": random.choice([True, False]),
-                #     "approved_graduation_scholarship": random.choice([True, False]),
-                # }
+                from app.models.notice import NoticeTeam
+
+                social_workers_in_team_result = await self.db.execute(
+                    select(User)
+                    .join(NoticeTeam, NoticeTeam.user_id == User.id)
+                    .where(NoticeTeam.notice_id == reg.notice_id)
+                    .where(User.user_type == UserType.SOCIAL_WORKER)
+                )
+                social_workers_in_team = list(
+                    social_workers_in_team_result.scalars().all()
+                )
+
+                if not social_workers_in_team:
+                    logging.warning(
+                        f"Nenhum assistente social encontrado na equipe do edital {reg.notice_id} para inscrição {reg.id}"
+                    )
+                    continue
+
                 default_review_data = ReviewRegistrationCreate(
                     review={"initial_notes": "Avaliação auto-criada pelo sistema."},
                     ivs=0.0,
                     ocr_analisys={"initial_ocr": "OCR auto-criada pelo sistema."},
                     status=RegistrationStatus.PENDING,
                 )
-                social_worker = random.choice(self.social_workers)
+
+                social_worker = random.choice(social_workers_in_team)
+
                 review = await ReviewRegistrationService.create_review(
                     db=self.db,
                     social_worker=social_worker,

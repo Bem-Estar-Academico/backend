@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 from app.core.storage_factory import get_storage_manager
 from app.models.notice import Document, Notice, NoticeTeam, StudentRegistration
 from app.models.review import RegistrationStatus, ReviewRegistrationModel
-from app.models.user import User
+from app.models.user import User, UserType
 from app.schemas.notice import NoticeCreate, NoticeUpdate
 
 
@@ -486,6 +486,7 @@ class NoticeService:
             List[Dict[str, Any]]: A list of dictionaries, each formatted to match
                                   the full User schema + 'last_review'.
         """
+        from sqlalchemy import func
 
         sq = (
             select(ReviewRegistrationModel.updated_at)
@@ -538,9 +539,55 @@ class NoticeService:
             progress = (final_status_registrations / total_registrations) * 100
 
         result = await db.execute(q)
+
         team_members_formatted: List[Dict[str, Any]] = []
         for row in result.mappings():
             member_data: Dict[str, Any] = dict(row)
-            member_data["progress"] = round(progress)
+
+            if member_data["user_type"] == UserType.SOCIAL_WORKER:
+                progress_query = (
+                    select(
+                        func.count().label("total_reviews"),
+                        func.sum(
+                            case(
+                                (
+                                    ReviewRegistrationModel.status.in_(
+                                        [
+                                            RegistrationStatus.APPROVED,
+                                            RegistrationStatus.REJECTED,
+                                        ]
+                                    ),
+                                    1,
+                                ),
+                                else_=0,
+                            )
+                        ).label("completed_reviews"),
+                    )
+                    .select_from(ReviewRegistrationModel)
+                    .join(
+                        StudentRegistration,
+                        ReviewRegistrationModel.student_registration_id
+                        == StudentRegistration.id,
+                    )
+                    .where(
+                        ReviewRegistrationModel.social_worker_id == member_data["id"]
+                    )
+                    .where(StudentRegistration.notice_id == notice_id)
+                )
+
+                progress_result = await db.execute(progress_query)
+                progress_data = progress_result.first()
+
+                if progress_data and progress_data.total_reviews > 0:
+                    completed = progress_data.completed_reviews or 0
+                    total = progress_data.total_reviews
+                    member_data["progress"] = round((completed / total) * 100, 1)
+                else:
+                    member_data["progress"] = 0.0
+            else:
+                # Para coordenadores, não calculamos progresso baseado em revisões
+                member_data["progress"] = 100.0
+
             team_members_formatted.append(member_data)
+
         return team_members_formatted

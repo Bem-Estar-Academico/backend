@@ -13,12 +13,14 @@ from sqlalchemy.orm import selectinload
 from app.core.logging_config import get_logger
 from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.models.user import User
+from app.schemas.email_notification import EmailNotificationData
 from app.schemas.review_registration import (
     ReviewRegistrationCreate,
     ReviewRegistrationUpdate,
 )
 from app.schemas.user import UserType
 from app.services.appeal_service import AppealService
+from app.services.email_service import email_service
 from app.services.student_registration_service import StudentRegistrationService
 
 logger = get_logger(__name__)
@@ -234,6 +236,36 @@ class ReviewRegistrationService:
         try:
             await db.commit()
             await db.refresh(review)
+
+            if new_status and new_status in [
+                RegistrationStatus.APPROVED,
+                RegistrationStatus.REJECTED,
+                RegistrationStatus.APPEAL,
+            ]:
+                try:
+                    await ReviewRegistrationService._send_status_email(
+                        review, new_status, appeal_data
+                    )
+                    # Track successful notification
+                    if hasattr(review, "email_notification_status"):
+                        review.email_notification_status = "SENT"
+                except Exception as email_exc:
+                    logger.error(
+                        "Failed to send status email for review %s: %s", review_id, email_exc
+                    )
+                    # Track failed notification for retry/manual review
+                    if hasattr(review, "email_notification_status"):
+                        review.email_notification_status = "FAILED"
+                    # Optionally, you could re-raise or just log and continue
+                # Commit notification status change
+                try:
+                    await db.commit()
+                    await db.refresh(review)
+                except Exception as commit_exc:
+                    logger.error(
+                        "Failed to commit email notification status for review %s: %s", review_id, commit_exc
+                    )
+
             return review
         except Exception as e:
             await db.rollback()
@@ -272,3 +304,86 @@ class ReviewRegistrationService:
         await db.delete(review)
         await db.commit()
         return True
+
+    @staticmethod
+    def _prepare_email_notification_data(
+        review: ReviewRegistrationModel,
+        status: RegistrationStatus,
+        appeal_data: Optional[dict] = None,
+    ) -> EmailNotificationData:
+        """
+        Prepare email notification data from review model and appeal data.
+
+        Args:
+            review: The review registration model
+            status: New status of the registration
+            appeal_data: Appeal data if status is APPEAL
+
+        Returns:
+            EmailNotificationData: Structured data for email notification
+        """
+        student = review.student_registration.student
+        notice = review.student_registration.notice
+
+        requested_documents = None
+        if status == RegistrationStatus.APPEAL and appeal_data:
+            requested_documents = []
+
+            if "requested_documents" in appeal_data:
+                for doc_key, doc_value in appeal_data["requested_documents"].items():
+
+                    if isinstance(doc_value, str):
+                        requested_documents.append(f"{doc_key}: {doc_value}")
+
+                    else:
+                        requested_documents.append(doc_key)
+
+        return EmailNotificationData(
+            student_email=student.email,
+            student_name=student.full_name,
+            notice_title=notice.title,
+            status=status,
+            ivs_score=review.ivs if status == RegistrationStatus.APPROVED else None,
+            requested_documents=requested_documents,
+        )
+
+    @staticmethod
+    async def _send_status_email(
+        review: ReviewRegistrationModel,
+        status: RegistrationStatus,
+        appeal_data: Optional[dict] = None,
+    ):
+        """
+        Send email notification to student about registration status update.
+
+        Args:
+            review: The review registration model
+            status: New status of the registration
+            appeal_data: Appeal data if status is APPEAL
+        """
+        try:
+            email_data = ReviewRegistrationService._prepare_email_notification_data(
+                review, status, appeal_data
+            )
+
+            email_result = await email_service.send_registration_status_email(
+                student_email=email_data.student_email,
+                student_name=email_data.student_name,
+                notice_title=email_data.notice_title,
+                status=email_data.status,
+                ivs_score=email_data.ivs_score,
+                requested_documents=email_data.requested_documents,
+            )
+
+            if email_result.success:
+                logger.info(
+                    f"Status email sent to {email_data.student_email} for review {review.id}"
+                )
+
+            else:
+                logger.warning(
+                    f"Failed to send status email to {email_data.student_email} for review {review.id}: {email_result.message}"
+                )
+
+        except Exception as e:
+            logger.error(f"Error sending status email for review {review.id}: {str(e)}")

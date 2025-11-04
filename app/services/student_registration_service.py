@@ -10,7 +10,7 @@ from app.models.notice import Notice
 from app.models.registration import StudentRegistration
 from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.models.user import User, UserType
-from app.schemas.review_registration import ReviewDetailsForRegistration
+from app.schemas.student_registration import ReviewDetailsForRegistration
 from app.schemas.student_registration import (
     NoticeDetailsForRegistration,
     RegistrationForNoticeList,
