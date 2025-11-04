@@ -21,7 +21,7 @@ class AppealService:
         db: AsyncSession,
         requested_documents_data: Dict[str, Any],
         review_registration_id: int,
-        current_user: User
+        current_user: User,
     ) -> Dict[str, Any]:
         """
         Creates a new appeal for a specific review registration.
@@ -43,22 +43,22 @@ class AppealService:
         review = await db.get(
             ReviewRegistrationModel,
             review_registration_id,
-            options=[selectinload(ReviewRegistrationModel.student_registration)]
+            options=[selectinload(ReviewRegistrationModel.student_registration)],
         )
         if not review:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Review registration not found."
+                detail="Review registration not found.",
             )
 
         if review.social_worker_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You can only create appeals for reviews assigned to you."
+                detail="You can only create appeals for reviews assigned to you.",
             )
         db_appeal = Appeal(
             requested_documents=requested_documents_data,
-            review_registration_id=review_registration_id
+            review_registration_id=review_registration_id,
         )
         db.add(db_appeal)
         await db.commit()
@@ -69,13 +69,13 @@ class AppealService:
     async def get_appeal_by_id(db: AsyncSession, appeal_id: int) -> Optional[Appeal]:
         """Retrieves an appeal by its ID."""
         return await db.get(
-            Appeal,
-            appeal_id,
-            options=[selectinload(Appeal.review_registration)]
+            Appeal, appeal_id, options=[selectinload(Appeal.review_registration)]
         )
 
     @staticmethod
-    async def get_appeals_by_review_id(db: AsyncSession, review_registration_id: int) -> List[Dict[str, Any]]:
+    async def get_appeals_by_review_id(
+        db: AsyncSession, review_registration_id: int
+    ) -> List[Dict[str, Any]]:
         """Retrieves an appeal linked to a specific review registration ID."""
         result = await db.execute(
             select(Appeal)
@@ -87,10 +87,7 @@ class AppealService:
 
     @staticmethod
     async def update_appeal(
-        db: AsyncSession,
-        appeal_id: int,
-        appeal_data: AppealUpdate,
-        current_user: User
+        db: AsyncSession, appeal_id: int, appeal_data: AppealUpdate, current_user: User
     ) -> Optional[Appeal]:
         """
         Updates an existing appeal. Primarily for staff/coordinators maybe?
@@ -101,7 +98,9 @@ class AppealService:
             return None
 
         if not current_user.is_staff:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied.")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied."
+            )
 
         update_data = appeal_data.model_dump(exclude_unset=True)
         for key, value in update_data.items():
@@ -112,7 +111,9 @@ class AppealService:
         return db_appeal
 
     @staticmethod
-    async def delete_appeal(db: AsyncSession, appeal_id: int, current_user: User) -> bool:
+    async def delete_appeal(
+        db: AsyncSession, appeal_id: int, current_user: User
+    ) -> bool:
         """
         Deletes an appeal. Permissions needed (e.g., only coordinator?).
         """

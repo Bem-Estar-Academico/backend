@@ -7,7 +7,12 @@ from app.models.user import User
 from app.db.database import get_db
 from app.routers.auth import get_current_user
 from app.models.review import RegistrationStatus
-from app.schemas.review_registration import (ReviewRegistrationCreate, ReviewRegistrationResponse, ReviewRegistrationResponseWithDetails, ReviewRegistrationUpdate)
+from app.schemas.review_registration import (
+    ReviewRegistrationCreate,
+    ReviewRegistrationResponse,
+    ReviewRegistrationResponseWithDetails,
+    ReviewRegistrationUpdate,
+)
 from app.schemas.student_registration import (
     StudentRegistrationList,
     StudentRegistrationResponse,
@@ -61,11 +66,14 @@ async def create_student_registration(
     )
     print("Student registration created:", registration.id)
     random_social_worker = await UserService.get_random_social_worker(db)
-    print("Random social worker selected:", random_social_worker.id if random_social_worker else "None")
+    print(
+        "Random social worker selected:",
+        random_social_worker.id if random_social_worker else "None",
+    )
     if not random_social_worker:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Nenhum assistente social disponível no sistema para atribuir a avaliação."
+            detail="Nenhum assistente social disponível no sistema para atribuir a avaliação.",
         )
 
     print("Creating review registration...")
@@ -85,11 +93,13 @@ async def create_student_registration(
             db=db,
             social_worker=random_social_worker,
             student_registration_id=registration.id,
-            review_data=default_review_data
+            review_data=default_review_data,
         )
         print("Review registration created for registration:", registration.id)
     except Exception as e:
-        print(f"Alerta: A inscrição {registration.id} foi criada, mas a 'review' falhou: {e}")
+        print(
+            f"Alerta: A inscrição {registration.id} foi criada, mas a 'review' falhou: {e}"
+        )
 
     return StudentRegistrationResponse.model_validate(registration)
 
@@ -182,7 +192,9 @@ async def get_student_registration(
 )
 async def get_registrations_by_notice(
     notice_id: int,
-    status: Optional[RegistrationStatus] = Query(None, description="Filter registrations by status"),
+    status: Optional[RegistrationStatus] = Query(
+        None, description="Filter registrations by status"
+    ),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> RegistrationListResponse:
@@ -251,9 +263,10 @@ async def get_registrations_by_student(
             status_code=403, detail="Sem permissão para ver inscrições de outros alunos"
         )
 
-    registrations, total = (
-        await StudentRegistrationService.get_registrations_by_student(db, student_id)
-    )
+    (
+        registrations,
+        total,
+    ) = await StudentRegistrationService.get_registrations_by_student(db, student_id)
 
     registration_details = [
         StudentRegistrationWithDetails.from_model(reg) for reg in registrations
@@ -327,7 +340,10 @@ async def delete_student_registration(
     Returns:
         None
     """
-    await StudentRegistrationService.delete_registration(db, student_registration_id, current_user)
+    await StudentRegistrationService.delete_registration(
+        db, student_registration_id, current_user
+    )
+
 
 # ------------------- REVIEW REGISTRATION ------------------------
 
@@ -355,8 +371,10 @@ async def get_review_registration(
     Returns:
         ReviewRegistrationResponseWithDetails: The review for the student registration.
     """
-    registration = await ReviewRegistrationService.get_review_by_student_registration_id(
-        db, student_registration_id
+    registration = (
+        await ReviewRegistrationService.get_review_by_student_registration_id(
+            db, student_registration_id
+        )
     )
     if not registration:
         raise HTTPException(status_code=404, detail="Review not found")

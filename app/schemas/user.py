@@ -1,3 +1,15 @@
+from typing import Any, Optional
+from datetime import datetime
+from app.models.user import UserType
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    ValidationInfo,
+)
+
 """Module for defining Pydantic schemas for user-related data."""
 
 """
@@ -5,11 +17,6 @@ This module defines various Pydantic schemas used for validating and serializing
 user-related data throughout the application. It includes schemas for base user
 information, user creation, user updates, user responses, and authentication tokens.
 """
-
-from typing import Any, Optional
-from datetime import datetime
-from app.models.user import UserType
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, ValidationInfo
 
 
 class UserBase(BaseModel):
@@ -63,13 +70,15 @@ class UserCreate(UserBase):
         and not provided if the user_type is not STUDENT.
         """
         is_student = info.data.get("user_type") == UserType.STUDENT
-        
+
         if is_student and value is None:
             raise ValueError("CPF and registration number are required for students.")
-        
+
         if not is_student and value is not None:
-            raise ValueError("CPF and registration number should not be provided for staff members.")
-        
+            raise ValueError(
+                "CPF and registration number should not be provided for staff members."
+            )
+
         return value
 
     model_config = ConfigDict(
@@ -185,10 +194,12 @@ class TokenData(BaseModel):
 
     email: Optional[str] = None
 
+
 class TeamMemberResponse(BaseModel):
     """
     Schema específico para a resposta da rota /notices/{id}/team
     """
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int

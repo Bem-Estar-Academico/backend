@@ -102,7 +102,9 @@ async def login_user(
 
 
 @router.get("/me", response_model=UserSchema)
-async def get_current_user_info(current_user: User = Depends(get_current_user)) -> UserSchema:
+async def get_current_user_info(
+    current_user: User = Depends(get_current_user),
+) -> UserSchema:
     """
     Retrieves information about the currently authenticated user.
 
@@ -116,7 +118,9 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)) 
 
 
 @router.get("/verify-token")
-async def verify_token(current_user: User = Depends(get_current_user)) -> Dict[str, Any]:
+async def verify_token(
+    current_user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
     """
     Verifies the validity of the provided authentication token.
 

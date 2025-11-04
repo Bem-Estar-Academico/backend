@@ -27,7 +27,7 @@ app = FastAPI(
     description="BEA API",
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
 )
-logger.info(f"Starting BEA API v1.0.0")
+logger.info("Starting BEA API v1.0.0")
 logger.info(f"Environment: {settings.ENVIRONMENT}")
 
 app.add_middleware(

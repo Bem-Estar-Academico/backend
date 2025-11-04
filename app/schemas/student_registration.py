@@ -77,6 +77,7 @@ class StudentRegistrationUpdate(BaseModel):
                                            with answers (e.g., notes from a social worker).
         status (Optional[RegistrationStatus]): The new status for the registration review.
     """
+
     answer: Optional[Dict[str, Any]] = Field(
         None, description="Observações atualizadas ou respostas do estudante"
     )
@@ -225,5 +226,6 @@ class RegistrationListResponse(BaseModel):
     review_count: int
     appeal_count: int
     cancelled_count: int
+
 
 StudentRegistrationWithReviewResponse.model_rebuild()

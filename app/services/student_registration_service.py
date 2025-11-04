@@ -32,7 +32,11 @@ def _get_progress_from_status(status: RegistrationStatus) -> int:
         return 50
     if status == RegistrationStatus.APPEAL:
         return 75
-    if status in [RegistrationStatus.APPROVED, RegistrationStatus.REJECTED, RegistrationStatus.CANCELLED]:
+    if status in [
+        RegistrationStatus.APPROVED,
+        RegistrationStatus.REJECTED,
+        RegistrationStatus.CANCELLED,
+    ]:
         return 100
     return 0
 
@@ -75,7 +79,9 @@ class StudentRegistrationService:
 
         counts = {s.value: 0 for s in RegistrationStatus}
         for reg in registrations:
-            current_status = reg.review.status if reg.review else RegistrationStatus.PENDING
+            current_status = (
+                reg.review.status if reg.review else RegistrationStatus.PENDING
+            )
             counts[current_status.value] += 1
 
         response_registrations: List[RegistrationForNoticeList] = []
@@ -88,7 +94,9 @@ class StudentRegistrationService:
                 created_at=reg.student.created_at,
             )
 
-            current_status = reg.review.status if reg.review else RegistrationStatus.PENDING
+            current_status = (
+                reg.review.status if reg.review else RegistrationStatus.PENDING
+            )
             reviewer_data = None
             if reg.review and reg.review.social_worker:
                 reviewer_data = ReviewerResponse(
@@ -162,9 +170,8 @@ class StudentRegistrationService:
         now = datetime.now(timezone.utc)
         start_date = getattr(notice, "registration_start_date", None)
         end_date = getattr(notice, "registration_end_date", None)
-        if (
-            (start_date is not None and now < start_date)
-            or (end_date is not None and now > end_date)
+        if (start_date is not None and now < start_date) or (
+            end_date is not None and now > end_date
         ):
             raise HTTPException(
                 status_code=400, detail="Período de inscrições não está ativo"
@@ -196,8 +203,7 @@ class StudentRegistrationService:
 
     @staticmethod
     async def get_registration_by_id(
-        db: AsyncSession,
-        registration_id: int
+        db: AsyncSession, registration_id: int
     ) -> Optional[StudentRegistration]:
         """
         Retrieves a single student registration by its ID, eagerly loading student and notice details.
@@ -254,7 +260,9 @@ class StudentRegistrationService:
         )
 
         if status:
-            query = query.join(ReviewRegistrationModel).where(ReviewRegistrationModel.status == status)
+            query = query.join(ReviewRegistrationModel).where(
+                ReviewRegistrationModel.status == status
+            )
 
         count_query = (
             select(func.count())
@@ -263,7 +271,9 @@ class StudentRegistrationService:
         )
 
         if status:
-            count_query = count_query.join(ReviewRegistrationModel).where(ReviewRegistrationModel.status == status)
+            count_query = count_query.join(ReviewRegistrationModel).where(
+                ReviewRegistrationModel.status == status
+            )
 
         count_result = await db.execute(count_query)
         total = count_result.scalar_one()
@@ -352,7 +362,10 @@ class StudentRegistrationService:
                     status_code=403,
                     detail="Você só pode modificar suas próprias inscrições",
                 )
-            if registration_data.status and registration_data.status != RegistrationStatus.CANCELLED:
+            if (
+                registration_data.status
+                and registration_data.status != RegistrationStatus.CANCELLED
+            ):
                 raise HTTPException(
                     status_code=403,
                     detail="Estudantes só podem cancelar suas inscrições",

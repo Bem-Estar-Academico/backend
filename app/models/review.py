@@ -23,6 +23,7 @@ and student registrations, storing the review details and the calculated IVS.
 
 class RegistrationStatus(enum.Enum):
     """Enumeration for the possible statuses of a student's registration for a notice."""
+
     PENDING = "PENDING"  # Aguardando análise
     APPROVED = "APPROVED"  # Aprovada
     REJECTED = "REJECTED"  # Rejeitada

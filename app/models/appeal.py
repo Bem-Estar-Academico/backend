@@ -28,6 +28,7 @@ class Appeal(Base):
         updated_at (datetime): Timestamp of last update.
         review_registration (ReviewRegistrationModel): Relationship to the parent review.
     """
+
     __tablename__ = "appeals"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)

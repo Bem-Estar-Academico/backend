@@ -169,10 +169,8 @@ class ReviewRegistrationResponseWithDetails(ReviewRegistrationResponse):
                 review_model.student_registration
             ),
             appeals=[
-                AppealResponse.model_validate(appeal)
-                for appeal in review_model.appeals
+                AppealResponse.model_validate(appeal) for appeal in review_model.appeals
             ],
-       
         )
 
 
