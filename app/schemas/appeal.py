@@ -2,15 +2,15 @@
 
 from datetime import datetime
 from typing import Any, Dict, Optional
+from pydantic import BaseModel, ConfigDict, Field
 
-from pydantic import BaseModel, Field, ConfigDict
 
 class AppealBase(BaseModel):
     """Base schema for appeal data, containing the requested documents."""
     requested_documents: Dict[str, Any] = Field(
         ...,
         description="Dicionário detalhando documentos solicitados e justificativas.",
-        example={"rg_frente": "Reenvie a foto com melhor iluminação.", "comprovante_residencia": "Documento ilegível."}
+        examples=[{"rg_frente": "Reenvie a foto com melhor iluminação.", "comprovante_residencia": "Documento ilegível."}]
     )
 
 

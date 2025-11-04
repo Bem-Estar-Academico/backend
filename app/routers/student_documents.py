@@ -1,3 +1,4 @@
+from typing import Any, Dict
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -219,13 +220,11 @@ async def get_ocr_result(
     if not doc:
         raise HTTPException(status_code=404, detail="Documento não encontrado")
 
-    response = {
+    response: Dict[str, Any] = {
         "status": doc.ocr_status.value,
         "extracted_data": doc.ocr_results,
         "comparison": None,
     }
-
-    # If processing was successful, perform the comparison
     if doc.ocr_status == OCRStatus.SUCCESS and doc.ocr_results:
         student = doc.student_registration.student
         registration_answers = doc.student_registration.answer or {}
@@ -239,7 +238,7 @@ async def get_ocr_result(
                 "full_name": student.full_name,
                 "cpf": student.cpf,
             },
-            "form_data": {  # Assumes these keys exist in the registration form JSON
+            "form_data": {
                 "full_name": registration_answers.get("full_name"),
                 "cpf": registration_answers.get("cpf"),
             },

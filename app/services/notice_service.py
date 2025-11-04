@@ -500,12 +500,9 @@ class NoticeService:
         )
 
         result = await db.execute(q)
-        
         team_members_formatted: List[Dict[str, Any]] = []
         for row in result.mappings():
             member_data: Dict[str, Any] = dict(row)
-            
-            member_data["progress"] = random.randint(0, 100) # TO DO: logica do progresso
+            member_data["progress"] = random.randint(0, 100)  # TO DO: logica do progresso
             team_members_formatted.append(member_data)
-
         return team_members_formatted
