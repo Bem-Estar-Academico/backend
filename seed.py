@@ -1,7 +1,7 @@
 import asyncio
+import logging
 import random
 from datetime import datetime, timedelta, timezone
-import logging
 from typing import List
 
 from faker import Faker
@@ -11,9 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import AsyncSessionLocal as SessionLocal
 from app.models.notice import Notice
 from app.models.registration import StudentRegistration
+from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.models.user import User, UserType
 from app.schemas.notice import NoticeCreate
-from app.schemas.review_registration import ReviewRegistrationCreate, ReviewRegistrationUpdate
+from app.schemas.review_registration import (
+    ReviewRegistrationCreate,
+    ReviewRegistrationUpdate,
+)
 from app.schemas.student_registration import (
     StudentRegistrationCreate,
     StudentRegistrationUpdate,
@@ -22,7 +26,6 @@ from app.schemas.user import UserCreate
 from app.services.notice_service import NoticeService
 from app.services.review_registration_service import ReviewRegistrationService
 from app.services.user_service import UserService
-from app.models.review import RegistrationStatus, ReviewRegistrationModel
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -66,13 +69,11 @@ class DataProvider:
             days=random.randint(45, 75)
         )
         registration_start_date = datetime.now(timezone.utc) - timedelta(
-            days=random.randint(45,75)
+            days=random.randint(45, 75)
         )
         appeal_start_date = registration_end_date + timedelta(days=random.randint(1, 5))
         appeal_end_date = appeal_start_date + timedelta(days=random.randint(5, 10))
-        preliminary_result_date = appeal_end_date + timedelta(
-            days=random.randint(1, 3)
-        )
+        preliminary_result_date = appeal_end_date + timedelta(days=random.randint(1, 3))
         final_result_date = preliminary_result_date + timedelta(
             days=random.randint(5, 10)
         )
@@ -184,9 +185,7 @@ class Seeder:
                     )
                 self.social_workers.append(user)
             except Exception as e:
-                logging.error(
-                    f"Erro ao criar assistente social {user_data.email}: {e}"
-                )
+                logging.error(f"Erro ao criar assistente social {user_data.email}: {e}")
         if not self.social_workers:
             raise Exception(
                 "Nenhum assistente social disponível para semear avaliações."
@@ -208,7 +207,9 @@ class Seeder:
                     f"E-mail/CPF/Matrícula duplicado para: {user_data.email}. Ignorando."
                 )
             except Exception as e:
-                logging.error(f"Erro ao criar coordenador aleatório {user_data.email}: {e}")
+                logging.error(
+                    f"Erro ao criar coordenador aleatório {user_data.email}: {e}"
+                )
         logging.info(f"Total de coordenadores aleatórios criados: {created_count}")
 
     async def seed_students(self, num_students: int):
@@ -244,7 +245,27 @@ class Seeder:
                     self.db, notice_data, self.coordinator.id
                 )
                 notices.append(notice)
-                logging.info(f"  [{i+1:02d}/{num_notices}] {notice.title}")
+
+                num_social_workers_per_notice = random.randint(
+                    2, min(5, len(self.social_workers))
+                )
+                selected_social_workers = random.sample(
+                    self.social_workers, num_social_workers_per_notice
+                )
+
+                for social_worker in selected_social_workers:
+                    try:
+                        await NoticeService.add_team_member_to_notice(
+                            self.db, notice.id, social_worker.id
+                        )
+                    except Exception as e:
+                        logging.error(
+                            f"Erro ao adicionar assistente social {social_worker.id} ao edital {notice.id}: {e}"
+                        )
+
+                logging.info(
+                    f"  [{i+1:02d}/{num_notices}] {notice.title} - {num_social_workers_per_notice} assistentes sociais adicionados à equipe"
+                )
             except Exception as e:
                 logging.error(f"Erro ao criar edital: {e}")
         return notices
@@ -296,13 +317,13 @@ class Seeder:
                         f"Falha ao criar inscrição (student_id={student_id}, notice_id={notice.id}): {e}"
                     )
 
-            logging.info(f"  - Edital '{notice.title}': {len(registered_students)} inscrições criadas.")
+            logging.info(
+                f"  - Edital '{notice.title}': {len(registered_students)} inscrições criadas."
+            )
 
         logging.info(f"\nTotal de inscrições criadas: {total_registrations}")
 
-    async def _randomly_update_status(
-        self, review: ReviewRegistrationModel
-    ) -> str:
+    async def _randomly_update_status(self, review: ReviewRegistrationModel) -> str:
         if not self.coordinator:
             raise ValueError("Coordenador não foi definido.")
 
@@ -329,9 +350,7 @@ class Seeder:
             await ReviewRegistrationService.update_review(
                 self.db,
                 review_id=review.id,
-                review_data=ReviewRegistrationUpdate(
-                    status=new_status
-                ),
+                review_data=ReviewRegistrationUpdate(status=new_status),
                 current_user=self.coordinator,
             )
             return new_status.name
@@ -343,33 +362,43 @@ class Seeder:
         registrations = result.scalars().all()
         review_count = 0
         status_counts: dict[str, int] = {}
+
         for reg in registrations:
             try:
-                existing_review = (
-                    await ReviewRegistrationService.get_review_by_student_registration_id(
-                        self.db, reg.id
-                    )
+                existing_review = await ReviewRegistrationService.get_review_by_student_registration_id(
+                    self.db, reg.id
                 )
 
                 if existing_review:
                     continue
-                
-                
-                # review_data = {
-                #     "review": {"notes": self.provider.fake.paragraph()},
-                #     "ivs": round(random.uniform(65, 175), 2),
-                #     "approved_food_allowance": random.choice([True, False]),
-                #     "approved_housing_allowance": random.choice([True, False]),
-                #     "approved_daycare_allowance": random.choice([True, False]),
-                #     "approved_graduation_scholarship": random.choice([True, False]),
-                # }
+
+                from app.models.notice import NoticeTeam
+
+                social_workers_in_team_result = await self.db.execute(
+                    select(User)
+                    .join(NoticeTeam, NoticeTeam.user_id == User.id)
+                    .where(NoticeTeam.notice_id == reg.notice_id)
+                    .where(User.user_type == UserType.SOCIAL_WORKER)
+                )
+                social_workers_in_team = list(
+                    social_workers_in_team_result.scalars().all()
+                )
+
+                if not social_workers_in_team:
+                    logging.warning(
+                        f"Nenhum assistente social encontrado na equipe do edital {reg.notice_id} para inscrição {reg.id}"
+                    )
+                    continue
+
                 default_review_data = ReviewRegistrationCreate(
                     review={"initial_notes": "Avaliação auto-criada pelo sistema."},
                     ivs=0.0,
                     ocr_analisys={"initial_ocr": "OCR auto-criada pelo sistema."},
                     status=RegistrationStatus.PENDING,
                 )
-                social_worker = random.choice(self.social_workers)
+
+                social_worker = random.choice(social_workers_in_team)
+
                 review = await ReviewRegistrationService.create_review(
                     db=self.db,
                     social_worker=social_worker,
@@ -377,9 +406,7 @@ class Seeder:
                     review_data=default_review_data,
                 )
                 final_status = await self._randomly_update_status(review)
-                status_counts[final_status] = (
-                    status_counts.get(final_status, 0) + 1
-                )
+                status_counts[final_status] = status_counts.get(final_status, 0) + 1
                 review_count += 1
             except Exception as e:
                 logging.error(
