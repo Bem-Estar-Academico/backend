@@ -25,6 +25,10 @@ class EmailService:
         self.smtp_port = int(os.getenv("SMTP_PORT", "587"))
         self.smtp_username = os.getenv("SMTP_USERNAME")
         self.smtp_password = os.getenv("SMTP_PASSWORD")
+        if not self.smtp_username:
+            raise ValueError("Missing required SMTP_USERNAME environment variable.")
+        if not self.smtp_password:
+            raise ValueError("Missing required SMTP_PASSWORD environment variable.")
         self.from_email = os.getenv("FROM_EMAIL", self.smtp_username)
         self.frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
