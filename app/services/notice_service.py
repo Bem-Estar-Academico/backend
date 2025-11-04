@@ -477,7 +477,7 @@ class NoticeService:
             List[Dict[str, Any]]: A list of dictionaries, each formatted to match
                                   the full User schema + 'last_review'.
         """
-        from sqlalchemy import case, func
+        from sqlalchemy import func
 
         sq = (
             select(ReviewRegistrationModel.updated_at)
