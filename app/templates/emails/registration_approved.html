@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscrição Aprovada</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .status-approved {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #28a745;
+            margin: 20px 0;
+        }
+        .ivs-score {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .ivs-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .button:hover {
+            background-color: #218838;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        .center {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 Parabéns, {{ student_name }}!</h1>
+        </div>
+
+        <div class="status-approved">
+            <h2>✅ Sua inscrição foi APROVADA!</h2>
+            <p><strong>Edital:</strong> {{ notice_title }}</p>
+        </div>
+
+        <p>É com grande satisfação que informamos que sua inscrição no edital "<strong>{{ notice_title }}</strong>" foi aprovada!</p>
+
+        {% if ivs_score %}
+        <div class="ivs-score">
+            <p><strong>Seu IVS (Índice de Vulnerabilidade Social) calculado:</strong></p>
+            <div class="ivs-number">{{ "%.2f"|format(ivs_score) }}</div>
+            <p><small>Este índice foi calculado com base nas informações fornecidas em sua inscrição.</small></p>
+        </div>
+        {% endif %}
+
+        <p>Você receberá em breve mais informações sobre os próximos passos e os benefícios aos quais terá direito.</p>
+
+        <div class="center">
+            <a href="{{ home_url }}" class="button">Acessar o Sistema</a>
+        </div>
+
+        <div class="footer">
+            <p>Este é um email automático. Por favor, não responda esta mensagem.</p>
+            <p>Sistema de Bem-Estar Acadêmico (BEA)</p>
+        </div>
+    </div>
+</body>
+</html>

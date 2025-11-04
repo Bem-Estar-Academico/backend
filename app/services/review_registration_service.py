@@ -10,16 +10,18 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.logging_config import get_logger
 from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.models.user import User
+from app.schemas.email_notification import EmailNotificationData
 from app.schemas.review_registration import (
     ReviewRegistrationCreate,
     ReviewRegistrationUpdate,
 )
 from app.schemas.user import UserType
 from app.services.appeal_service import AppealService
+from app.services.email_service import email_service
 from app.services.student_registration_service import StudentRegistrationService
-from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -68,7 +70,9 @@ class ReviewRegistrationService:
         if not (
             registration.notice.registration_start_date
             and registration.notice.registration_end_date
-            and registration.notice.registration_start_date <= now <= registration.notice.registration_end_date
+            and registration.notice.registration_start_date
+            <= now
+            <= registration.notice.registration_end_date
         ):
             raise HTTPException(
                 status_code=400,
@@ -86,9 +90,11 @@ class ReviewRegistrationService:
                 detail="A review for this registration already exists.",
             )
 
-        db_review = ReviewRegistrationModel(**review_data.model_dump(),
-                                            social_worker_id=social_worker.id,
-                                            student_registration_id=student_registration_id)
+        db_review = ReviewRegistrationModel(
+            **review_data.model_dump(),
+            social_worker_id=social_worker.id,
+            student_registration_id=student_registration_id,
+        )
         db.add(db_review)
         await db.commit()
         await db.refresh(db_review)
@@ -141,7 +147,8 @@ class ReviewRegistrationService:
                 selectinload(ReviewRegistrationModel.appeals),
             )
             .where(
-                ReviewRegistrationModel.student_registration_id == student_registration_id
+                ReviewRegistrationModel.student_registration_id
+                == student_registration_id
             )
         )
         result = await db.execute(query)
@@ -173,7 +180,7 @@ class ReviewRegistrationService:
             )
 
         update_data = review_data.model_dump(exclude_unset=True)
-        appeal_data = update_data.pop('appeal', None)
+        appeal_data = update_data.pop("appeal", None)
         calculated_ivs: Optional[float] = None
         new_status = review_data.status
 
@@ -181,18 +188,18 @@ class ReviewRegistrationService:
             if new_status in [RegistrationStatus.APPROVED, RegistrationStatus.REJECTED]:
                 if not appeal_data:
                     calculated_ivs = review_data.calculate_ivs()
-                    update_data.pop('ivs', None)
+                    update_data.pop("ivs", None)
                 else:
                     raise HTTPException(
                         status_code=400,
-                        detail="The 'appeal' field must not be provided when setting status to APPROVED or REJECTED."
+                        detail="The 'appeal' field must not be provided when setting status to APPROVED or REJECTED.",
                     )
 
             elif new_status == RegistrationStatus.APPEAL:
                 if not appeal_data:
                     raise HTTPException(
                         status_code=400,
-                        detail="The 'appeal' field is required when setting status to APPEAL."
+                        detail="The 'appeal' field is required when setting status to APPEAL.",
                     )
                 else:
                     try:
@@ -200,18 +207,23 @@ class ReviewRegistrationService:
                             db=db,
                             requested_documents_data=appeal_data,
                             review_registration_id=review_id,
-                            current_user=current_user
+                            current_user=current_user,
                         )
                         if not created_appeal:
                             raise HTTPException(
-                                status_code=500, detail="Failed to save appeal data.")
+                                status_code=500, detail="Failed to save appeal data."
+                            )
                     except HTTPException as http_exc:
                         raise http_exc
                     except Exception as e:
                         logger.error(
-                            "Erro inesperado ao criar apelo para review %s: %s", review_id, e)
+                            "Erro inesperado ao criar apelo para review %s: %s",
+                            review_id,
+                            e,
+                        )
                         raise HTTPException(
-                            status_code=500, detail="Internal error saving appeal")
+                            status_code=500, detail="Internal error saving appeal"
+                        )
 
         for field, value in update_data.items():
             setattr(review, field, value)
@@ -224,14 +236,48 @@ class ReviewRegistrationService:
         try:
             await db.commit()
             await db.refresh(review)
+
+            if new_status and new_status in [
+                RegistrationStatus.APPROVED,
+                RegistrationStatus.REJECTED,
+                RegistrationStatus.APPEAL,
+            ]:
+                try:
+                    await ReviewRegistrationService._send_status_email(
+                        review, new_status, appeal_data
+                    )
+                    # Track successful notification
+                    if hasattr(review, "email_notification_status"):
+                        review.email_notification_status = "SENT"
+                except Exception as email_exc:
+                    logger.error(
+                        "Failed to send status email for review %s: %s", review_id, email_exc
+                    )
+                    # Track failed notification for retry/manual review
+                    if hasattr(review, "email_notification_status"):
+                        review.email_notification_status = "FAILED"
+                    # Optionally, you could re-raise or just log and continue
+                # Commit notification status change
+                try:
+                    await db.commit()
+                    await db.refresh(review)
+                except Exception as commit_exc:
+                    logger.error(
+                        "Failed to commit email notification status for review %s: %s", review_id, commit_exc
+                    )
+
             return review
         except Exception as e:
             await db.rollback()
-            logger.error("Erro durante o commit ao atualizar review %s: %s", review_id, e)
+            logger.error(
+                "Erro durante o commit ao atualizar review %s: %s", review_id, e
+            )
             raise HTTPException(status_code=500, detail="Internal server error")
 
     @staticmethod
-    async def delete_review(db: AsyncSession, review_id: int, current_user: User) -> bool:
+    async def delete_review(
+        db: AsyncSession, review_id: int, current_user: User
+    ) -> bool:
         """
         Deletes a review.
 
@@ -258,3 +304,86 @@ class ReviewRegistrationService:
         await db.delete(review)
         await db.commit()
         return True
+
+    @staticmethod
+    def _prepare_email_notification_data(
+        review: ReviewRegistrationModel,
+        status: RegistrationStatus,
+        appeal_data: Optional[dict] = None,
+    ) -> EmailNotificationData:
+        """
+        Prepare email notification data from review model and appeal data.
+
+        Args:
+            review: The review registration model
+            status: New status of the registration
+            appeal_data: Appeal data if status is APPEAL
+
+        Returns:
+            EmailNotificationData: Structured data for email notification
+        """
+        student = review.student_registration.student
+        notice = review.student_registration.notice
+
+        requested_documents = None
+        if status == RegistrationStatus.APPEAL and appeal_data:
+            requested_documents = []
+
+            if "requested_documents" in appeal_data:
+                for doc_key, doc_value in appeal_data["requested_documents"].items():
+
+                    if isinstance(doc_value, str):
+                        requested_documents.append(f"{doc_key}: {doc_value}")
+
+                    else:
+                        requested_documents.append(doc_key)
+
+        return EmailNotificationData(
+            student_email=student.email,
+            student_name=student.full_name,
+            notice_title=notice.title,
+            status=status,
+            ivs_score=review.ivs if status == RegistrationStatus.APPROVED else None,
+            requested_documents=requested_documents,
+        )
+
+    @staticmethod
+    async def _send_status_email(
+        review: ReviewRegistrationModel,
+        status: RegistrationStatus,
+        appeal_data: Optional[dict] = None,
+    ):
+        """
+        Send email notification to student about registration status update.
+
+        Args:
+            review: The review registration model
+            status: New status of the registration
+            appeal_data: Appeal data if status is APPEAL
+        """
+        try:
+            email_data = ReviewRegistrationService._prepare_email_notification_data(
+                review, status, appeal_data
+            )
+
+            email_result = await email_service.send_registration_status_email(
+                student_email=email_data.student_email,
+                student_name=email_data.student_name,
+                notice_title=email_data.notice_title,
+                status=email_data.status,
+                ivs_score=email_data.ivs_score,
+                requested_documents=email_data.requested_documents,
+            )
+
+            if email_result.success:
+                logger.info(
+                    f"Status email sent to {email_data.student_email} for review {review.id}"
+                )
+
+            else:
+                logger.warning(
+                    f"Failed to send status email to {email_data.student_email} for review {review.id}: {email_result.message}"
+                )
+
+        except Exception as e:
+            logger.error(f"Error sending status email for review {review.id}: {str(e)}")
