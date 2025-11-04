@@ -3,11 +3,12 @@ Email service for sending notifications to students about registration status up
 """
 
 import os
-from email.mime.multipart import MimeMultipart
-from email.mime.text import MimeText
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from typing import List, Optional
 
 import aiosmtplib
+from dotenv import load_dotenv
 from jinja2 import Environment, FileSystemLoader
 
 from app.core.logging_config import get_logger
@@ -15,6 +16,7 @@ from app.models.review import RegistrationStatus
 from app.schemas.email_notification import EmailSendResult
 
 logger = get_logger(__name__)
+load_dotenv()
 
 
 class EmailService:
@@ -62,16 +64,15 @@ class EmailService:
             EmailSendResult: Result schema containing success status and message
         """
         try:
-            # Choose template based on status
             if status == RegistrationStatus.APPROVED:
                 template_name = "registration_approved.html"
-                subject = f"✅ Inscrição Aprovada - {notice_title}"
+                subject = f" Inscrição Aprovada - {notice_title}"
             elif status == RegistrationStatus.REJECTED:
                 template_name = "registration_rejected.html"
-                subject = f"❌ Inscrição Rejeitada - {notice_title}"
+                subject = f" Inscrição Rejeitada - {notice_title}"
             elif status == RegistrationStatus.APPEAL:
                 template_name = "registration_appeal.html"
-                subject = f"⚠️ Documentos Solicitados - {notice_title}"
+                subject = f" Documentos Solicitados - {notice_title}"
             else:
                 logger.warning(f"Unknown status for email: {status}")
                 return EmailSendResult(
@@ -89,12 +90,12 @@ class EmailService:
                 home_url=f"{self.frontend_url}/",
             )
 
-            message = MimeMultipart("alternative")
+            message = MIMEMultipart("alternative")
             message["Subject"] = subject
             message["From"] = self.from_email
             message["To"] = student_email
 
-            html_part = MimeText(html_content, "html", "utf-8")
+            html_part = MIMEText(html_content, "html", "utf-8")
             message.attach(html_part)
 
             await aiosmtplib.send(
