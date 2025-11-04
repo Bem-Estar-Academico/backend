@@ -242,9 +242,29 @@ class ReviewRegistrationService:
                 RegistrationStatus.REJECTED,
                 RegistrationStatus.APPEAL,
             ]:
-                await ReviewRegistrationService._send_status_email(
-                    review, new_status, appeal_data
-                )
+                try:
+                    await ReviewRegistrationService._send_status_email(
+                        review, new_status, appeal_data
+                    )
+                    # Track successful notification
+                    if hasattr(review, "email_notification_status"):
+                        review.email_notification_status = "SENT"
+                except Exception as email_exc:
+                    logger.error(
+                        "Failed to send status email for review %s: %s", review_id, email_exc
+                    )
+                    # Track failed notification for retry/manual review
+                    if hasattr(review, "email_notification_status"):
+                        review.email_notification_status = "FAILED"
+                    # Optionally, you could re-raise or just log and continue
+                # Commit notification status change
+                try:
+                    await db.commit()
+                    await db.refresh(review)
+                except Exception as commit_exc:
+                    logger.error(
+                        "Failed to commit email notification status for review %s: %s", review_id, commit_exc
+                    )
 
             return review
         except Exception as e:
