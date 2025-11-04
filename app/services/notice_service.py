@@ -123,9 +123,11 @@ class NoticeService:
         if notice_data.team_members:
             # Remove the creator's ID from the list to avoid adding them twice
             team_members_to_add = [id for id in notice_data.team_members if id != created_by_user_id]
+            # Validate all team member IDs before processing
+            invalid_ids = [id for id in team_members_to_add if id <= 0]
+            if invalid_ids:
+                raise ValueError(f"Invalid user IDs: {invalid_ids}")
             for team_member_id in team_members_to_add:
-                if team_member_id <= 0:
-                    raise ValueError(f"Invalid user ID: {team_member_id}")
                 db_additional_member = NoticeTeam(
                     notice_id=db_notice.id,
                     user_id=team_member_id,
