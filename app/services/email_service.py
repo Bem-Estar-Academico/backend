@@ -3,8 +3,8 @@ Email service for sending notifications to students about registration status up
 """
 
 import os
-from email.mime.multipart import MimeMultipart
-from email.mime.text import MimeText
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from typing import List, Optional
 
 import aiosmtplib
@@ -89,12 +89,12 @@ class EmailService:
                 home_url=f"{self.frontend_url}/",
             )
 
-            message = MimeMultipart("alternative")
+            message = MIMEMultipart("alternative")
             message["Subject"] = subject
             message["From"] = self.from_email
             message["To"] = student_email
 
-            html_part = MimeText(html_content, "html", "utf-8")
+            html_part = MIMEText(html_content, "html", "utf-8")
             message.attach(html_part)
 
             await aiosmtplib.send(
