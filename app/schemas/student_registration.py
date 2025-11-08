@@ -1,13 +1,10 @@
 """Schemas for student registration."""
 
-from datetime import datetime
 import random
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.user import UserInfo
-from app.schemas.notice import NoticeInfo
 from app.models.registration import StudentRegistration
 from app.models.review import RegistrationStatus
 
@@ -77,6 +74,7 @@ class StudentRegistrationUpdate(BaseModel):
                                            with answers (e.g., notes from a social worker).
         status (Optional[RegistrationStatus]): The new status for the registration review.
     """
+
     answer: Optional[Dict[str, Any]] = Field(
         None, description="Observações atualizadas ou respostas do estudante"
     )

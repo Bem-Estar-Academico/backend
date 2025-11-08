@@ -40,7 +40,7 @@ class StudentRegistration(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     student_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     notice_id: Mapped[int] = mapped_column(ForeignKey("notices.id"), nullable=False)
-    
+
     answer: Mapped[Optional[Dict[str, Any]]] = mapped_column(
         JSON,
         nullable=True,

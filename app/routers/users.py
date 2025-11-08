@@ -43,7 +43,5 @@ async def list_users(
     Returns:
         List[UserSchema]: A list of user objects.
     """
-    users = await UserService.get_users(
-        db, skip=skip, limit=limit, user_type=user_type
-    )
+    users = await UserService.get_users(db, skip=skip, limit=limit, user_type=user_type)
     return [UserSchema.model_validate(u, from_attributes=True) for u in users]

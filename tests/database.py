@@ -1,5 +1,6 @@
 """Test database configuration."""
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
 from app.core.config import settings
 
 if not settings.DATABASE_URL:

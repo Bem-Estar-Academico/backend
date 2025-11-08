@@ -2,8 +2,8 @@
 User service layer for business logic and database operations.
 """
 
-from datetime import datetime, timezone
 import random
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from sqlalchemy import select
@@ -76,24 +76,24 @@ class UserService:
 
         result = await db.execute(query)
         return list(result.scalars().all())
-    
+
     @staticmethod
     async def get_random_social_worker(db: AsyncSession) -> Optional[User]:
         """
         Fetches all social workers and returns one at random.
-        
+
         This function may change in the future to use a different selection algorithm.
         """
-        
+
         social_workers = await UserService.get_users(
             db, user_type=UserType.SOCIAL_WORKER, limit=1000
         )
-        
+
         if social_workers:
             return random.choice(social_workers)
 
         return None
-    
+
     @staticmethod
     async def create_user(db: AsyncSession, user_data: UserCreate) -> User:
         """
@@ -186,13 +186,21 @@ class UserService:
         if is_student:
             if update_data.get("cpf") is None and user.cpf is None:
                 raise ValueError("CPF is required for students.")
-            if update_data.get("registration_number") is None and user.registration_number is None:
+            if (
+                update_data.get("registration_number") is None
+                and user.registration_number is None
+            ):
                 raise ValueError("Registration number is required for students.")
         else:
             if "cpf" in update_data and update_data["cpf"] is not None:
                 raise ValueError("CPF should not be provided for staff members.")
-            if "registration_number" in update_data and update_data["registration_number"] is not None:
-                raise ValueError("Registration number should not be provided for staff members.")
+            if (
+                "registration_number" in update_data
+                and update_data["registration_number"] is not None
+            ):
+                raise ValueError(
+                    "Registration number should not be provided for staff members."
+                )
 
         for field, value in update_data.items():
             setattr(user, field, value)
