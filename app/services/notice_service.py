@@ -452,6 +452,7 @@ class NoticeService:
     async def get_document_download_url(
         db: AsyncSession, document_id: int, expiration: int = 3600
     ) -> Optional[str]:
+        # First, get the document
         """
         Generates a temporary, presigned URL for direct download of a document from S3.
 

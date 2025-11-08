@@ -251,7 +251,9 @@ class ReviewRegistrationService:
                         review.email_notification_status = "SENT"
                 except Exception as email_exc:
                     logger.error(
-                        "Failed to send status email for review %s: %s", review_id, email_exc
+                        "Failed to send status email for review %s: %s",
+                        review_id,
+                        email_exc,
                     )
                     # Track failed notification for retry/manual review
                     if hasattr(review, "email_notification_status"):
@@ -263,7 +265,9 @@ class ReviewRegistrationService:
                     await db.refresh(review)
                 except Exception as commit_exc:
                     logger.error(
-                        "Failed to commit email notification status for review %s: %s", review_id, commit_exc
+                        "Failed to commit email notification status for review %s: %s",
+                        review_id,
+                        commit_exc,
                     )
 
             return review
@@ -331,7 +335,6 @@ class ReviewRegistrationService:
 
             if "requested_documents" in appeal_data:
                 for doc_key, doc_value in appeal_data["requested_documents"].items():
-
                     if isinstance(doc_value, str):
                         requested_documents.append(f"{doc_key}: {doc_value}")
 
