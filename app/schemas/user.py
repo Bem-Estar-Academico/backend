@@ -1,3 +1,15 @@
+from typing import Any, Optional
+from datetime import datetime
+from app.models.user import UserType
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    ValidationInfo,
+)
+
 """Module for defining Pydantic schemas for user-related data."""
 
 """
@@ -5,21 +17,6 @@ This module defines various Pydantic schemas used for validating and serializing
 user-related data throughout the application. It includes schemas for base user
 information, user creation, user updates, user responses, and authentication tokens.
 """
-
-from datetime import datetime
-from typing import Any, Optional
-
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    EmailStr,
-    Field,
-    ValidationInfo,
-    field_validator,
-)
-
-from app.models.user import UserType
-
 
 class UserBase(BaseModel):
     """

@@ -5,8 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
 from app.models.review import RegistrationStatus
-from app.models.user import User
-from app.routers.auth import get_current_user
 from app.schemas.review_registration import (
     ReviewRegistrationCreate,
     ReviewRegistrationResponse,

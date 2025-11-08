@@ -2,9 +2,16 @@ import enum
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from sqlalchemy import JSON, Boolean, DateTime
-from sqlalchemy import Enum as SQLAlchemyEnum
-from sqlalchemy import ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    Enum as SQLAlchemyEnum,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql.functions import now
 

@@ -8,6 +8,7 @@ from email.mime.text import MIMEText
 from typing import List, Optional
 
 import aiosmtplib
+from dotenv import load_dotenv
 from jinja2 import Environment, FileSystemLoader
 
 from app.core.logging_config import get_logger
@@ -15,6 +16,7 @@ from app.models.review import RegistrationStatus
 from app.schemas.email_notification import EmailSendResult
 
 logger = get_logger(__name__)
+load_dotenv()
 
 
 class EmailService:
@@ -62,16 +64,15 @@ class EmailService:
             EmailSendResult: Result schema containing success status and message
         """
         try:
-            # Choose template based on status
             if status == RegistrationStatus.APPROVED:
                 template_name = "registration_approved.html"
-                subject = f"✅ Inscrição Aprovada - {notice_title}"
+                subject = f" Inscrição Aprovada - {notice_title}"
             elif status == RegistrationStatus.REJECTED:
                 template_name = "registration_rejected.html"
-                subject = f"❌ Inscrição Rejeitada - {notice_title}"
+                subject = f" Inscrição Rejeitada - {notice_title}"
             elif status == RegistrationStatus.APPEAL:
                 template_name = "registration_appeal.html"
-                subject = f"⚠️ Documentos Solicitados - {notice_title}"
+                subject = f" Documentos Solicitados - {notice_title}"
             else:
                 logger.warning(f"Unknown status for email: {status}")
                 return EmailSendResult(

@@ -20,7 +20,6 @@ from app.schemas.review_registration import (
 )
 from app.schemas.student_registration import (
     StudentRegistrationCreate,
-    StudentRegistrationUpdate,
 )
 from app.schemas.student_registration import StudentRegistrationCreate
 from app.schemas.user import UserCreate
@@ -178,11 +177,11 @@ class Seeder:
                 if not user:
                     user = await UserService.create_user(self.db, user_data)
                     logging.info(
-                        f"  [{i+1:02d}/{num_social_workers}] {user.full_name} criado."
+                        f"  [{i + 1:02d}/{num_social_workers}] {user.full_name} criado."
                     )
                 else:
                     logging.info(
-                        f"  [{i+1:02d}/{num_social_workers}] {user.full_name} já existe."
+                        f"  [{i + 1:02d}/{num_social_workers}] {user.full_name} já existe."
                     )
                 self.social_workers.append(user)
             except Exception as e:
@@ -201,7 +200,7 @@ class Seeder:
                 user = await UserService.create_user(self.db, user_data)
                 created_count += 1
                 logging.info(
-                    f"  [{i+1:02d}/{num_coordinators}] Coordenador aleatório criado: {user.full_name}"
+                    f"  [{i + 1:02d}/{num_coordinators}] Coordenador aleatório criado: {user.full_name}"
                 )
             except ValueError:
                 logging.warning(
@@ -223,7 +222,7 @@ class Seeder:
                 self.student_ids.append(user.id)
                 created_count += 1
                 logging.info(
-                    f"  [{i+1:02d}/{num_students}] {user.full_name:<30} | {user_data.registration_number}"
+                    f"  [{i + 1:02d}/{num_students}] {user.full_name:<30} | {user_data.registration_number}"
                 )
             except ValueError:
                 logging.warning(
@@ -265,7 +264,7 @@ class Seeder:
                         )
 
                 logging.info(
-                    f"  [{i+1:02d}/{num_notices}] {notice.title} - {num_social_workers_per_notice} assistentes sociais adicionados à equipe"
+                    f"  [{i + 1:02d}/{num_notices}] {notice.title} - {num_social_workers_per_notice} assistentes sociais adicionados à equipe"
                 )
             except Exception as e:
                 logging.error(f"Erro ao criar edital: {e}")
