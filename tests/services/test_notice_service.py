@@ -183,13 +183,12 @@ async def test_create_notice_with_team_members(
         notice = await NoticeService.create_notice(
             mocked_db_session, mock_notice_create_data, mock_coordinator_user.id
         )
-        assert (
-            mocked_db_session.add.call_count == 3
-        )
+        assert mocked_db_session.add.call_count == 3
         mocked_db_session.flush.assert_called_once()
         mocked_db_session.commit.assert_called_once()
         mocked_db_session.refresh.assert_called_once()
         assert notice.title == mock_notice_create_data.title
+
 
 @pytest.mark.asyncio
 async def test_update_notice_success(
@@ -474,6 +473,12 @@ async def test_get_team_for_notice(
     mock_notice: MagicMock,
     mock_coordinator_user: MagicMock,
 ):
+    total_registrations_mock = MagicMock()
+    total_registrations_mock.scalar_one.return_value = 10
+
+    final_status_mock = MagicMock()
+    final_status_mock.scalar_one.return_value = 5
+
     mock_row: Dict[str, Any] = {
         "id": mock_coordinator_user.id,
         "email": mock_coordinator_user.email,
@@ -483,7 +488,15 @@ async def test_get_team_for_notice(
         "last_review": datetime.now(timezone.utc),
     }
 
-    mocked_db_session.execute.return_value.mappings.return_value = [mock_row]
+    team_members_mock = MagicMock()
+    team_members_mock.mappings.return_value = [mock_row]
+
+    mocked_db_session.execute.side_effect = [
+        total_registrations_mock,
+        final_status_mock,
+        team_members_mock,
+    ]
+
     team_members = await NoticeService.get_team_for_notice(
         mocked_db_session, mock_notice.id
     )
