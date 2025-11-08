@@ -3,8 +3,8 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional, Union
 
-from jose import JWTError, jwt
 import bcrypt
+from jose import JWTError, jwt
 
 from app.core.config import settings
 

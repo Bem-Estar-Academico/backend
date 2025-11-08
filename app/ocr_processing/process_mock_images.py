@@ -1,8 +1,10 @@
-from pathlib import Path
 import json
-from typing import Any, Dict, Union, List, cast
+from pathlib import Path
+from typing import Any, Dict, List, Union, cast
+
 from pdf2image import convert_from_path  # type: ignore
 from PIL import Image
+
 from . import ocr
 
 OCRResult = Dict[str, Union[str, Dict[str, Any]]]

@@ -18,7 +18,6 @@ user-related data throughout the application. It includes schemas for base user
 information, user creation, user updates, user responses, and authentication tokens.
 """
 
-
 class UserBase(BaseModel):
     """
     Base schema for user data.

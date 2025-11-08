@@ -53,10 +53,13 @@ async def list_notices(
         Union[Sequence[NoticeSchema], List[NoticeForStudent]]: A list of notice objects.
     """
     if current_user.user_type == UserType.STUDENT:
-        notices_with_status = await NoticeService.get_notices_for_student(
-            db, student_id=current_user.id, skip=skip, limit=limit
-        )
-        return [NoticeForStudent(**notice) for notice in notices_with_status]
+        try:
+            notices_with_status = await NoticeService.get_notices_for_student(
+                db, student_id=current_user.id, skip=skip, limit=limit
+            )
+            return [NoticeForStudent(**notice) for notice in notices_with_status]
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     notices = await NoticeService.get_notices(db, skip=skip, limit=limit, year=year)
     return notices
@@ -141,8 +144,11 @@ async def create_notice(
     Returns:
         NoticeSchema: The newly created notice object.
     """
-    notice = await NoticeService.create_notice(db, notice_data, current_user.id)
-    return notice
+    try:
+        notice = await NoticeService.create_notice(db, notice_data, current_user.id)
+        return notice
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.put("/{notice_id}", response_model=NoticeSchema)
@@ -249,14 +255,16 @@ async def add_team_member_to_notice(
             status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
         )
 
-    team_member = await NoticeService.add_team_member_to_notice(db, notice_id, user_id)
-    if not team_member:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User is already in the team or user not found",
-        )
-
-    return team_member
+    try:
+        team_member = await NoticeService.add_team_member_to_notice(db, notice_id, user_id)
+        if not team_member:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User is already in the team or user not found",
+            )
+        return team_member
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.post("/{notice_id}/documents", response_model=DocumentWithUrl)

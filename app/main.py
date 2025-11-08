@@ -1,4 +1,6 @@
 """Main FastAPI application."""
+from dotenv import load_dotenv
+load_dotenv()
 
 import logging
 
@@ -15,6 +17,7 @@ from app.routers.notices import router as notices_router
 from app.routers.student_documents import router as student_documents_router
 from app.routers.student_registrations import router as student_registrations_router
 from app.routers.users import router as users_router
+
 
 # Setup logging first
 setup_logging()
@@ -68,3 +71,8 @@ async def root():
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy"}
+
+
+# Rebuild Pydantic models to resolve forward references
+ReviewRegistrationResponseWithDetails.model_rebuild()
+StudentRegistrationWithReviewResponse.model_rebuild()

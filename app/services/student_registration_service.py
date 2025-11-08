@@ -1,28 +1,27 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import HTTPException
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload, contains_eager
+from sqlalchemy.orm import contains_eager, selectinload
 
 from app.models.notice import Notice
 from app.models.registration import StudentRegistration
+from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.models.user import User, UserType
 from app.schemas.student_registration import ReviewDetailsForRegistration
 from app.schemas.student_registration import (
     NoticeDetailsForRegistration,
+    RegistrationForNoticeList,
+    RegistrationListResponse,
+    ReviewerResponse,
+    ReviewForRegistrationList,
+    StudentForRegistrationList,
     StudentRegistrationBase,
     StudentRegistrationUpdate,
     StudentRegistrationWithReviewResponse,
-    RegistrationListResponse,
-    RegistrationForNoticeList,
-    StudentForRegistrationList,
-    ReviewForRegistrationList,
-    ReviewerResponse,
 )
-
-from app.models.review import RegistrationStatus, ReviewRegistrationModel
 
 
 def _get_progress_from_status(status: RegistrationStatus) -> int:
@@ -505,7 +504,19 @@ class StudentRegistrationService:
             if reg.review:
                 expires_at = None
                 if reg.notice.registration_end_date:
-                    expires_at = reg.notice.registration_end_date + timedelta(days=730)
+                    # Calculate expires_at by adding two years, handling leap years correctly
+                    # by adjusting the year directly.
+                    # If the original date is Feb 29th and the target year is not a leap year,
+                    # it will become Feb 28th.
+                    try:
+                        expires_at = reg.notice.registration_end_date.replace(
+                            year=reg.notice.registration_end_date.year + 2
+                        )
+                    except ValueError:
+                        # Handle the case where it's Feb 29th and target year is not a leap year
+                        expires_at = reg.notice.registration_end_date.replace(
+                            year=reg.notice.registration_end_date.year + 2, day=28
+                        )
 
                 review_details = ReviewDetailsForRegistration(
                     id=reg.review.id,

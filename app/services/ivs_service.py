@@ -5,9 +5,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager
 
-from app.models.review import ReviewRegistrationModel
-from app.models.registration import StudentRegistration
 from app.models.notice import Notice, NoticeTeam
+from app.models.registration import StudentRegistration
+from app.models.review import ReviewRegistrationModel
 from app.schemas.ivs import IVSData
 
 

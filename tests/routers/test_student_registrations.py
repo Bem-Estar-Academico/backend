@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.notice import Notice
 from app.models.registration import StudentRegistration
-from app.models.review import ReviewRegistrationModel, RegistrationStatus
+from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.models.user import User, UserType
 from app.schemas.notice import NoticeCreate
 from app.schemas.user import UserCreate

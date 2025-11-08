@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-import pytesseract
-import os
 import json
 import logging
-from PIL import Image
-from typing import Union, Dict, Any, List
-from dotenv import load_dotenv
+import os
+from typing import Any, Dict, List, Union
 
+import pytesseract
+from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from PIL import Image
 
 load_dotenv()
 

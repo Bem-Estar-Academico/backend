@@ -21,6 +21,7 @@ from app.schemas.review_registration import (
 from app.schemas.student_registration import (
     StudentRegistrationCreate,
 )
+from app.schemas.student_registration import StudentRegistrationCreate
 from app.schemas.user import UserCreate
 from app.services.notice_service import NoticeService
 from app.services.review_registration_service import ReviewRegistrationService

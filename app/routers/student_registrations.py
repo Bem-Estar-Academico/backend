@@ -3,9 +3,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import User
 from app.db.database import get_db
-from app.routers.auth import get_current_user
 from app.models.review import RegistrationStatus
 from app.schemas.review_registration import (
     ReviewRegistrationCreate,
@@ -14,13 +12,13 @@ from app.schemas.review_registration import (
     ReviewRegistrationUpdate,
 )
 from app.schemas.student_registration import (
+    RegistrationListResponse,
+    StudentRegistrationCreate,
     StudentRegistrationList,
     StudentRegistrationResponse,
     StudentRegistrationUpdate,
     StudentRegistrationWithDetails,
-    StudentRegistrationCreate,
     StudentRegistrationWithReviewResponse,
-    RegistrationListResponse,
 )
 from app.schemas.user import UserType
 from app.services.review_registration_service import ReviewRegistrationService

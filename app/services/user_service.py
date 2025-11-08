@@ -2,8 +2,8 @@
 User service layer for business logic and database operations.
 """
 
-from datetime import datetime, timezone
 import random
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from sqlalchemy import select

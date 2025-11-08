@@ -1,11 +1,11 @@
 import asyncio
+from asyncio import AbstractEventLoop
 from typing import Any, AsyncGenerator, Generator
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from asyncio import AbstractEventLoop
 from app.db.database import get_db
 from app.models.base import Base
 from app.models.user import UserType
@@ -62,8 +62,9 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 @pytest.fixture
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Fixture to create a client for testing the API."""
-    from app.main import app
     from httpx import ASGITransport
+
+    from app.main import app
 
     app.dependency_overrides[get_db] = lambda: db_session
     transport = ASGITransport(app=app)
