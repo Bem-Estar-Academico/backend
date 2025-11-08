@@ -8,6 +8,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.registration import StudentRegistration
 from app.models.review import RegistrationStatus
+from app.schemas.notice import NoticeInfo
+from app.schemas.user import UserInfo
 
 
 class ReviewDetailsForRegistration(BaseModel):
