@@ -1,11 +1,11 @@
 import asyncio
+from asyncio import AbstractEventLoop
 from typing import Any, AsyncGenerator, Generator
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from asyncio import AbstractEventLoop
 from app.db.database import get_db
 from app.models.base import Base
 from app.models.user import UserType
@@ -21,20 +21,24 @@ def event_loop() -> Generator[AbstractEventLoop, Any, None]:
     yield loop
     loop.close()
 
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_database(event_loop: AbstractEventLoop):
     """
     Create the database tables before the test session and drop them after.
     """
+
     async def setup():
         async with test_engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
     event_loop.run_until_complete(setup())
     yield
+
     async def teardown():
         async with test_engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
+
     event_loop.run_until_complete(teardown())
 
 
@@ -58,8 +62,9 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 @pytest.fixture
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Fixture to create a client for testing the API."""
-    from app.main import app
     from httpx import ASGITransport
+
+    from app.main import app
 
     app.dependency_overrides[get_db] = lambda: db_session
     transport = ASGITransport(app=app)
@@ -91,7 +96,7 @@ async def coordinator_token(client: AsyncClient, db_session: AsyncSession) -> st
         user_type=UserType.COORDINATOR,
         password=password,
         cpf=None,
-        registration_number=None
+        registration_number=None,
     )
     return await create_user_and_token(client, db_session, user_data, password)
 
@@ -106,6 +111,6 @@ async def social_worker_token(client: AsyncClient, db_session: AsyncSession) -> 
         user_type=UserType.SOCIAL_WORKER,
         password=password,
         cpf=None,
-        registration_number=None
+        registration_number=None,
     )
     return await create_user_and_token(client, db_session, user_data, password)

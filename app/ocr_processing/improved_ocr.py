@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-import pytesseract
-import os
 import json
 import logging
-from PIL import Image
-from typing import Union, Dict, Any, List
-from dotenv import load_dotenv
+import os
+from typing import Any, Dict, List, Union
 
+import pytesseract
+from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from PIL import Image
 
 load_dotenv()
 
@@ -18,10 +18,22 @@ TESSERACT_CONFIG: str = "--oem 3 --psm 3"
 SCHEMA_RG: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "nome": {"type": "string", "description": "O nome completo extraído, em CAIXA ALTA."},
-        "cpf": {"type": "string", "description": "O CPF extraído, no formato 000.000.000-00."},
-        "rg": {"type": "string", "description": "O RG ou Personal Number do documento. Se for o novo RG (CIN), use o valor do CPF."},
-        "data_nascimento": {"type": "string", "description": "A data de nascimento extraída, no formato DD/MM/AAAA."},
+        "nome": {
+            "type": "string",
+            "description": "O nome completo extraído, em CAIXA ALTA.",
+        },
+        "cpf": {
+            "type": "string",
+            "description": "O CPF extraído, no formato 000.000.000-00.",
+        },
+        "rg": {
+            "type": "string",
+            "description": "O RG ou Personal Number do documento. Se for o novo RG (CIN), use o valor do CPF.",
+        },
+        "data_nascimento": {
+            "type": "string",
+            "description": "A data de nascimento extraída, no formato DD/MM/AAAA.",
+        },
     },
     "required": ["nome", "cpf", "rg", "data_nascimento"],
 }
@@ -29,10 +41,22 @@ SCHEMA_RG: Dict[str, Any] = {
 SCHEMA_CNH: Dict[str, Any] = {
     "type": "object",
     "properties": {
-        "nome": {"type": "string", "description": "O nome completo extraído, em CAIXA ALTA."},
-        "cpf": {"type": "string", "description": "O CPF extraído, no formato 000.000.000-00."},
-        "rg_numero": {"type": "string", "description": "O número do RG (ou o número de identidade usado na emissão da CNH)."},
-        "data_nascimento": {"type": "string", "description": "A data de nascimento extraída, no formato DD/MM/AAAA."},
+        "nome": {
+            "type": "string",
+            "description": "O nome completo extraído, em CAIXA ALTA.",
+        },
+        "cpf": {
+            "type": "string",
+            "description": "O CPF extraído, no formato 000.000.000-00.",
+        },
+        "rg_numero": {
+            "type": "string",
+            "description": "O número do RG (ou o número de identidade usado na emissão da CNH).",
+        },
+        "data_nascimento": {
+            "type": "string",
+            "description": "A data de nascimento extraída, no formato DD/MM/AAAA.",
+        },
     },
     "required": ["nome", "cpf", "rg_numero", "data_nascimento"],
 }
@@ -64,10 +88,7 @@ PROMPT_CNH = (
 
 
 def extract_single_field_fallback(
-    raw_text: str,
-    field_key: str,
-    field_description: str,
-    model: str = 'gemini-2.5-pro'
+    raw_text: str, field_key: str, field_description: str, model: str = "gemini-2.5-pro"
 ) -> Union[str, None]:
     try:
         client = genai.Client()
@@ -86,8 +107,7 @@ def extract_single_field_fallback(
             f"Texto OCR: {raw_text}"
         )
         config = types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=fallback_schema
+            response_mime_type="application/json", response_schema=fallback_schema
         )
         response = client.models.generate_content(
             model=model,
@@ -105,17 +125,23 @@ def extract_single_field_fallback(
 def identify_document_type(raw_text: str) -> str:
     text_upper = raw_text.upper()
     text_upper = (
-        text_upper.replace('Ç', 'C')
-        .replace('Ã', 'A')
-        .replace('É', 'E')
-        .replace('Ê', 'E')
-        .replace('Õ', 'O')
-        .replace('Í', 'I')
-        .replace('Ú', 'U')
+        text_upper.replace("Ç", "C")
+        .replace("Ã", "A")
+        .replace("É", "E")
+        .replace("Ê", "E")
+        .replace("Õ", "O")
+        .replace("Í", "I")
+        .replace("Ú", "U")
     )
-    if any(term in text_upper for term in ["HABILITAC", "DRIVER", "CNH", "CONDUCAO", "PERMISSAO"]):
+    if any(
+        term in text_upper
+        for term in ["HABILITAC", "DRIVER", "CNH", "CONDUCAO", "PERMISSAO"]
+    ):
         return "CNH"
-    elif any(term in text_upper for term in ["IDENTIDADE", "REGISTRO GERAL", "PERSONAL NUMBER", "IDENTIFICACAO"]):
+    elif any(
+        term in text_upper
+        for term in ["IDENTIDADE", "REGISTRO GERAL", "PERSONAL NUMBER", "IDENTIFICACAO"]
+    ):
         return "RG"
     return "UNKNOWN"
 
@@ -137,11 +163,10 @@ def extract_fields_with_llm(raw_text: str) -> Dict[str, Union[str, Dict[str, Any
     try:
         client = genai.Client()
         config = types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=response_schema
+            response_mime_type="application/json", response_schema=response_schema
         )
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model="gemini-2.5-flash",
             contents=[prompt],
             config=config,
         )
@@ -150,18 +175,18 @@ def extract_fields_with_llm(raw_text: str) -> Dict[str, Union[str, Dict[str, Any
         data = json.loads(response.text)
         required_fields: List[str] = response_schema.get("required", [])
         for field_key in required_fields:
-            if data.get(field_key) in [None, 'null']:
+            if data.get(field_key) in [None, "null"]:
                 field_description = FALLBACK_DESCRIPTIONS.get(
                     field_key,
-                    f"Extraia o campo '{field_key}'. Formate-o de forma limpa."
+                    f"Extraia o campo '{field_key}'. Formate-o de forma limpa.",
                 )
-                logging.warning(f"Campo '{field_key}' falhou. Tentando Fallback Focado...")
+                logging.warning(
+                    f"Campo '{field_key}' falhou. Tentando Fallback Focado..."
+                )
                 fallback_value = extract_single_field_fallback(
-                    raw_text,
-                    field_key,
-                    field_description
+                    raw_text, field_key, field_description
                 )
-                if fallback_value not in [None, 'null']:
+                if fallback_value not in [None, "null"]:
                     data[field_key] = fallback_value
                     logging.warning(f"Fallback SUCCEEDED para {field_key}.")
                 else:
@@ -173,19 +198,17 @@ def extract_fields_with_llm(raw_text: str) -> Dict[str, Union[str, Dict[str, Any
         return {"error": f"LLM Extraction failed: {e}"}
 
 
-def ocr(
-    path_or_pil: Union[str, Image.Image]
-) -> Dict[str, Union[str, Dict[str, Any]]]:
+def ocr(path_or_pil: Union[str, Image.Image]) -> Dict[str, Union[str, Dict[str, Any]]]:
     pil: Image.Image
     if isinstance(path_or_pil, str):
         pil = Image.open(path_or_pil)
     else:
         pil = path_or_pil
-    full_text: str = str(pytesseract.image_to_string(  # type: ignore
-        pil,
-        lang=TESSERACT_LANG,
-        config=TESSERACT_CONFIG
-    )).strip()
+    full_text: str = str(
+        pytesseract.image_to_string(  # type: ignore
+            pil, lang=TESSERACT_LANG, config=TESSERACT_CONFIG
+        )
+    ).strip()
 
     extracted_result = extract_fields_with_llm(full_text)
     return extracted_result

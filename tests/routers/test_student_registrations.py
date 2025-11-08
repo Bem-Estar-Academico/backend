@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.notice import Notice
 from app.models.registration import StudentRegistration
-from app.models.review import ReviewRegistrationModel, RegistrationStatus
+from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.models.user import User, UserType
 from app.schemas.notice import NoticeCreate
 from app.schemas.user import UserCreate
@@ -91,7 +91,7 @@ async def social_worker_user(db_session: AsyncSession) -> User:
         full_name="Test Social Worker",
         user_type=UserType.SOCIAL_WORKER,
         password="social_workerpassword",
-    ) # type: ignore
+    )  # type: ignore
     created_user = await UserService.create_user(db_session, user_data)
     return created_user
 
@@ -141,11 +141,14 @@ async def test_create_student_registration(
     notice_id = create_notice_response.json()["id"]
 
     registration_data: Dict[str, Any] = {
-        "answer": {"a": ["Answer 1", "Answer 2", "Answer 3", "Answer 4", "Answer 5"], "b": "Detailed answer text."},
+        "answer": {
+            "a": ["Answer 1", "Answer 2", "Answer 3", "Answer 4", "Answer 5"],
+            "b": "Detailed answer text.",
+        },
         "requested_food_allowance": False,
         "requested_housing_allowance": False,
         "requested_daycare_allowance": False,
-        "requested_graduation_scholarship": False
+        "requested_graduation_scholarship": False,
     }
     headers_student = {"Authorization": f"Bearer {student_token}"}
 
@@ -258,10 +261,16 @@ async def test_list_registrations_by_notice_as_coordinator(
     coordinator_token: str,
 ):
     """Test that a coordinator can list all registrations for a notice."""
-    db_session.add_all([
-        StudentRegistration(student_id=student_user.id, notice_id=notice_instance.id),
-        StudentRegistration(student_id=other_student_user.id, notice_id=notice_instance.id),
-    ])
+    db_session.add_all(
+        [
+            StudentRegistration(
+                student_id=student_user.id, notice_id=notice_instance.id
+            ),
+            StudentRegistration(
+                student_id=other_student_user.id, notice_id=notice_instance.id
+            ),
+        ]
+    )
     await db_session.commit()
     headers = {"Authorization": f"Bearer {coordinator_token}"}
     response = await client.get(
@@ -273,7 +282,9 @@ async def test_list_registrations_by_notice_as_coordinator(
     assert "pending_count" in response_data
     assert response_data["pending_count"] == 2
     assert len(response_data["registrations"]) == 2
-    student_ids_in_response = {reg["student"]["id"] for reg in response_data["registrations"]}
+    student_ids_in_response = {
+        reg["student"]["id"] for reg in response_data["registrations"]
+    }
     assert {student_user.id, other_student_user.id} == student_ids_in_response
 
 
@@ -301,7 +312,9 @@ async def test_list_registrations_by_student_as_self(
     student_token: str,
 ):
     """Test that a student can list their own registrations."""
-    db_session.add(StudentRegistration(student_id=student_user.id, notice_id=notice_instance.id))
+    db_session.add(
+        StudentRegistration(student_id=student_user.id, notice_id=notice_instance.id)
+    )
     await db_session.commit()
     headers = {"Authorization": f"Bearer {student_token}"}
     response = await client.get(
@@ -346,7 +359,7 @@ async def test_get_registrations_by_notice(
     reg1 = StudentRegistration(
         student_id=student_user.id,
         notice_id=notice_instance.id,
-        created_at=datetime.now(timezone.utc)
+        created_at=datetime.now(timezone.utc),
     )
     db_session.add(reg1)
     await db_session.commit()
@@ -356,17 +369,17 @@ async def test_get_registrations_by_notice(
         student_registration_id=reg1.id,
         social_worker_id=social_worker_user.id,
         status=RegistrationStatus.APPROVED,
-        ivs=80.5
+        ivs=80.5,
     )
     db_session.add(review1)
-    
+
     reg2 = StudentRegistration(
         student_id=other_student_user.id,
         notice_id=notice_instance.id,
-        created_at=datetime.now(timezone.utc)
+        created_at=datetime.now(timezone.utc),
     )
     db_session.add(reg2)
-    
+
     await db_session.commit()
 
     headers = {"Authorization": f"Bearer {coordinator_token}"}
@@ -386,8 +399,12 @@ async def test_get_registrations_by_notice(
     assert data["cancelled_count"] == 0
     assert len(data["registrations"]) == 2
 
-    approved_reg_response = next((r for r in data["registrations"] if r["id"] == reg1.id), None)
-    pending_reg_response = next((r for r in data["registrations"] if r["id"] == reg2.id), None)
+    approved_reg_response = next(
+        (r for r in data["registrations"] if r["id"] == reg1.id), None
+    )
+    pending_reg_response = next(
+        (r for r in data["registrations"] if r["id"] == reg2.id), None
+    )
 
     assert approved_reg_response is not None
     assert pending_reg_response is not None
@@ -551,7 +568,9 @@ async def test_student_can_cancel_own_registration(
     assert response.status_code == 200
 
     result = await db_session.execute(
-        select(StudentRegistration).filter_by(id=registration.id).options(selectinload(StudentRegistration.review))
+        select(StudentRegistration)
+        .filter_by(id=registration.id)
+        .options(selectinload(StudentRegistration.review))
     )
     updated_registration = result.scalar_one()
 
@@ -586,7 +605,9 @@ async def test_update_status_creates_review(
     assert response.status_code == 200
 
     result = await db_session.execute(
-        select(StudentRegistration).filter_by(id=registration.id).options(selectinload(StudentRegistration.review))
+        select(StudentRegistration)
+        .filter_by(id=registration.id)
+        .options(selectinload(StudentRegistration.review))
     )
     updated_registration = result.scalar_one()
 
@@ -610,14 +631,16 @@ async def test_list_registrations_by_notice_with_status_filter(
     db_session.add(reg1)
     await db_session.commit()
     review1 = ReviewRegistrationModel(
-        student_registration_id=reg1.id, 
+        student_registration_id=reg1.id,
         status=RegistrationStatus.APPROVED,
-        social_worker_id=social_worker_user.id
+        social_worker_id=social_worker_user.id,
     )
     db_session.add(review1)
 
     # Registration 2: Pending (no review object)
-    reg2 = StudentRegistration(student_id=other_student_user.id, notice_id=notice_instance.id)
+    reg2 = StudentRegistration(
+        student_id=other_student_user.id, notice_id=notice_instance.id
+    )
     db_session.add(reg2)
 
     await db_session.commit()
@@ -634,5 +657,4 @@ async def test_list_registrations_by_notice_with_status_filter(
     assert len(response_data["registrations"]) == 1
     assert response_data["registrations"][0]["id"] == reg1.id
     assert response_data["approved_count"] == 1
-    assert response_data["pending_count"] == 0 # Because we are filtering
-
+    assert response_data["pending_count"] == 0  # Because we are filtering

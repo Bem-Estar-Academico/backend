@@ -142,7 +142,7 @@ async def test_get_active_notices(
         json=active_notice_data.model_dump(mode="json"),
         headers=headers,
     )
-    
+
     future_notice_data = NoticeCreate(
         title="Future Notice",
         registration_start_date=datetime.now(timezone.utc) + timedelta(days=5),
@@ -166,6 +166,7 @@ async def test_get_active_notices(
     assert len(active_notices) >= 1
     assert any(notice["title"] == "Active Notice" for notice in active_notices)
     assert not any(notice["title"] == "Future Notice" for notice in active_notices)
+
 
 @pytest.mark.asyncio
 async def test_update_notice_as_coordinator_in_team(
@@ -240,13 +241,18 @@ async def test_delete_notice_as_coordinator_in_team(
 @pytest.mark.asyncio
 @patch("app.core.s3_manager.s3_manager", new_callable=MagicMock)
 async def test_upload_document(
-    mock_s3_manager: MagicMock, client: AsyncClient, coordinator_token: str, tmp_path: Path
+    mock_s3_manager: MagicMock,
+    client: AsyncClient,
+    coordinator_token: str,
+    tmp_path: Path,
 ):
     mock_s3_manager.upload_file.return_value = "some_file_key"
-    mock_s3_manager.generate_signed_url.return_value = "http://mock-s3-url/some_file_key"
+    mock_s3_manager.generate_signed_url.return_value = (
+        "http://mock-s3-url/some_file_key"
+    )
 
     headers = {"Authorization": f"Bearer {coordinator_token}"}
-    
+
     now = datetime.now(timezone.utc)
     notice_data = NoticeCreate(
         title="Document Test Notice",
@@ -258,11 +264,11 @@ async def test_upload_document(
         final_result_date=now + timedelta(days=22),
         description="A notice for document upload tests.",
     )
-    
+
     create_response = await client.post(
         "/api/v1/notices/", json=notice_data.model_dump(mode="json"), headers=headers
     )
-    
+
     notice_id = create_response.json()["id"]
 
     mock_file_content = b"Conteudo de teste binario"
@@ -280,5 +286,5 @@ async def test_upload_document(
     assert document["name"] == "cnh.jpg"
     assert "file_key" in document
     assert document["file_url"] == "http://mock-s3-url/some_file_key"
-    
+
     mock_s3_manager.upload_file.assert_called_once()

@@ -1,15 +1,16 @@
-from datetime import datetime
 import enum
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from sqlalchemy import JSON, Enum, DateTime, ForeignKey, Numeric, Boolean
+from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql.functions import now
+
+from app.models.appeal import Appeal
 from app.models.base import Base
 
 if TYPE_CHECKING:
     from app.models.registration import StudentRegistration
-    from app.models.appeal import Appeal
     from app.models.user import User
 
 """Module for defining the ReviewRegistration model."""
@@ -23,6 +24,7 @@ and student registrations, storing the review details and the calculated IVS.
 
 class RegistrationStatus(enum.Enum):
     """Enumeration for the possible statuses of a student's registration for a notice."""
+
     PENDING = "PENDING"  # Aguardando análise
     APPROVED = "APPROVED"  # Aprovada
     REJECTED = "REJECTED"  # Rejeitada
