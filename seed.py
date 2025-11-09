@@ -1,5 +1,9 @@
 """Main FastAPI application."""
 from dotenv import load_dotenv
+
+from app.models.period import Period
+from app.schemas.period import PeriodCreate
+from app.services.period_service import PeriodService
 load_dotenv()
 
 import asyncio
@@ -356,6 +360,7 @@ class Seeder:
                 review_id=review.id,
                 review_data=ReviewRegistrationUpdate(status=new_status),
                 current_user=self.coordinator,
+                seed=True
             )
             return new_status.name
         return review.status.name
@@ -407,7 +412,7 @@ class Seeder:
                     db=self.db,
                     social_worker=social_worker,
                     student_registration_id=reg.id,
-                    review_data=default_review_data,
+                    review_data=default_review_data
                 )
                 final_status = await self._randomly_update_status(review)
                 status_counts[final_status] = status_counts.get(final_status, 0) + 1
@@ -437,6 +442,8 @@ class Seeder:
                 logging.warning(
                     f"Número de estudantes ({len(self.student_ids)}) é menor que o mínimo por edital ({MIN_REGISTRATIONS_PER_NOTICE})."
                 )
+                
+            await self.seed_periods() 
 
             notices = await self.seed_notices(NUM_NOTICES)
             if notices:
@@ -453,6 +460,52 @@ class Seeder:
             await self.db.rollback()
         finally:
             await self.db.close()
+    
+    async def seed_periods(self, num_years_past=2, num_years_future=1):
+        """
+        Cria períodos (semestres) de forma independente.
+        """
+        logging.info("Populando Períodos (Semestres)...")
+        current_year = datetime.now().year
+        total_created = 0
+        
+        result = await self.db.execute(select(Period))
+        self.created_periods = {p.nome: p for p in result.scalars().all()}
+        logging.info(f"  - Encontrados {len(self.created_periods)} períodos existentes.")
+
+        start_year = current_year - num_years_past
+        end_year = current_year + num_years_future
+
+        for year in range(start_year, end_year + 1):
+            for semester in [1, 2]:
+                period_name = f"{year}.{semester}"
+                
+                if period_name not in self.created_periods:
+                    logging.info(f"  - Criando novo período: '{period_name}'...")
+                    
+                    if semester == 1:
+                        start_date = datetime(year, 1, 1, tzinfo=timezone.utc)
+                        end_date = datetime(year, 6, 30, 23, 59, 59, tzinfo=timezone.utc)
+                    else:
+                        start_date = datetime(year, 7, 1, tzinfo=timezone.utc)
+                        end_date = datetime(year, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+                    period_data = PeriodCreate(
+                        name=period_name,
+                        init_date=start_date,
+                        end_date=end_date
+                    )
+                    
+                    try:
+                        new_period = await PeriodService.create_period(self.db, period=period_data)
+                        self.created_periods[period_name] = new_period
+                        total_created += 1
+                    except Exception as e:
+                        logging.error(f"Erro ao criar período {period_name}: {e}")
+
+        logging.info(f"Total de períodos criados nesta execução: {total_created}")
+        if not self.created_periods:
+            raise Exception("Nenhum período disponível. O seed de editais falhará.")
 
 
 async def main():

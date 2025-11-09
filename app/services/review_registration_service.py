@@ -162,6 +162,7 @@ class ReviewRegistrationService:
         review_id: int,
         review_data: ReviewRegistrationUpdate,
         current_user: User,
+        seed: bool = False,
     ) -> Optional[ReviewRegistrationModel]:
         """
         Updates an existing review and handles appeal creation/update if status is APPEAL.
@@ -241,7 +242,7 @@ class ReviewRegistrationService:
                 RegistrationStatus.APPROVED,
                 RegistrationStatus.REJECTED,
                 RegistrationStatus.APPEAL,
-            ]:
+            ] and not seed:
                 try:
                     await ReviewRegistrationService._send_status_email(
                         review, new_status, appeal_data
