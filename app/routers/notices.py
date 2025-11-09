@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import get_current_user, require_coordinator
 from app.db.database import get_db
 from app.models.user import User, UserType
-from app.schemas.notice import DocumentWithUrl
+from app.schemas.notice import DocumentWithUrl, NoticeStatisticsResponse
 from app.schemas.notice import Notice as NoticeSchema
 from app.schemas.notice import (
     NoticeCreate,
@@ -357,3 +357,36 @@ async def get_team_to_notice(
     team_members: List[TeamMemberResponse] = [TeamMemberResponse(**tm) for tm in team_members_raw]
 
     return team_members
+
+@router.get("/{notice_id}/statistics", response_model=NoticeStatisticsResponse)
+async def get_notice_statistics(
+    notice_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_coordinator),
+) -> NoticeStatisticsResponse:
+    """
+    Retrieves registration statistics for a specific notice (e.g., pending,
+    approved, rejected counts).
+
+    This endpoint is restricted to coordinator users.
+
+    Args:
+        notice_id (int): The ID of the notice.
+        db (AsyncSession): The database session.
+        current_user (User): The authenticated coordinator user.
+
+    Raises:
+        HTTPException: If the notice with the given ID is not found.
+
+    Returns:
+        NoticeStatisticsResponse: An object containing the counts for each status.
+    """
+    # Valida se o edital existe
+    existing_notice = await NoticeService.get_notice_by_id(db, notice_id)
+    if not existing_notice:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
+        )
+
+    statistics = await NoticeService.get_notice_statistics(db, notice_id=notice_id)
+    return statistics
