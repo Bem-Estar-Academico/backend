@@ -5,4 +5,13 @@ from app.models.user import User
 from app.models.appeal import Appeal
 from app.models.period import Period
 
-__all__ = ["User", "Notice", "Document", "NoticeTeam", "StudentRegistration", "ReviewRegistrationModel", "Appeal", "Periods"]
+__all__ = [
+    "User",
+    "Notice",
+    "Document",
+    "NoticeTeam",
+    "StudentRegistration",
+    "ReviewRegistrationModel",
+    "Appeal",
+    "Periods"
+]

@@ -22,6 +22,7 @@ class AuthService:
     It acts as a facade, utilizing `UserService` for database interactions and
     `app.core.security` for cryptographic operations.
     """
+
     @staticmethod
     async def authenticate_user(
         db: AsyncSession, email: str, password: str

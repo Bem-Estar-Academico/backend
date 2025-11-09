@@ -1,8 +1,7 @@
-import random
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import case, select
+from sqlalchemy import case, extract, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -75,7 +74,7 @@ class NoticeService:
         )
 
         if year:
-            query = query.where(Notice.year == year)
+            query = query.where(extract("year", Notice.created_at) == year)
 
         result = await db.execute(query)
         return list(result.scalars().all())
@@ -112,19 +111,28 @@ class NoticeService:
 
         db.add(db_notice)
         await db.flush()  # Flush to get db_notice.id
+
+        # Assign the creator of the notice as a team member
         db_team_member = NoticeTeam(
             notice_id=db_notice.id,
             user_id=created_by_user_id,
         )
         db.add(db_team_member)
+
+        # Assign additional team members, ensuring no invalid IDs are processed
         if notice_data.team_members:
-            for team_member_id in notice_data.team_members:
-                if team_member_id != created_by_user_id:
-                    db_additional_member = NoticeTeam(
-                        notice_id=db_notice.id,
-                        user_id=team_member_id,
-                    )
-                    db.add(db_additional_member)
+            # Remove the creator's ID from the list to avoid adding them twice
+            team_members_to_add = [id for id in notice_data.team_members if id != created_by_user_id]
+            # Validate all team member IDs before processing
+            invalid_ids = [id for id in team_members_to_add if id <= 0]
+            if invalid_ids:
+                raise ValueError(f"Invalid user IDs: {invalid_ids}")
+            for team_member_id in team_members_to_add:
+                db_additional_member = NoticeTeam(
+                    notice_id=db_notice.id,
+                    user_id=team_member_id,
+                )
+                db.add(db_additional_member)
 
         await db.commit()
         await db.refresh(db_notice)
@@ -226,6 +234,8 @@ class NoticeService:
         Returns:
             List[Dict[str, Any]]: A list of notice data with registration status.
         """
+        if student_id <= 0:
+            raise ValueError(f"Invalid student ID: {student_id}")
 
         query = (
             select(
@@ -304,7 +314,7 @@ class NoticeService:
                 selectinload(Notice.documents),
                 selectinload(Notice.team_members).selectinload(NoticeTeam.user),
             )
-            .where(Notice.year == year)
+            .where(extract("year", Notice.created_at) == year)
         )
         return list(result.scalars().all())
 
@@ -325,6 +335,9 @@ class NoticeService:
             Optional[NoticeTeam]: The newly created NoticeTeam assignment, or None if the notice
                                   doesn't exist or the member is already assigned.
         """
+        if user_id <= 0:
+            raise ValueError(f"Invalid user ID: {user_id}")
+
         notice = await NoticeService.get_notice_by_id(db, notice_id)
         if not notice:
             return None
@@ -439,7 +452,6 @@ class NoticeService:
     async def get_document_download_url(
         db: AsyncSession, document_id: int, expiration: int = 3600
     ) -> Optional[str]:
-
         # First, get the document
         """
         Generates a temporary, presigned URL for direct download of a document from S3.
@@ -500,6 +512,34 @@ class NoticeService:
             .where(NoticeTeam.notice_id == notice_id)
             .order_by(User.full_name)
         )
+
+        total_registrations_result = await db.execute(
+            select(func.count(StudentRegistration.id)).where(
+                StudentRegistration.notice_id == notice_id
+            )
+        )
+        total_registrations = total_registrations_result.scalar_one()
+
+        progress = 0
+        if total_registrations > 0:
+            final_status_registrations_result = await db.execute(
+                select(func.count(StudentRegistration.id))
+                .join(ReviewRegistrationModel)
+                .where(StudentRegistration.notice_id == notice_id)
+                .where(
+                    ReviewRegistrationModel.status.in_(
+                        [
+                            RegistrationStatus.APPROVED,
+                            RegistrationStatus.REJECTED,
+                            RegistrationStatus.CANCELLED,
+                        ]
+                    )
+                )
+            )
+            final_status_registrations = (
+                final_status_registrations_result.scalar_one()
+            )
+            progress = (final_status_registrations / total_registrations) * 100
 
         result = await db.execute(q)
 

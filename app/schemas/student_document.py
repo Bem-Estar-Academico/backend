@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field
+
 from app.models.notice import StudentDocument
 
 
@@ -37,7 +38,9 @@ class StudentDocumentResponse(StudentDocumentBase):
     file_url: str
 
     @classmethod
-    def from_model(cls, student_document: "StudentDocument") -> "StudentDocumentResponse":
+    def from_model(
+        cls, student_document: "StudentDocument"
+    ) -> "StudentDocumentResponse":
         return cls(
             id=student_document.id,
             student_registration_id=student_document.student_registration_id,

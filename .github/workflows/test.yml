@@ -110,6 +110,12 @@ jobs:
         AWS_REGION: us-east-1
         S3_BUCKET_NAME: test-bucket
         S3_ENDPOINT_URL: ""
+        SMTP_SERVER: smtp.gmail.com
+        SMTP_PORT: 587
+        SMTP_USERNAME: your-email@gmail.com
+        SMTP_PASSWORD: your-app-password
+        FROM_EMAIL: your-email@gmail.com
+        FRONTEND_URL: http://localhost:3000
         PYTHONPATH: .
 
     - name: Upload test results

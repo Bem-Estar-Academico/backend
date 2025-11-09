@@ -2,8 +2,16 @@ import enum
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from sqlalchemy import (JSON, Boolean, DateTime, Enum as SQLAlchemyEnum, ForeignKey, Integer,
-                        String, Text)
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    Enum as SQLAlchemyEnum,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql.functions import now
 
@@ -110,12 +118,9 @@ class StudentDocument(Base):
         default=OCRStatus.PENDING,
         nullable=False,
         server_default="PENDING",
-        index=True
+        index=True,
     )
-    ocr_results: Mapped[Optional[Dict[str, Any]]] = mapped_column(
-        JSON,
-        nullable=True
-    )
+    ocr_results: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
 
     student_registration: Mapped["StudentRegistration"] = relationship(
         "StudentRegistration", back_populates="documents"
