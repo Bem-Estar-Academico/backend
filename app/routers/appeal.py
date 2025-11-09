@@ -53,16 +53,23 @@ async def get_appeals_for_review(
     """
     appeals = await AppealService.get_appeals_by_review_id(db, review_registration_id)
     if not appeals:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appeal not found for this review.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Appeal not found for this review.",
+        )
 
     review = await ReviewRegistrationService.get_review_by_id(
         db, review_registration_id
     )
 
     if not review:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Associated review not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Associated review not found."
+        )
     if review.social_worker_id != current_user.id and not current_user.is_staff:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied."
+        )
 
     return appeals
 
@@ -83,13 +90,21 @@ async def get_appeal(
     """
     appeal = await AppealService.get_appeal_by_id(db, appeal_id)
     if not appeal:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appeal not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Appeal not found."
+        )
 
-    review = await ReviewRegistrationService.get_review_by_id(db, appeal.review_registration_id)
+    review = await ReviewRegistrationService.get_review_by_id(
+        db, appeal.review_registration_id
+    )
     if not review:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Associated review not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Associated review not found."
+        )
     if review.social_worker_id != current_user.id and not current_user.is_staff:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied."
+        )
 
     return appeal
 
@@ -109,9 +124,13 @@ async def update_appeal(
     Updates an existing appeal.
     (Permission logic needs to be defined based on business rules, e.g., only staff).
     """
-    updated_appeal = await AppealService.update_appeal(db, appeal_id, appeal_data, current_user)
+    updated_appeal = await AppealService.update_appeal(
+        db, appeal_id, appeal_data, current_user
+    )
     if not updated_appeal:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appeal not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Appeal not found."
+        )
     return updated_appeal
 
 
@@ -131,5 +150,7 @@ async def delete_appeal(
     """
     deleted = await AppealService.delete_appeal(db, appeal_id, current_user)
     if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appeal not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Appeal not found."
+        )
     return None

@@ -1,4 +1,5 @@
-from typing import Dict, Any
+from typing import Any, Dict
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,7 +26,7 @@ async def test_list_users_as_student(client: AsyncClient, db_session: AsyncSessi
         user_type=UserType.STUDENT,
         password=student_password,
         cpf="00000000000",
-        registration_number="00000000"
+        registration_number="00000000",
     )
     await UserService.create_user(db_session, student_data)
     login_data = {"username": student_data.email, "password": student_password}
@@ -47,7 +48,7 @@ async def test_list_users_as_coordinator(client: AsyncClient, db_session: AsyncS
         user_type=UserType.COORDINATOR,
         password=coordinator_password,
         cpf=None,
-        registration_number=None
+        registration_number=None,
     )
     await UserService.create_user(db_session, coordinator_data)
     social_worker_data = UserCreate(
@@ -56,14 +57,16 @@ async def test_list_users_as_coordinator(client: AsyncClient, db_session: AsyncS
         user_type=UserType.SOCIAL_WORKER,
         password="swpassword",
         cpf=None,
-        registration_number=None
+        registration_number=None,
     )
     await UserService.create_user(db_session, social_worker_data)
     login_data = {"username": coordinator_data.email, "password": coordinator_password}
     response = await client.post("/api/v1/auth/login", data=login_data)
     token = response.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
-    response = await client.get("/api/v1/users/?user_type=SOCIAL_WORKER", headers=headers)
+    response = await client.get(
+        "/api/v1/users/?user_type=SOCIAL_WORKER", headers=headers
+    )
 
     assert response.status_code == 200
     users: list[Dict[str, Any]] = response.json()

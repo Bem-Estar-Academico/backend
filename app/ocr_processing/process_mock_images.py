@@ -1,8 +1,10 @@
-from pathlib import Path
 import json
-from typing import Any, Dict, Union, List, cast
+from pathlib import Path
+from typing import Any, Dict, List, Union, cast
+
 from pdf2image import convert_from_path  # type: ignore
 from PIL import Image
+
 from . import ocr
 
 OCRResult = Dict[str, Union[str, Dict[str, Any]]]
@@ -29,15 +31,19 @@ def process_all(input_dir: str = "mock_images") -> Dict[str, OCRResult]:
                 print(f"Convertendo PDF: {file_name}...")
                 images = cast(
                     List[Image.Image],
-                    convert_from_path(file_path, first_page=1, last_page=1)
+                    convert_from_path(file_path, first_page=1, last_page=1),
                 )
                 if not images:
-                    results[file_name] = {"error": "ERROR: PDF vazio ou falha na conversão."}
+                    results[file_name] = {
+                        "error": "ERROR: PDF vazio ou falha na conversão."
+                    }
                     continue
                 temp_img = images[0]
             elif f.suffix.lower() not in supported_img_suffixes:
                 continue
-            input_data: Union[str, Image.Image] = temp_img if temp_img is not None else file_path
+            input_data: Union[str, Image.Image] = (
+                temp_img if temp_img is not None else file_path
+            )
             raw_result: OCRResult = ocr(input_data)
             results[file_name] = raw_result
         except Exception as e:
