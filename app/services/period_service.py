@@ -43,12 +43,12 @@ class PeriodService:
     
     @staticmethod
     async def get_period_by_id(
-        db: AsyncSession, periodo_id: int
+        db: AsyncSession, period_id: int
     ) -> Period:
         """
         Busca um período pelo seu ID.
         """
-        query = select(Period).where(Period.id == periodo_id)
+        query = select(Period).where(Period.id == period_id)
         result = await db.execute(query)
         period = result.scalar_one_or_none()
 
@@ -67,7 +67,7 @@ class PeriodService:
     ) -> Period:
         "Update the period"
         
-        db_period = await PeriodService.get_period_by_id(db=db, periodo_id=period_id)
+        db_period = await PeriodService.get_period_by_id(db=db, period_id=period_id)
         
         if (period.init_date and period.end_date) and period.init_date > period.end_date:
             raise HTTPException(
@@ -85,3 +85,17 @@ class PeriodService:
         await db.refresh(db_period)
 
         return db_period
+    
+    @staticmethod
+    async def delete_period(db: AsyncSession, period_id: int) -> None:
+        """
+        Delete a period by your ID.
+        """
+        
+        db_period = await PeriodService.get_period_by_id(
+            db=db, period_id=period_id
+        )
+        
+        await db.delete(db_period)
+        
+        await db.commit()

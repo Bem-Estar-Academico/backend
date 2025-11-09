@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, status 
+from fastapi import APIRouter, Depends, Response, status 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
@@ -59,3 +59,22 @@ async def update_period(
     )
     
     return period
+
+@router.delete(
+    "/{periodo_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Deleta um período existente"
+)
+async def delete_period(
+    period_id: int,
+    db: AsyncSession = Depends(get_db)
+) -> Response:
+    """
+    Delete a period by your ID.
+    
+    It's OK, return the status 204 No Content.
+    """
+    
+    await PeriodService.delete_period(db=db, period_id=period_id)
+    
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
