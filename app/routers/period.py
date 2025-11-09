@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
 from app.models.period import Period
-from app.schemas.period import PeriodCreate, PeriodResponse
+from app.schemas.period import PeriodCreate, PeriodResponse, PeriodUpdate
 from app.services.period_service import PeriodService 
 
 router = APIRouter(tags=["periods"])
@@ -38,3 +38,24 @@ async def get_all_periods(
     periods = await PeriodService.get_all_periods(db=db)
     
     return periods
+
+@router.put(
+    "/{periodo_id}",
+    response_model=PeriodResponse,
+    summary="Atualiza um período existente"
+)
+
+async def update_period(
+    period_id: int,
+    period: PeriodUpdate,
+    db: AsyncSession = Depends(get_db)
+) -> Period:
+    """
+    Update a period by your ID.
+    """
+    
+    period = await PeriodService.update_period(
+        db=db, period_id=period_id, period=period
+    )
+    
+    return period
