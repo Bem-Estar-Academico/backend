@@ -395,6 +395,10 @@ class Seeder:
                     ivs=0.0,
                     ocr_analisys={"initial_ocr": "OCR auto-criada pelo sistema."},
                     status=RegistrationStatus.PENDING,
+                    approved_daycare_allowance=False,
+                    approved_food_allowance=False,
+                    approved_graduation_scholarship=False,
+                    approved_housing_allowance=False,
                 )
 
                 social_worker = random.choice(social_workers_in_team)

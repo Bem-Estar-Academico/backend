@@ -2,7 +2,9 @@ from datetime import datetime, timezone
 import logging
 from typing import Any, Dict, List, Optional
 
+
 from sqlalchemy import case, delete, extract, select
+from sqlalchemy import TEXT, case, cast, extract, func, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -10,7 +12,7 @@ from app.core.storage_factory import get_storage_manager
 from app.models.notice import Document, Notice, NoticeTeam, StudentRegistration
 from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.models.user import User, UserType
-from app.schemas.notice import NoticeCreate, NoticeTeamMember, NoticeUpdate
+from app.schemas.notice import NoticeCreate, NoticeTeamMember, NoticeUpdate, NoticeStatisticsResponse
 
 
 class NoticeService:
@@ -649,3 +651,66 @@ class NoticeService:
                     db.add(new_member)
                 else:
                     logging.warning(f"Usuário ID {user_id} não é válido ou não é assistente/coordenador. Pulando.")
+
+    @staticmethod
+    async def get_notice_statistics(
+        db: AsyncSession, notice_id: int
+    ) -> NoticeStatisticsResponse:
+        """
+        Calcula e retorna estatísticas de contagem de inscrições e equipe
+        para um edital.
+        """
+
+        status_case = case(
+            (ReviewRegistrationModel.id.is_(None), RegistrationStatus.PENDING.value),
+            else_=cast(ReviewRegistrationModel.status, TEXT),
+        ).label("status")
+
+        registrations_query = (
+            select(
+                status_case,
+                func.count(StudentRegistration.id).label("count"),
+            )
+            .select_from(StudentRegistration)
+            .outerjoin(
+                ReviewRegistrationModel,
+                StudentRegistration.id == ReviewRegistrationModel.student_registration_id
+            )
+            .where(StudentRegistration.notice_id == notice_id)
+            .group_by(status_case)
+        )
+
+        social_worker_query = (
+            select(func.count(User.id))
+            .join(NoticeTeam, User.id == NoticeTeam.user_id)
+            .where(NoticeTeam.notice_id == notice_id)
+            .where(User.user_type == UserType.SOCIAL_WORKER)
+        )
+
+        registrations_result = await db.execute(registrations_query)
+        social_worker_result = await db.execute(social_worker_query)
+
+        rows = registrations_result.mappings().all()
+        counts = {s.value: 0 for s in RegistrationStatus}
+        total_count = 0
+        for row in rows:
+            status_key = row["status"] 
+            count = row["count"]
+            
+            if status_key:
+                counts[status_key] = count
+                total_count += count
+
+        social_worker_count = social_worker_result.scalar_one_or_none() or 0
+
+        return NoticeStatisticsResponse(
+            pending_count=counts.get(RegistrationStatus.PENDING.value, 0),
+            review_count=counts.get(RegistrationStatus.REVIEW.value, 0),
+            approved_count=counts.get(RegistrationStatus.APPROVED.value, 0),
+            rejected_count=counts.get(RegistrationStatus.REJECTED.value, 0),
+            appeal_count=counts.get(RegistrationStatus.APPEAL.value, 0),
+            cancelled_count=counts.get(RegistrationStatus.CANCELLED.value, 0),
+            total_count=total_count,
+            social_worker_count=social_worker_count,
+        )
+
