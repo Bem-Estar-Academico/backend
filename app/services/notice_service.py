@@ -607,7 +607,7 @@ class NoticeService:
     
     @staticmethod
     async def _handle_team_update(
-        db: AsyncSession, notice: Notice, new_team_ids: List[NoticeTeamMember]
+        db: AsyncSession, notice: Notice, new_team_ids: List[int]
     ) -> None:
         """
         Lógica separada para atualizar a equipe de um edital.
@@ -619,7 +619,7 @@ class NoticeService:
         current_team_ids = set(result.scalars().all())
         
         print("atual: ", current_team_ids)
-        new_team_ids_set = {member.user_id for member in new_team_ids}
+        new_team_ids_set = {member for member in new_team_ids}
 
         ids_to_add = new_team_ids_set - current_team_ids
         ids_to_remove = current_team_ids - new_team_ids_set

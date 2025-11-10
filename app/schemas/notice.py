@@ -243,9 +243,9 @@ class NoticeUpdate(BaseModel):
     housing_allowance: Optional[bool] = None
     daycare_allowance: Optional[bool] = None
     graduation_scholarship: Optional[bool] = None
-    
-    team_members: Optional[List[NoticeTeamMember]] = Field(
-        None, description="Lista de IDs de usuários que substituirá a equipe atual"
+    team_members: Optional[List[int]] = Field(
+        default_factory=lambda: cast(List[int], []),
+        description="Lista de IDs dos membros da equipe atribuídos ao edital",
     )
 
 
