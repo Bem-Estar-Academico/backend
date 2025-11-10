@@ -25,7 +25,7 @@ from app.schemas.student_document import (
 from app.services.student_document_service import StudentDocumentService
 from app.services.student_registration_service import StudentRegistrationService
 
-router = APIRouter()
+router = APIRouter(prefix="/student-documents", tags=["student-documents"])
 
 
 @router.get("/registration/{registration_id}", response_model=StudentDocumentList)
