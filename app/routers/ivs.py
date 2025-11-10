@@ -34,11 +34,11 @@ async def export_ivs_excel(
     """
     ivs_data = await ivs_service.get_ivs_data(db)
 
-    excel_buffer = excel_report_service.generate_ivs_report(ivs_data)
-    filename = excel_report_service.generate_filename()
+    excel_buffer = excel_report_service.generate_ivs_report_csv(ivs_data)
+    filename = excel_report_service.generate_csv_filename()
 
     return StreamingResponse(
-        io=excel_buffer,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        content=excel_buffer, 
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
