@@ -13,5 +13,5 @@ __all__ = [
     "StudentRegistration",
     "ReviewRegistrationModel",
     "Appeal",
-    "Periods"
+    "Period"
 ]

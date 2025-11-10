@@ -19,7 +19,7 @@ class PeriodService:
         if db_period.init_date > db_period.end_date:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Período não pode ter uma data de inicio após a data de fim",
+                detail="Período não pode ter uma data de início após a data de fim",
             )
             
         db.add(db_period)
@@ -32,7 +32,7 @@ class PeriodService:
     @staticmethod
     async def get_all_periods(db: AsyncSession) -> List[Period]:
         """
-        get all period in the database.
+        Get all periods in the database.
         """
         
         query = select(Period).order_by(Period.init_date)
@@ -46,7 +46,7 @@ class PeriodService:
         db: AsyncSession, period_id: int
     ) -> Period:
         """
-        Busca um período pelo seu ID.
+        Get a period by ID
         """
         query = select(Period).where(Period.id == period_id)
         result = await db.execute(query)
@@ -65,14 +65,14 @@ class PeriodService:
     async def update_period(
         db: AsyncSession, period_id: int, period: PeriodUpdate
     ) -> Period:
-        "Update the period"
+        """Updates an existing period by its ID."""
         
         db_period = await PeriodService.get_period_by_id(db=db, period_id=period_id)
         
         if (period.init_date and period.end_date) and period.init_date > period.end_date:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Período não pode ter uma data de inicio após a data de fim",
+                detail="Período não pode ter uma data de início após a data de fim",
             )
             
         update_data = period.model_dump(exclude_unset=True)
@@ -89,7 +89,7 @@ class PeriodService:
     @staticmethod
     async def delete_period(db: AsyncSession, period_id: int) -> None:
         """
-        Delete a period by your ID.
+        Delete a period by its ID.
         """
         
         db_period = await PeriodService.get_period_by_id(

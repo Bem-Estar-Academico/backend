@@ -33,7 +33,7 @@ async def get_all_periods(
     db: AsyncSession = Depends(get_db)
 ) -> List[Period]: 
     """
-    router the get all periods
+    Get all periods
     """
     periods = await PeriodService.get_all_periods(db=db)
     
@@ -51,7 +51,7 @@ async def update_period(
     db: AsyncSession = Depends(get_db)
 ) -> Period:
     """
-    Update a period by your ID.
+    Update a period by its ID.
     """
     
     period = await PeriodService.update_period(
@@ -70,7 +70,7 @@ async def delete_period(
     db: AsyncSession = Depends(get_db)
 ) -> Response:
     """
-    Delete a period by your ID.
+    Delete a period by its ID.
     
     It's OK, return the status 204 No Content.
     """

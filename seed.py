@@ -470,7 +470,7 @@ class Seeder:
         total_created = 0
         
         result = await self.db.execute(select(Period))
-        self.created_periods = {p.nome: p for p in result.scalars().all()}
+        self.created_periods = {p.name: p for p in result.scalars().all()}
         logging.info(f"  - Encontrados {len(self.created_periods)} períodos existentes.")
 
         start_year = current_year - num_years_past

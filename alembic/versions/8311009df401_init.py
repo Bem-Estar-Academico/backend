@@ -40,8 +40,8 @@ def upgrade() -> None:
     op.create_table('periods',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=255), nullable=False, comment='Nome descritivo do periodo'),
-    sa.Column('init_date', sa.DateTime(timezone=True), nullable=False, comment='Data de início do perído'),
-    sa.Column('end_date', sa.DateTime(timezone=True), nullable=False, comment='Data de início do perído'),
+    sa.Column('init_date', sa.DateTime(timezone=True), nullable=False, comment='Data de início do período'),
+    sa.Column('end_date', sa.DateTime(timezone=True), nullable=False, comment='Data de fim do período'),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id')

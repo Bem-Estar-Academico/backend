@@ -11,7 +11,7 @@ class Period(Base):
         Representation period.
         Atr:
         id (int): primary key.
-        name (str): Descritation name of period.
+        name (str): Descriptive name of period.
         init_date (datetime): Date of the period begin.
         end_date (datetime): Date of the period end.
         created_at (datetime): Create the instance.
@@ -22,26 +22,26 @@ class Period(Base):
     
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(
-        String (255),
+        String(255),
         nullable=False,
         comment="Nome descritivo do periodo"
     )
     init_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        comment="Data de início do perído"
+        comment="Data de início do período"
     )
     end_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        comment="Data de início do perído"
+        comment="Data de fim do período"
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=now(),
         nullable=False
     )
-    updated_at: Mapped[datetime] = mapped_column (
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=now(),
         onupdate=now(),
