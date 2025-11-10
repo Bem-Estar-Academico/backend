@@ -12,6 +12,9 @@ from app.schemas.notice import NoticeInfo
 from app.schemas.user import UserInfo
 
 
+from app.schemas.appeal import AppealResponse
+
+
 class ReviewDetailsForRegistration(BaseModel):
     """
     Schema for review details included in student registration responses.
@@ -21,6 +24,7 @@ class ReviewDetailsForRegistration(BaseModel):
     status: RegistrationStatus
     ivs: Optional[float] = None
     expires_at: Optional[datetime] = None
+    appeals: List[AppealResponse] = []
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -148,6 +152,10 @@ class StudentRegistrationWithDetails(StudentRegistrationResponse):
             student=UserInfo.model_validate(registration_model.student),
             notice=NoticeInfo.model_validate(registration_model.notice),
             documents_count=random.randint(12, 80),
+            requested_food_allowance=registration_model.requested_food_allowance,
+            requested_housing_allowance=registration_model.requested_housing_allowance,
+            requested_daycare_allowance=registration_model.requested_daycare_allowance,
+            requested_graduation_scholarship=registration_model.requested_graduation_scholarship,
         )
 
 
@@ -197,7 +205,7 @@ class ReviewerResponse(BaseModel):
 
 
 class ReviewForRegistrationList(BaseModel):
-    progress: int
+    progress: float
     status: str
     qtd_document: int
     reviewer: Optional[ReviewerResponse] = None

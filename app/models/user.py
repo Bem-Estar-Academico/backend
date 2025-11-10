@@ -10,6 +10,7 @@ from app.models.base import Base
 
 if TYPE_CHECKING:
     from app.models.review import ReviewRegistrationModel
+    from app.models.form_draft import FormDraft
 
 
 """Module for defining the User model and related enumerations."""
@@ -101,6 +102,9 @@ class User(Base):
 
     reviews: Mapped[List["ReviewRegistrationModel"]] = relationship(
         "ReviewRegistrationModel", back_populates="social_worker"
+    )
+    form_drafts: Mapped[List["FormDraft"]] = relationship(
+        "FormDraft", back_populates="user", cascade="all, delete-orphan"
     )
 
     @property

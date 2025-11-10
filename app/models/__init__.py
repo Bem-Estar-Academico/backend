@@ -3,6 +3,7 @@ from app.models.registration import StudentRegistration
 from app.models.review import ReviewRegistrationModel
 from app.models.user import User
 from app.models.appeal import Appeal
+from app.models.form_draft import FormDraft
 
 __all__ = [
     "User",
@@ -12,4 +13,5 @@ __all__ = [
     "StudentRegistration",
     "ReviewRegistrationModel",
     "Appeal",
+    "FormDraft",
 ]

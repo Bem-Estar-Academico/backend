@@ -6,16 +6,19 @@ from sqlalchemy import (
     JSON,
     Boolean,
     DateTime,
-    Enum as SQLAlchemyEnum,
     ForeignKey,
     Integer,
     String,
     Text,
 )
+from sqlalchemy import (
+    Enum as SQLAlchemyEnum,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql.functions import now
 
 from app.models.base import Base
+from app.models.form_draft import FormDraft
 from app.models.registration import StudentRegistration
 
 if TYPE_CHECKING:
@@ -259,4 +262,7 @@ class Notice(Base):
     )
     registrations: Mapped[List["StudentRegistration"]] = relationship(
         "StudentRegistration", back_populates="notice", cascade="all, delete-orphan"
+    )
+    form_drafts: Mapped[List["FormDraft"]] = relationship(
+        "FormDraft", back_populates="notice", cascade="all, delete-orphan"
     )

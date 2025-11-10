@@ -59,4 +59,10 @@ class Appeal(Base):
         back_populates="appeals"
     )
 
+    fulfilled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Timestamp of when the student fulfilled the appeal requirements.",
+    )
+
     model_config = {"from_attributes": True}
