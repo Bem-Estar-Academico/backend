@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.core.logging_config import setup_logging
 from app.core.middleware import RequestLoggingMiddleware
 from app.routers.appeal import router as appeal_router
+from app.routers.audit import router as audit_router
 from app.routers.auth import router as auth_router
 from app.routers.ivs import router as ivs_router
 from app.routers.notices import router as notices_router
@@ -58,6 +59,7 @@ app.include_router(
     prefix=f"{settings.API_V1_STR}/student-documents",
     tags=["student-documents"],
 )
+app.include_router(audit_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/")
