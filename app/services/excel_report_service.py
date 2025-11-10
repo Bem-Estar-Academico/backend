@@ -3,7 +3,7 @@ Service for generating Excel reports from IVS data.
 """
 
 import io
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import BinaryIO, List
 
 from openpyxl import Workbook
@@ -67,7 +67,7 @@ class ExcelReportService:
             cell.border = border
 
         for row_idx, ivs_item in enumerate(ivs_data, 2):
-            current_date = datetime.now()
+            current_date = datetime.now(timezone.utc)
             status = "Ativo" if ivs_item.expiration_date > current_date else "Expirado"
 
             row_data = [
@@ -76,7 +76,6 @@ class ExcelReportService:
                 ivs_item.student.registration_number or "N/A",
                 getattr(ivs_item.student, "cpf", None) or "N/A",
                 ivs_item.notice.title or "N/A",
-                ivs_item.notice.year or "N/A",
                 (
                     f"{ivs_item.ivs_score:.2f}"
                     if ivs_item.ivs_score is not None
@@ -120,7 +119,7 @@ class ExcelReportService:
 
         total_students = len(ivs_data)
         active_count = sum(
-            1 for item in ivs_data if item.expiration_date > datetime.now()
+            1 for item in ivs_data if item.expiration_date > datetime.now(timezone.utc)
         )
         expired_count = total_students - active_count
 

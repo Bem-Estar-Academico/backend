@@ -38,7 +38,7 @@ async def export_ivs_excel(
     filename = excel_report_service.generate_filename()
 
     return StreamingResponse(
-        io=excel_buffer,
+        content=excel_buffer,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
