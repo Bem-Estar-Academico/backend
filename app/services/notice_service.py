@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
+import logging
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import case, extract, select
+from sqlalchemy import case, delete, extract, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -9,7 +10,7 @@ from app.core.storage_factory import get_storage_manager
 from app.models.notice import Document, Notice, NoticeTeam, StudentRegistration
 from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.models.user import User, UserType
-from app.schemas.notice import NoticeCreate, NoticeUpdate
+from app.schemas.notice import NoticeCreate, NoticeTeamMember, NoticeUpdate
 
 
 class NoticeService:
@@ -154,14 +155,21 @@ class NoticeService:
         Returns:
             Optional[Notice]: The updated Notice object, or None if the notice was not found.
         """
+        
         notice = await NoticeService.get_notice_by_id(db, notice_id)
+        
         if not notice:
             return None
 
-        update_data = notice_update.model_dump(exclude_unset=True)
+        update_data = notice_update.model_dump(exclude_unset=True, exclude={"team_members"})
 
         for field, value in update_data.items():
             setattr(notice, field, value)
+            
+        if notice_update.team_members is not None:
+            await NoticeService._handle_team_update(
+                db=db, notice=notice, new_team_ids=notice_update.team_members
+            )
 
         await db.commit()
         await db.refresh(notice)
@@ -594,3 +602,50 @@ class NoticeService:
             team_members_formatted.append(member_data)
 
         return team_members_formatted
+    
+    @staticmethod
+    async def _handle_team_update(
+        db: AsyncSession, notice: Notice, new_team_ids: List[NoticeTeamMember]
+    ) -> None:
+        """
+        Lógica separada para atualizar a equipe de um edital.
+        Compara a equipe atual com a nova lista e faz as adições/remoções.
+        """
+        
+        query = select(NoticeTeam.user_id).where(NoticeTeam.notice_id == notice.id)
+        result = await db.execute(query)
+        current_team_ids = set(result.scalars().all())
+        
+        print("atual: ", current_team_ids)
+        new_team_ids_set = {member.user_id for member in new_team_ids}
+
+        ids_to_add = new_team_ids_set - current_team_ids
+        ids_to_remove = current_team_ids - new_team_ids_set
+
+        print("add: ", ids_to_add)
+        print("removendo: ", ids_to_remove)
+        
+        if ids_to_remove:
+            logging.info(f"Removendo {len(ids_to_remove)} membros do edital {notice.id}")
+            delete_stmt = (
+                delete(NoticeTeam)
+                .where(NoticeTeam.notice_id == notice.id)
+                .where(NoticeTeam.user_id.in_(ids_to_remove))
+            )
+            await db.execute(delete_stmt)
+
+        if ids_to_add:
+            logging.info(f"Adicionando {len(ids_to_add)} novos membros ao edital {notice.id}")
+            
+            user_check_query = select(User.id).where(
+                User.id.in_(ids_to_add),
+                User.user_type.in_([UserType.SOCIAL_WORKER, UserType.COORDINATOR])
+            )
+            valid_users = set((await db.execute(user_check_query)).scalars().all())
+            
+            for user_id in ids_to_add:
+                if user_id in valid_users:
+                    new_member = NoticeTeam(notice_id=notice.id, user_id=user_id)
+                    db.add(new_member)
+                else:
+                    logging.warning(f"Usuário ID {user_id} não é válido ou não é assistente/coordenador. Pulando.")

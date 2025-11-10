@@ -243,6 +243,10 @@ class NoticeUpdate(BaseModel):
     housing_allowance: Optional[bool] = None
     daycare_allowance: Optional[bool] = None
     graduation_scholarship: Optional[bool] = None
+    
+    team_members: Optional[List[NoticeTeamMember]] = Field(
+        None, description="Lista de IDs de usuários que substituirá a equipe atual"
+    )
 
 
 class Notice(NoticeBase):
