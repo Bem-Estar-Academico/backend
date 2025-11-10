@@ -173,7 +173,7 @@ class NoticeDetailsForRegistration(BaseModel):
 
     id: int
     title: str
-    registration_end_date: datetime
+    registration_end_date: Optional[datetime] = None
     appeal_start_date: Optional[datetime] = None
     appeal_end_date: Optional[datetime] = None
     registration_start_date: datetime

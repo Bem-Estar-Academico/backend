@@ -286,3 +286,14 @@ class NoticeForStudent(NoticeBase):
     )
 
     model_config = {"from_attributes": True}
+
+class NoticeStatisticsResponse(BaseModel):
+    """Contém as contagens de status para um edital."""
+    pending_count: int = 0
+    review_count: int = 0
+    approved_count: int = 0
+    rejected_count: int = 0
+    appeal_count: int = 0
+    cancelled_count: int = 0
+    total_count: int = 0
+    social_worker_count: int = 0
