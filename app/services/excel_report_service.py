@@ -39,7 +39,10 @@ class ExcelReportService:
         current_date = datetime.now(timezone.utc)
 
         for ivs_item in ivs_data:
-            status = "Ativo" if ivs_item.expiration_date > current_date else "Expirado"
+            expiration_date = ivs_item.expiration_date
+            if expiration_date is not None and expiration_date.tzinfo is None:
+                expiration_date = expiration_date.replace(tzinfo=timezone.utc)
+            status = "Ativo" if expiration_date and expiration_date > current_date else "Expirado"
             row_data = [
                 ivs_item.student.full_name or "N/A",
                 ivs_item.student.email or "N/A",
