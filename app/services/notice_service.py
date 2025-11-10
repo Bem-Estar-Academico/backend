@@ -12,8 +12,7 @@ from app.core.storage_factory import get_storage_manager
 from app.models.notice import Document, Notice, NoticeTeam, StudentRegistration
 from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.models.user import User, UserType
-from app.schemas.notice import NoticeCreate, NoticeUpdate
-from app.schemas.notice import NoticeCreate, NoticeTeamMember, NoticeUpdate, NoticeStatisticsResponse
+from app.schemas.notice import NoticeCreate, NoticeUpdate, NoticeStatisticsResponse
 
 
 class NoticeService:
