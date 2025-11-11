@@ -2,7 +2,7 @@
 Router for audit log endpoints.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -114,7 +114,7 @@ async def get_audit_stats(
     Returns:
         Dictionary containing audit statistics
     """
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
     action_stats = await db.execute(
         select(AuditLog.action, func.count(AuditLog.id))
