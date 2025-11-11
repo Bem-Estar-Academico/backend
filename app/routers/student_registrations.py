@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
@@ -23,6 +23,11 @@ from app.schemas.student_registration import (
     StudentRegistrationWithReviewResponse,
 )
 from app.schemas.user import UserType
+from app.services.audit_service import (
+    AuditService,
+    audit_registration_submitted,
+    audit_review_status_changed,
+)
 from app.services.review_registration_service import ReviewRegistrationService
 from app.services.student_registration_service import StudentRegistrationService
 from app.services.user_service import UserService
@@ -52,6 +57,7 @@ router = APIRouter(prefix="/student-registrations", tags=["student-registrations
 async def create_student_registration(
     notice_id: int,
     registration_data: StudentRegistrationCreate,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> StudentRegistrationResponse:
@@ -65,6 +71,23 @@ async def create_student_registration(
         notice_id, db, registration_data, current_user
     )
     print("Student registration created:", registration.id)
+
+    try:
+        from app.services.notice_service import NoticeService
+
+        notice = await NoticeService.get_notice_by_id(db, notice_id)
+        notice_title = notice.title if notice else f"Edital ID {notice_id}"
+
+        await audit_registration_submitted(
+            db=db,
+            registration_id=registration.id,
+            user_id=current_user.id,
+            notice_title=notice_title,
+            student_name=current_user.full_name,
+        )
+    except Exception as e:
+        print(f"Warning: Failed to log audit for registration {registration.id}: {e}")
+
     random_social_worker = await UserService.get_random_social_worker(db)
     print(
         "Random social worker selected:",
@@ -435,6 +458,7 @@ async def get_review_registration_by_id(
 async def update_review_registration(
     review_id: int,
     review_data: ReviewRegistrationUpdate,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ReviewRegistrationResponse:
@@ -444,17 +468,51 @@ async def update_review_registration(
     Args:
         review_id (int): The ID of the review to update.
         review_data (ReviewRegistrationUpdate): The data to update the review with.
+        request (Request): The HTTP request object for audit logging.
         current_user (User): The authenticated user.
         db (AsyncSession): The database session.
 
     Returns:
         ReviewRegistrationResponse: The updated review.
     """
+    existing_review = await ReviewRegistrationService.get_review_by_id(db, review_id)
+    if not existing_review:
+        raise HTTPException(status_code=404, detail="Review not found")
+
+    old_status = existing_review.status
+
     updated_review = await ReviewRegistrationService.update_review(
         db, review_id, review_data, current_user
     )
     if not updated_review:
         raise HTTPException(status_code=404, detail="Review not found")
+
+    if updated_review.status != old_status:
+        try:
+            student_registration = updated_review.student_registration
+            student_name = (
+                student_registration.user.full_name
+                if student_registration and student_registration.user
+                else "Estudante desconhecido"
+            )
+
+            ip_address, user_agent = AuditService.extract_client_info(request)
+            await audit_review_status_changed(
+                db=db,
+                review_id=review_id,
+                user_id=current_user.id,
+                old_status=old_status.value,
+                new_status=updated_review.status.value,
+                student_name=student_name,
+                metadata={
+                    "review_changes": review_data.model_dump(exclude_unset=True),
+                    "ip_address": ip_address,
+                    "user_agent": user_agent,
+                },
+            )
+        except Exception as e:
+            print(f"Warning: Failed to log audit for review {review_id}: {e}")
+
     return ReviewRegistrationResponse.model_validate(updated_review)
 
 
