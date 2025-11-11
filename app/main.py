@@ -62,8 +62,6 @@ app.include_router(statistics_router, prefix=settings.API_V1_STR)
 app.include_router(
     student_documents_router,
     prefix=f"{settings.API_V1_STR}",
-    prefix=f"{settings.API_V1_STR}/student-documents",
-    tags=["student-documents"],
 )
 app.include_router(form_drafts_router, prefix=f"{settings.API_V1_STR}")
 app.include_router(audit_router, prefix=settings.API_V1_STR)
