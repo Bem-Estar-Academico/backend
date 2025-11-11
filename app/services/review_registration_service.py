@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.logging_config import get_logger
+from app.models.audit import AuditAction, AuditEntityType
 from app.models.registration import StudentRegistration
 from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.models.user import User
@@ -21,6 +22,12 @@ from app.schemas.review_registration import (
 )
 from app.schemas.user import UserType
 from app.services.appeal_service import AppealService
+from app.services.audit_service import (
+    AuditService,
+    audit_review_created,
+    audit_review_deleted,
+    audit_review_status_changed,
+)
 from app.services.email_service import email_service
 from app.services.student_registration_service import StudentRegistrationService
 
@@ -99,6 +106,27 @@ class ReviewRegistrationService:
         db.add(db_review)
         await db.commit()
         await db.refresh(db_review)
+
+        try:
+            await AuditService.create_audit_log(
+                db=db,
+                action=AuditAction.REVIEW_STARTED,
+                entity_type=AuditEntityType.REVIEW,
+                entity_id=db_review.id,
+                user_id=social_worker.id,
+                description=f"Análise iniciada para inscrição do estudante '{registration.student.full_name}' no edital '{registration.notice.title}'",
+                metadata={
+                    "student_registration_id": student_registration_id,
+                    "student_name": registration.student.full_name,
+                    "notice_title": registration.notice.title,
+                    "social_worker_name": social_worker.full_name,
+                },
+            )
+        except Exception as e:
+            logger.warning(
+                f"Failed to create audit log for review creation {db_review.id}: {e}"
+            )
+
         return db_review
 
     @staticmethod
@@ -187,6 +215,7 @@ class ReviewRegistrationService:
         appeal_data = update_data.pop("appeal", None)
         calculated_ivs: Optional[float] = None
         new_status = review_data.status
+        old_status = review.status
 
         if new_status:
             if new_status in [RegistrationStatus.APPROVED, RegistrationStatus.REJECTED]:
@@ -240,6 +269,32 @@ class ReviewRegistrationService:
         try:
             await db.commit()
             await db.refresh(review)
+
+            if new_status and new_status != old_status:
+                try:
+                    student_name = (
+                        review.student_registration.student.full_name
+                        if review.student_registration
+                        and review.student_registration.student
+                        else "Estudante desconhecido"
+                    )
+                    await audit_review_status_changed(
+                        db=db,
+                        review_id=review.id,
+                        user_id=current_user.id,
+                        old_status=old_status.value,
+                        new_status=new_status.value,
+                        student_name=student_name,
+                        metadata={
+                            "review_changes": update_data,
+                            "calculated_ivs": calculated_ivs,
+                            "appeal_data": appeal_data,
+                        },
+                    )
+                except Exception as audit_exc:
+                    logger.warning(
+                        f"Failed to create audit log for review update {review_id}: {audit_exc}"
+                    )
 
             if (
                 new_status
@@ -312,6 +367,47 @@ class ReviewRegistrationService:
         if current_user.user_type != UserType.COORDINATOR:
             raise HTTPException(
                 status_code=403, detail="Only coordinators can delete reviews."
+            )
+
+        try:
+            student_name = (
+                review.student_registration.student.full_name
+                if review.student_registration and review.student_registration.student
+                else "Estudante desconhecido"
+            )
+            notice_code = (
+                review.student_registration.notice.code
+                if review.student_registration and review.student_registration.notice
+                else "Edital desconhecido"
+            )
+
+            await audit_review_deleted(
+                db=db,
+                review_id=review.id,
+                user_id=current_user.id,
+                student_name=student_name,
+                metadata={
+                    "student_id": (
+                        review.student_registration.student_id
+                        if review.student_registration
+                        else None
+                    ),
+                    "notice_code": notice_code,
+                    "original_status": review.status.value if review.status else None,
+                    "review_data": {
+                        "id": review.id,
+                        "created_at": (
+                            review.created_at.isoformat() if review.created_at else None
+                        ),
+                        "updated_at": (
+                            review.updated_at.isoformat() if review.updated_at else None
+                        ),
+                    },
+                },
+            )
+        except Exception as audit_exc:
+            logger.warning(
+                f"Failed to create audit log for review deletion {review_id}: {audit_exc}"
             )
 
         await db.delete(review)
