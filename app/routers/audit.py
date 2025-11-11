@@ -116,21 +116,18 @@ async def get_audit_stats(
     """
     start_date = datetime.utcnow() - timedelta(days=days)
 
-    # Query for action counts
     action_stats = await db.execute(
         select(AuditLog.action, func.count(AuditLog.id))
         .where(AuditLog.created_at >= start_date)
         .group_by(AuditLog.action)
     )
 
-    # Query for entity type counts
     entity_stats = await db.execute(
         select(AuditLog.entity_type, func.count(AuditLog.id))
         .where(AuditLog.created_at >= start_date)
         .group_by(AuditLog.entity_type)
     )
 
-    # Query for total count
     total_count = await db.execute(
         select(func.count(AuditLog.id)).where(AuditLog.created_at >= start_date)
     )

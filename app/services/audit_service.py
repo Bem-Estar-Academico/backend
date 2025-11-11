@@ -34,7 +34,6 @@ class AuditService:
         if not request:
             return None, None
 
-        # Extract IP address (considering proxies)
         ip_address = request.headers.get("X-Forwarded-For")
         if ip_address:
             ip_address = ip_address.split(",")[0].strip()
@@ -43,7 +42,6 @@ class AuditService:
             if not ip_address:
                 ip_address = request.client.host if request.client else None
 
-        # Extract User-Agent
         user_agent = request.headers.get("User-Agent")
 
         return ip_address, user_agent
@@ -89,14 +87,14 @@ class AuditService:
                 raise ValueError("description cannot be empty")
 
             audit_log = AuditLog(
-                action=action,
-                entity_type=entity_type,
+                action=action.value,
+                entity_type=entity_type.value,
                 entity_id=entity_id,
                 user_id=user_id,
                 description=description.strip(),
-                metadata=metadata or {},
+                meta_data=metadata or {},
                 ip_address=ip_address,
-                user_agent=user_agent,
+                user_agent=user_agent
             )
 
             db.add(audit_log)
@@ -196,7 +194,6 @@ class AuditService:
         return list(result.scalars().all())
 
 
-# Helper functions for common audit actions
 async def audit_notice_created(
     db: AsyncSession, notice_id: int, user_id: int, notice_title: str
 ):
