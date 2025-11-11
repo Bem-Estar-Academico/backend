@@ -181,6 +181,21 @@ async def upload_document_for_appeal(
                 name=file.filename, description=description
             )
 
+            # Check if a document with the same name already exists
+            existing_document = (
+                await StudentDocumentService.get_document_by_name_and_registration(
+                    db=db,
+                    registration_id=appeal.review_registration.student_registration.id,
+                    document_name=file.filename,
+                )
+            )
+
+            # If exists, delete the old one before uploading the new one
+            if existing_document:
+                await StudentDocumentService.delete_document(
+                    db=db, document_id=existing_document.id
+                )
+
             document = await StudentDocumentService.upload_document(
                 db=db,
                 registration_id=appeal.review_registration.student_registration.id,

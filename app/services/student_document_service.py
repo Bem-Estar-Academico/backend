@@ -85,6 +85,19 @@ class StudentDocumentService:
         return list(result.scalars().all())
 
     @staticmethod
+    async def get_document_by_name_and_registration(
+        db: AsyncSession, registration_id: int, document_name: str
+    ) -> Optional[StudentDocument]:
+        """Get a document by its name and registration ID"""
+        result = await db.execute(
+            select(StudentDocument).where(
+                StudentDocument.student_registration_id == registration_id,
+                StudentDocument.name == document_name,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    @staticmethod
     async def upload_document(
         db: AsyncSession,
         registration_id: int,
