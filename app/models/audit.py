@@ -6,7 +6,7 @@ import enum
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -90,7 +90,7 @@ class AuditLog(Base):
     user_agent: Mapped[Optional[str]] = mapped_column(
         String(500), nullable=True, comment="User agent string of the client"
     )
-    metadata: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+    meta_data: Mapped[Optional[Dict[str, Any]]] = mapped_column(
         JSON, nullable=True, comment="Additional context data as JSON"
     )
     created_at: Mapped[datetime] = mapped_column(
