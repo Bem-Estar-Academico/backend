@@ -4,6 +4,7 @@ from app.models.review import ReviewRegistrationModel
 from app.models.user import User
 from app.models.appeal import Appeal
 from app.models.form_draft import FormDraft
+from app.models.period import Period
 
 __all__ = [
     "User",
@@ -14,4 +15,5 @@ __all__ = [
     "ReviewRegistrationModel",
     "Appeal",
     "FormDraft",
+    "Period",
 ]

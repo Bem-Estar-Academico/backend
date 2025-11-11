@@ -24,7 +24,9 @@ async def read_ivs_data(
 
 @router.get("/export/excel")
 async def export_ivs_excel(
-    user: User = Depends(require_staff), db: AsyncSession = Depends(get_db)
+    anonymous: bool = False,
+    user: User = Depends(require_staff),
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Export IVS data to Excel file.
@@ -34,11 +36,11 @@ async def export_ivs_excel(
     """
     ivs_data = await ivs_service.get_ivs_data(db)
 
-    excel_buffer = excel_report_service.generate_ivs_report(ivs_data)
-    filename = excel_report_service.generate_filename()
+    excel_buffer = excel_report_service.generate_ivs_report_csv(ivs_data, anonymous)
+    filename = excel_report_service.generate_csv_filename(anonymous)
 
     return StreamingResponse(
-        io=excel_buffer,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        content=excel_buffer, 
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )

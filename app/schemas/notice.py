@@ -243,6 +243,10 @@ class NoticeUpdate(BaseModel):
     housing_allowance: Optional[bool] = None
     daycare_allowance: Optional[bool] = None
     graduation_scholarship: Optional[bool] = None
+    
+    team_members: Optional[List[int]] = Field(
+        None, description="Lista de IDs de usuários que substituirá a equipe atual"
+    )
 
 
 class Notice(NoticeBase):
@@ -282,3 +286,14 @@ class NoticeForStudent(NoticeBase):
     )
 
     model_config = {"from_attributes": True}
+
+class NoticeStatisticsResponse(BaseModel):
+    """Contém as contagens de status para um edital."""
+    pending_count: int = 0
+    review_count: int = 0
+    approved_count: int = 0
+    rejected_count: int = 0
+    appeal_count: int = 0
+    cancelled_count: int = 0
+    total_count: int = 0
+    social_worker_count: int = 0
