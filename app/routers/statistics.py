@@ -1,7 +1,7 @@
-# app/routers/statistics.py
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.database import get_db
 from app.schemas.statistics import StatisticsResponse
 from app.services.statistics_service import StatisticsService
 # from app.dependencies.auth import get_current_active_user 
@@ -26,8 +26,8 @@ router = APIRouter(
     """
 )
 async def get_dashboard_data(
-    db: AsyncSession
-):
+    db: AsyncSession = Depends(get_db)
+) -> StatisticsResponse:
     """
     Constrói e retorna o relatório de estatísticas do dashboard.
     """
