@@ -209,6 +209,40 @@ async def audit_notice_created(
     )
 
 
+async def audit_notice_updated(
+    db: AsyncSession,
+    notice_id: int,
+    user_id: int,
+    notice_title: str,
+    updated_fields: Optional[Dict[str, Any]] = None,
+):
+    """Audit when a notice is updated."""
+    await AuditService.create_audit_log(
+        db=db,
+        action=AuditAction.NOTICE_UPDATED,
+        entity_type=AuditEntityType.NOTICE,
+        entity_id=notice_id,
+        user_id=user_id,
+        description=f"Edital '{notice_title}' atualizado",
+        metadata={"notice_title": notice_title, "updated_fields": updated_fields or {}},
+    )
+
+
+async def audit_notice_deleted(
+    db: AsyncSession, notice_id: int, user_id: int, notice_title: str
+):
+    """Audit when a notice is deleted."""
+    await AuditService.create_audit_log(
+        db=db,
+        action=AuditAction.NOTICE_DELETED,
+        entity_type=AuditEntityType.NOTICE,
+        entity_id=notice_id,
+        user_id=user_id,
+        description=f"Edital '{notice_title}' removido",
+        metadata={"notice_title": notice_title},
+    )
+
+
 async def audit_review_status_changed(
     db: AsyncSession,
     review_id: int,
@@ -288,6 +322,25 @@ async def audit_document_uploaded(
         entity_id=document_id,
         user_id=user_id,
         description=f"Documento '{document_name}' enviado",
+        metadata={"document_name": document_name, "entity_type": entity_type},
+    )
+
+
+async def audit_document_deleted(
+    db: AsyncSession,
+    document_id: int,
+    user_id: int,
+    document_name: str,
+    entity_type: str,
+):
+    """Audit when a document is deleted."""
+    await AuditService.create_audit_log(
+        db=db,
+        action=AuditAction.DOCUMENT_DELETED,
+        entity_type=AuditEntityType.DOCUMENT,
+        entity_id=document_id,
+        user_id=user_id,
+        description=f"Documento '{document_name}' removido",
         metadata={"document_name": document_name, "entity_type": entity_type},
     )
 
