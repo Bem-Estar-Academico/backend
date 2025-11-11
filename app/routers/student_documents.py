@@ -242,7 +242,7 @@ async def upload_document_for_appeal(
             document = await StudentDocumentService.upload_document(
                 db=db,
                 registration_id=appeal.review_registration.student_registration.id,
-                file_content=await file.read(),
+                file_content=file_content,
                 filename=file.filename,
                 content_type=file.content_type,
                 document_data=document_data,

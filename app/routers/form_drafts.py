@@ -59,6 +59,12 @@ async def get_registration_form_draft(
             detail="Form draft not found for this registration.",
         )
 
+    if not current_user.is_staff and result.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Form draft not found for this registration.",
+        )
+
     return result
 
 
@@ -80,6 +86,7 @@ async def update_registration_form_draft(
         draft_type=FormSketchType.REGISTRATION,
         form_data=form_data,
     )
+
     return result
 
 
@@ -94,10 +101,22 @@ async def update_review_form_draft(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
-    # Logic to update the form draft for the specified review
+    if not current_user.is_staff:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only staff users can update review form drafts.",
+        )
+
     result = await FormDraftService.update_review_form_draft(
         db,
         review_id=review_id,
         form_data=form_data,
     )
+
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Form draft not found for this review.",
+        )
+
     return result
