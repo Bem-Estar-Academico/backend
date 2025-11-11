@@ -20,16 +20,6 @@ class TestAuditService:
         """Test successful audit log creation."""
         # Arrange
         mock_db = AsyncMock()
-        mock_audit_log = AuditLog(
-            id=1,
-            action=AuditAction.NOTICE_CREATED,
-            entity_type=AuditEntityType.NOTICE,
-            entity_id=123,
-            user_id=456,
-            description="Test notice created",
-            metadata={"test": "data"},
-            created_at=datetime.now(timezone.utc),
-        )
         mock_db.commit = AsyncMock()
         mock_db.refresh = AsyncMock()
 
