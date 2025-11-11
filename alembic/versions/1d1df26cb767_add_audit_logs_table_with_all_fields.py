@@ -1,7 +1,7 @@
 """Add audit_logs table with all fields
 
 Revision ID: 1d1df26cb767
-Revises: e6da3eedd23f
+Revises: 10f7d8796c33
 Create Date: 2025-11-11 00:33:52.508314
 
 """
