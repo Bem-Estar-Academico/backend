@@ -1,8 +1,8 @@
-"""init
+"""Initial migration with new models
 
-Revision ID: 8311009df401
+Revision ID: 7e3143dcedc8
 Revises: 
-Create Date: 2025-11-08 10:30:10.028152
+Create Date: 2025-11-11 08:37:16.200751
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '8311009df401'
+revision = '7e3143dcedc8'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -64,6 +64,37 @@ def upgrade() -> None:
     op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
     op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
     op.create_index(op.f('ix_users_registration_number'), 'users', ['registration_number'], unique=True)
+    op.create_table('audit_logs',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('action', sa.String(length=50), nullable=False, comment='The action that was performed'),
+    sa.Column('entity_type', sa.String(length=50), nullable=False, comment='The type of entity that was affected'),
+    sa.Column('entity_id', sa.Integer(), nullable=False, comment='The ID of the entity that was affected'),
+    sa.Column('user_id', sa.Integer(), nullable=False, comment='The user who performed the action'),
+    sa.Column('description', sa.Text(), nullable=False, comment='Human-readable description of the action'),
+    sa.Column('ip_address', sa.String(length=45), nullable=True, comment='IP address of the user who performed the action'),
+    sa.Column('user_agent', sa.String(length=500), nullable=True, comment='User agent string of the client'),
+    sa.Column('meta_data', sa.JSON(), nullable=True, comment='Additional context data as JSON'),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, comment='When the action was performed'),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_audit_logs_action'), 'audit_logs', ['action'], unique=False)
+    op.create_index(op.f('ix_audit_logs_created_at'), 'audit_logs', ['created_at'], unique=False)
+    op.create_index(op.f('ix_audit_logs_entity_id'), 'audit_logs', ['entity_id'], unique=False)
+    op.create_index(op.f('ix_audit_logs_entity_type'), 'audit_logs', ['entity_type'], unique=False)
+    op.create_index(op.f('ix_audit_logs_id'), 'audit_logs', ['id'], unique=False)
+    op.create_index(op.f('ix_audit_logs_user_id'), 'audit_logs', ['user_id'], unique=False)
+    op.create_table('form_drafts',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('notice_id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('type', sa.Enum('REVIEW', 'REGISTRATION', name='formsketchtype'), nullable=False),
+    sa.Column('content', sa.JSON(), nullable=True, comment="JSON data containing the student's answers to the notice questions"),
+    sa.ForeignKeyConstraint(['notice_id'], ['notices.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_form_drafts_id'), 'form_drafts', ['id'], unique=False)
     op.create_table('notice_documents',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('notice_id', sa.Integer(), nullable=False),
@@ -145,6 +176,7 @@ def upgrade() -> None:
     sa.Column('requested_documents', sa.JSON(), nullable=False, comment='JSON detailing requested documents and reasons for appeal'),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('fulfilled_at', sa.DateTime(timezone=True), nullable=True, comment='Timestamp of when the student fulfilled the appeal requirements.'),
     sa.ForeignKeyConstraint(['review_registration_id'], ['review_registrations.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -170,6 +202,15 @@ def downgrade() -> None:
     op.drop_table('notice_teams')
     op.drop_index(op.f('ix_notice_documents_id'), table_name='notice_documents')
     op.drop_table('notice_documents')
+    op.drop_index(op.f('ix_form_drafts_id'), table_name='form_drafts')
+    op.drop_table('form_drafts')
+    op.drop_index(op.f('ix_audit_logs_user_id'), table_name='audit_logs')
+    op.drop_index(op.f('ix_audit_logs_id'), table_name='audit_logs')
+    op.drop_index(op.f('ix_audit_logs_entity_type'), table_name='audit_logs')
+    op.drop_index(op.f('ix_audit_logs_entity_id'), table_name='audit_logs')
+    op.drop_index(op.f('ix_audit_logs_created_at'), table_name='audit_logs')
+    op.drop_index(op.f('ix_audit_logs_action'), table_name='audit_logs')
+    op.drop_table('audit_logs')
     op.drop_index(op.f('ix_users_registration_number'), table_name='users')
     op.drop_index(op.f('ix_users_id'), table_name='users')
     op.drop_index(op.f('ix_users_email'), table_name='users')

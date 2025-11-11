@@ -45,5 +45,6 @@ class AppealResponse(AppealBase):
     created_at: datetime
     updated_at: datetime
     review_registration_id: int
+    fulfilled_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)

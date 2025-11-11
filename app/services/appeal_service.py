@@ -51,7 +51,7 @@ class AppealService:
                 detail="Review registration not found.",
             )
 
-        if review.social_worker_id != current_user.id:
+        if review.social_worker_id != current_user.id and not current_user.is_staff:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You can only create appeals for reviews assigned to you.",
@@ -69,7 +69,13 @@ class AppealService:
     async def get_appeal_by_id(db: AsyncSession, appeal_id: int) -> Optional[Appeal]:
         """Retrieves an appeal by its ID."""
         return await db.get(
-            Appeal, appeal_id, options=[selectinload(Appeal.review_registration)]
+            Appeal,
+            appeal_id,
+            options=[
+                selectinload(Appeal.review_registration).selectinload(
+                    ReviewRegistrationModel.student_registration
+                )
+            ],
         )
 
     @staticmethod

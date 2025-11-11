@@ -9,6 +9,8 @@ from sqlalchemy.sql.functions import now
 from app.models.base import Base
 
 if TYPE_CHECKING:
+    from app.models.audit import AuditLog
+    from app.models.form_draft import FormDraft
     from app.models.review import ReviewRegistrationModel
 
 
@@ -101,6 +103,12 @@ class User(Base):
 
     reviews: Mapped[List["ReviewRegistrationModel"]] = relationship(
         "ReviewRegistrationModel", back_populates="social_worker"
+    )
+    audit_logs: Mapped[List["AuditLog"]] = relationship(
+        "AuditLog", back_populates="user", cascade="all, delete-orphan"
+    )
+    form_drafts: Mapped[List["FormDraft"]] = relationship(
+        "FormDraft", back_populates="user", cascade="all, delete-orphan"
     )
 
     @property

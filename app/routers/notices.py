@@ -1,20 +1,28 @@
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, require_coordinator
 from app.db.database import get_db
 from app.models.user import User, UserType
-from app.schemas.notice import DocumentWithUrl, NoticeStatisticsResponse
+from app.schemas.notice import DocumentWithUrl
 from app.schemas.notice import Notice as NoticeSchema
 from app.schemas.notice import (
     NoticeCreate,
     NoticeForStudent,
+    NoticeStatisticsResponse,
     NoticeTeamMember,
     NoticeUpdate,
 )
 from app.schemas.user import TeamMemberResponse
+from app.services.audit_service import (
+    AuditService,
+    audit_notice_created,
+    audit_notice_deleted,
+    audit_notice_updated,
+    audit_team_member_assigned,
+)
 from app.services.notice_service import NoticeService
 
 router = APIRouter(prefix="/notices", tags=["notices"])
@@ -118,6 +126,7 @@ async def get_notice(
         NoticeSchema: The notice object.
     """
     notice = await NoticeService.get_notice_by_id(db, notice_id)
+
     if not notice:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
@@ -128,33 +137,33 @@ async def get_notice(
 @router.post("/", response_model=NoticeSchema, status_code=status.HTTP_201_CREATED)
 async def create_notice(
     notice_data: NoticeCreate,
-    current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
-) -> NoticeSchema:
-    """
-    Creates a new notice.
+    current_user: User = Depends(require_coordinator),
+    request: Request = Request,
+):
+    notice = await NoticeService.create_notice(
+        db=db, notice_data=notice_data, created_by_user_id=current_user.id
+    )
 
-    This endpoint is restricted to coordinator users.
+    ip_address, user_agent = AuditService.extract_client_info(request)
 
-    Args:
-        notice_data (NoticeCreate): The data for creating the new notice.
-        current_user (User): The authenticated coordinator user.
-        db (AsyncSession): The database session.
+    await audit_notice_created(
+        db=db,
+        notice_id=notice.id,
+        user_id=current_user.id,
+        notice_title=notice.title,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
 
-    Returns:
-        NoticeSchema: The newly created notice object.
-    """
-    try:
-        notice = await NoticeService.create_notice(db, notice_data, current_user.id)
-        return notice
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return notice
 
 
 @router.put("/{notice_id}", response_model=NoticeSchema)
 async def update_notice(
     notice_id: int,
     notice_update: NoticeUpdate,
+    request: Request,
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
 ) -> NoticeSchema:
@@ -166,6 +175,7 @@ async def update_notice(
     Args:
         notice_id (int): The ID of the notice to update.
         notice_update (NoticeUpdate): The updated data for the notice.
+        request (Request): The HTTP request object for audit logging.
         current_user (User): The authenticated coordinator user.
         db (AsyncSession): The database session.
 
@@ -182,6 +192,20 @@ async def update_notice(
         )
 
     notice = await NoticeService.update_notice(db, notice_id, notice_update)
+
+    ip_address, user_agent = AuditService.extract_client_info(request)
+
+    updated_fields = notice_update.model_dump(exclude_unset=True)
+    await audit_notice_updated(
+        db=db,
+        notice_id=notice.id,
+        user_id=current_user.id,
+        notice_title=notice.title,
+        updated_fields=updated_fields,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+
     return notice
 
 
@@ -190,6 +214,7 @@ async def update_notice(
 )
 async def delete_notice(
     notice_id: int,
+    request: Request,
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
 ) -> None:
@@ -200,6 +225,7 @@ async def delete_notice(
 
     Args:
         notice_id (int): The ID of the notice to delete.
+        request (Request): The HTTP request object for audit logging.
         current_user (User): The authenticated coordinator user.
         db (AsyncSession): The database session.
 
@@ -215,6 +241,17 @@ async def delete_notice(
             status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
         )
 
+    ip_address, user_agent = AuditService.extract_client_info(request)
+
+    await audit_notice_deleted(
+        db=db,
+        notice_id=notice_id,
+        user_id=current_user.id,
+        notice_title=existing_notice.title,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+
     success = await NoticeService.delete_notice(db, notice_id)
     if not success:
         raise HTTPException(
@@ -228,6 +265,7 @@ async def delete_notice(
 async def add_team_member_to_notice(
     notice_id: int,
     user_id: int,
+    request: Request,
     current_user: User = Depends(require_coordinator),
     db: AsyncSession = Depends(get_db),
 ) -> NoticeTeamMember:
@@ -239,6 +277,7 @@ async def add_team_member_to_notice(
     Args:
         notice_id (int): The ID of the notice to add the team member to.
         user_id (int): The ID of the user to add as a team member.
+        request (Request): The HTTP request object for audit logging.
         current_user (User): The authenticated coordinator user.
         db (AsyncSession): The database session.
 
@@ -256,12 +295,35 @@ async def add_team_member_to_notice(
         )
 
     try:
-        team_member = await NoticeService.add_team_member_to_notice(db, notice_id, user_id)
+        team_member = await NoticeService.add_team_member_to_notice(
+            db, notice_id, user_id
+        )
         if not team_member:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="User is already in the team or user not found",
             )
+
+        # Log audit trail for team member assignment
+        try:
+            ip_address, user_agent = AuditService.extract_client_info(request)
+            await audit_team_member_assigned(
+                db=db,
+                team_member_user_id=user_id,
+                notice_id=notice_id,
+                user_id=current_user.id,
+                notice_title=existing_notice.title,
+                team_member_name=(
+                    team_member.user.full_name
+                    if team_member.user
+                    else f"User ID {user_id}"
+                ),
+                ip_address=ip_address,
+                user_agent=user_agent,
+            )
+        except Exception as e:
+            print(f"Warning: Failed to log audit for team member assignment: {e}")
+
         return team_member
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -369,6 +431,7 @@ async def get_team_to_notice(
     ]
 
     return team_members
+
 
 @router.get("/{notice_id}/statistics", response_model=NoticeStatisticsResponse)
 async def get_notice_statistics(

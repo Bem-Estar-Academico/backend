@@ -13,13 +13,16 @@ from app.core.config import settings
 from app.core.logging_config import setup_logging
 from app.core.middleware import RequestLoggingMiddleware
 from app.routers.appeal import router as appeal_router
+from app.routers.audit import router as audit_router
 from app.routers.auth import router as auth_router
+from app.routers.form_drafts import router as form_drafts_router
 from app.routers.ivs import router as ivs_router
 from app.routers.notices import router as notices_router
+from app.routers.period import router as periodo_router
+from app.routers.statistics import router as statistics_router
 from app.routers.student_documents import router as student_documents_router
 from app.routers.student_registrations import router as student_registrations_router
 from app.routers.users import router as users_router
-from app.routers.period import router as periodo_router
 from app.schemas.review_registration import ReviewRegistrationResponseWithDetails
 from app.schemas.student_registration import StudentRegistrationWithReviewResponse
 
@@ -53,17 +56,16 @@ app.include_router(appeal_router, prefix=settings.API_V1_STR)
 app.include_router(users_router, prefix=settings.API_V1_STR)
 app.include_router(notices_router, prefix=settings.API_V1_STR)
 app.include_router(ivs_router, prefix=settings.API_V1_STR)
+app.include_router(statistics_router, prefix=settings.API_V1_STR)
 app.include_router(student_registrations_router, prefix=f"{settings.API_V1_STR}")
+app.include_router(statistics_router, prefix=settings.API_V1_STR)
 app.include_router(
     student_documents_router,
-    prefix=f"{settings.API_V1_STR}/student-documents",
-    tags=["student-documents"],
+    prefix=f"{settings.API_V1_STR}",
 )
-app.include_router(
-    periodo_router,
-    prefix=f"{settings.API_V1_STR}/period",
-    tags=["periods"],
-)
+app.include_router(form_drafts_router, prefix=f"{settings.API_V1_STR}")
+app.include_router(audit_router, prefix=settings.API_V1_STR)
+app.include_router(periodo_router, prefix=f"{settings.API_V1_STR}")
 
 
 @app.get("/")

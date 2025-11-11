@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.logging_config import get_logger
+from app.models.registration import StudentRegistration
 from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.models.user import User
 from app.schemas.email_notification import EmailNotificationData
@@ -118,7 +119,9 @@ class ReviewRegistrationService:
             select(ReviewRegistrationModel)
             .options(
                 selectinload(ReviewRegistrationModel.social_worker),
-                selectinload(ReviewRegistrationModel.student_registration),
+                selectinload(ReviewRegistrationModel.student_registration).selectinload(
+                    StudentRegistration.student
+                ),
             )
             .where(ReviewRegistrationModel.id == review_id)
         )
@@ -238,11 +241,16 @@ class ReviewRegistrationService:
             await db.commit()
             await db.refresh(review)
 
-            if new_status and new_status in [
-                RegistrationStatus.APPROVED,
-                RegistrationStatus.REJECTED,
-                RegistrationStatus.APPEAL,
-            ] and not seed:
+            if (
+                new_status
+                and new_status
+                in [
+                    RegistrationStatus.APPROVED,
+                    RegistrationStatus.REJECTED,
+                    RegistrationStatus.APPEAL,
+                ]
+                and not seed
+            ):
                 try:
                     await ReviewRegistrationService._send_status_email(
                         review, new_status, appeal_data
