@@ -24,7 +24,7 @@ class TestAuditService:
         mock_db.refresh = AsyncMock()
 
         # Act
-        result = await AuditService.create_audit_log(
+        await AuditService.create_audit_log(
             db=mock_db,
             action=AuditAction.NOTICE_CREATED,
             entity_type=AuditEntityType.NOTICE,
