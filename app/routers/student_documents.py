@@ -1,5 +1,6 @@
-from typing import Any, Dict, List
 from datetime import datetime, timezone
+from typing import Any, Dict, List
+
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -7,6 +8,7 @@ from fastapi import (
     File,
     Form,
     HTTPException,
+    Request,
     UploadFile,
     status,
 )
@@ -24,11 +26,16 @@ from app.schemas.student_document import (
     StudentDocumentList,
     StudentDocumentResponse,
 )
+from app.services.appeal_service import AppealService
+from app.services.audit_service import (
+    AuditService,
+    audit_document_deleted,
+    audit_document_uploaded,
+)
 from app.services.student_document_service import StudentDocumentService
 from app.services.student_registration_service import StudentRegistrationService
-from app.services.appeal_service import AppealService
 
-router = APIRouter()
+router = APIRouter(prefix="/student-documents", tags=["student-documents"])
 
 
 @router.get("/registration/{registration_id}", response_model=StudentDocumentList)
@@ -72,6 +79,7 @@ async def get_documents_by_registration(
 )
 async def upload_document(
     registration_id: int,
+    request: Request,
     file: UploadFile = File(...),
     description: str = Form(None, description="Descrição adicional"),
     db: AsyncSession = Depends(get_db),
@@ -139,6 +147,21 @@ async def upload_document(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Falha ao fazer upload do documento",
             )
+
+        try:
+            ip_address, user_agent = AuditService.extract_client_info(request)
+
+            await audit_document_uploaded(
+                db=db,
+                document_id=document.id,
+                user_id=current_user.id,
+                document_name=file.filename,
+                entity_type="student_registration",
+                ip_address=ip_address,
+                user_agent=user_agent,
+            )
+        except Exception as e:
+            print(f"Warning: Failed to log audit for document {document.id}: {e}")
 
         return StudentDocumentResponse.from_model(document)
 
@@ -292,6 +315,7 @@ async def upload_document_for_appeal(
 @router.delete("/{document_id}")
 async def delete_document(
     document_id: int,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -306,6 +330,21 @@ async def delete_document(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Você só pode deletar seus próprios documentos",
         )
+
+    try:
+        ip_address, user_agent = AuditService.extract_client_info(request)
+
+        await audit_document_deleted(
+            db=db,
+            document_id=document_id,
+            user_id=current_user.id,
+            document_name=document.name,
+            entity_type="student_registration",
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+    except Exception as e:
+        print(f"Warning: Failed to log audit for document deletion {document_id}: {e}")
 
     success = await StudentDocumentService.delete_document(db, document_id)
 

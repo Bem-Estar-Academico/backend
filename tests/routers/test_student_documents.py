@@ -176,8 +176,19 @@ async def test_upload_document_success(
             mock_file.filename = "test.pdf"
             mock_file.content_type = "application/pdf"
             mock_file.read = AsyncMock(return_value=b"file_content")
+
+            mock_request = MagicMock()
+            mock_request.headers = {}
+            mock_request.client = MagicMock()
+            mock_request.client.host = "127.0.0.1"
+
             response = await upload_document(
-                1, mock_file, "description", db_session, current_user_student
+                1,
+                mock_request,
+                mock_file,
+                "description",
+                db_session,
+                current_user_student,
             )
             mock_upload_doc.assert_called_once()
             assert isinstance(response, StudentDocumentResponse)
@@ -193,7 +204,14 @@ async def test_delete_document_success(db_session, current_user_student, mock_do
         with patch.object(
             StudentDocumentService, "delete_document", AsyncMock(return_value=True)
         ) as mock_delete_doc:
-            response = await delete_document(1, db_session, current_user_student)
+            mock_request = MagicMock()
+            mock_request.headers = {}
+            mock_request.client = MagicMock()
+            mock_request.client.host = "127.0.0.1"
+
+            response = await delete_document(
+                1, mock_request, db_session, current_user_student
+            )
             mock_delete_doc.assert_called_once_with(db_session, 1)
             assert response == {"message": "Documento deletado com sucesso"}
 
