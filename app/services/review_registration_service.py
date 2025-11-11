@@ -145,6 +145,9 @@ class ReviewRegistrationService:
                 selectinload(ReviewRegistrationModel.student_registration).selectinload(
                     StudentRegistration.student
                 ),
+                selectinload(ReviewRegistrationModel.student_registration).selectinload(
+                    StudentRegistration.notice
+                ),
             )
             .where(ReviewRegistrationModel.id == review_id)
         )
@@ -169,7 +172,12 @@ class ReviewRegistrationService:
             select(ReviewRegistrationModel)
             .options(
                 selectinload(ReviewRegistrationModel.social_worker),
-                selectinload(ReviewRegistrationModel.student_registration),
+                selectinload(ReviewRegistrationModel.student_registration).selectinload(
+                    StudentRegistration.student
+                ),
+                selectinload(ReviewRegistrationModel.student_registration).selectinload(
+                    StudentRegistration.notice
+                ),
                 selectinload(ReviewRegistrationModel.appeals),
             )
             .where(
@@ -370,25 +378,25 @@ class ReviewRegistrationService:
                 if review.student_registration and review.student_registration.student
                 else "Estudante desconhecido"
             )
-            notice_code = (
-                review.student_registration.notice.code
+            notice_title = (
+                review.student_registration.notice.title
                 if review.student_registration and review.student_registration.notice
                 else "Edital desconhecido"
             )
 
             await audit_review_deleted(
-                
                 db=db,
                 review_id=review.id,
                 user_id=current_user.id,
                 student_name=student_name,
+                notice_title=notice_title,
                 metadata={
                     "student_id": (
                         review.student_registration.student_id
                         if review.student_registration
                         else None
                     ),
-                    "notice_code": notice_code,
+                    "notice_title": notice_title,
                     "original_status": review.status.value if review.status else None,
                     "review_data": {
                         "id": review.id,
