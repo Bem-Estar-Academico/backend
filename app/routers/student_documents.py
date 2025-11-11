@@ -79,9 +79,9 @@ async def get_documents_by_registration(
 )
 async def upload_document(
     registration_id: int,
+    request: Request,
     file: UploadFile = File(...),
     description: str = Form(None, description="Descrição adicional"),
-    request: Request = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
