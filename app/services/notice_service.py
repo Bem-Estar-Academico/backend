@@ -12,7 +12,7 @@ from app.core.storage_factory import get_storage_manager
 from app.models.notice import Document, Notice, NoticeTeam, StudentRegistration
 from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.models.user import User, UserType
-from app.schemas.notice import NoticeCreate, NoticeTeamMember, NoticeUpdate, NoticeStatisticsResponse
+from app.schemas.notice import NoticeCreate, NoticeUpdate, NoticeStatisticsResponse
 
 
 class NoticeService:
@@ -607,7 +607,7 @@ class NoticeService:
     
     @staticmethod
     async def _handle_team_update(
-        db: AsyncSession, notice: Notice, new_team_ids: List[NoticeTeamMember]
+        db: AsyncSession, notice: Notice, new_team_ids: List[int]
     ) -> None:
         """
         Lógica separada para atualizar a equipe de um edital.
@@ -618,14 +618,10 @@ class NoticeService:
         result = await db.execute(query)
         current_team_ids = set(result.scalars().all())
         
-        print("atual: ", current_team_ids)
-        new_team_ids_set = {member.user_id for member in new_team_ids}
+        new_team_ids_set = set(new_team_ids)
 
         ids_to_add = new_team_ids_set - current_team_ids
         ids_to_remove = current_team_ids - new_team_ids_set
-
-        print("add: ", ids_to_add)
-        print("removendo: ", ids_to_remove)
         
         if ids_to_remove:
             logging.info(f"Removendo {len(ids_to_remove)} membros do edital {notice.id}")

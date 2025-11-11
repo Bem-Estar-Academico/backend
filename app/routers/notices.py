@@ -126,6 +126,7 @@ async def get_notice(
         NoticeSchema: The notice object.
     """
     notice = await NoticeService.get_notice_by_id(db, notice_id)
+
     if not notice:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"

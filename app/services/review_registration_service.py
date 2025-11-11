@@ -118,7 +118,9 @@ class ReviewRegistrationService:
             select(ReviewRegistrationModel)
             .options(
                 selectinload(ReviewRegistrationModel.social_worker),
-                selectinload(ReviewRegistrationModel.student_registration),
+                selectinload(ReviewRegistrationModel.student_registration).selectinload(
+                    StudentRegistrationService.student
+                ),
             )
             .where(ReviewRegistrationModel.id == review_id)
         )
@@ -238,11 +240,16 @@ class ReviewRegistrationService:
             await db.commit()
             await db.refresh(review)
 
-            if new_status and new_status in [
-                RegistrationStatus.APPROVED,
-                RegistrationStatus.REJECTED,
-                RegistrationStatus.APPEAL,
-            ] and not seed:
+            if (
+                new_status
+                and new_status
+                in [
+                    RegistrationStatus.APPROVED,
+                    RegistrationStatus.REJECTED,
+                    RegistrationStatus.APPEAL,
+                ]
+                and not seed
+            ):
                 try:
                     await ReviewRegistrationService._send_status_email(
                         review, new_status, appeal_data

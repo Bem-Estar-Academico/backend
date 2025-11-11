@@ -61,10 +61,6 @@ class ReviewRegistrationModel(Base):
     __tablename__ = "review_registrations"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    appeals: Mapped[List["Appeal"]] = relationship(
-        back_populates="review_registration",
-        cascade="all, delete-orphan",
-    )
     social_worker_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("users.id"),
         nullable=True,
@@ -130,10 +126,17 @@ class ReviewRegistrationModel(Base):
         onupdate=now(),
         nullable=False,
     )
-    social_worker: Mapped[Optional["User"]] = relationship(back_populates="reviews")
+    social_worker: Mapped["User"] = relationship()
     student_registration: Mapped["StudentRegistration"] = relationship(
         back_populates="review"
     )
+
+    appeals: Mapped[List["Appeal"]] = relationship(
+        back_populates="review_registration",
+        cascade="all, delete-orphan",
+    )
+
+    model_config = {"from_attributes": True}
 
     def to_dict(self) -> Dict[str, object]:
         """

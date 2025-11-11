@@ -78,14 +78,16 @@ class S3Manager(StorageInterface):
             raise Exception(f"Error uploading file to S3: {str(e)}")
 
     def generate_presigned_download_url(
-        self, file_key: str, expiration: int = 3600
+        self, file_key: str, expiration: int = 3600, inline: bool = True
     ) -> str:
         try:
             clean_file_key = file_key.lstrip("/")
-
+            params = {"Bucket": self.bucket_name, "Key": clean_file_key}
+            if inline:
+                params["ResponseContentDisposition"] = "inline"
             url = self.s3_client.generate_presigned_url(  # type: ignore
                 "get_object",
-                Params={"Bucket": self.bucket_name, "Key": clean_file_key},
+                Params=params,
                 ExpiresIn=expiration,
                 HttpMethod="GET",
             )
@@ -107,6 +109,13 @@ class S3Manager(StorageInterface):
 
     def generate_signed_url(self, file_key: str, expiration: int = 3600) -> str:
         return self.generate_presigned_download_url(file_key, expiration)
+
+    def generate_public_url(self, file_key: str) -> str:
+        clean_file_key = file_key.lstrip("/")
+        if settings.S3_ENDPOINT_URL:
+            return f"{settings.S3_ENDPOINT_URL.rstrip('/')}/{self.bucket_name}/{clean_file_key}"
+        else:
+            return f"https://{self.bucket_name}.s3.{settings.AWS_REGION}.amazonaws.com/{clean_file_key}"
 
     def delete_file(self, file_key: str) -> bool:
         try:

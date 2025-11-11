@@ -1,5 +1,6 @@
 from app.models.appeal import Appeal
 from app.models.audit import AuditLog
+from app.models.form_draft import FormDraft
 from app.models.notice import Document, Notice, NoticeTeam
 from app.models.period import Period
 from app.models.registration import StudentRegistration
@@ -16,4 +17,5 @@ __all__ = [
     "Appeal",
     "Period",
     "AuditLog",
+    "FormDraft",
 ]
