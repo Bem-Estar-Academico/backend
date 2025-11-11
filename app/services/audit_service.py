@@ -19,6 +19,44 @@ class AuditService:
     """Service for managing audit logs."""
 
     @staticmethod
+    def _serialize_metadata(obj: Any) -> Any:
+        """Recursively convert metadata objects into JSON-serializable types.
+
+        - datetime -> ISO string
+        - enum.Enum -> .value
+        - dict/list -> recurse
+        - objects with `dict()` or `model_dump()` -> use that representation
+        """
+        import enum
+        from datetime import datetime
+
+        if obj is None:
+            return None
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        if isinstance(obj, enum.Enum):
+            return obj.value
+        if isinstance(obj, dict):
+            return {k: AuditService._serialize_metadata(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple, set)):
+            return [AuditService._serialize_metadata(v) for v in obj]
+
+        if hasattr(obj, "model_dump"):
+            try:
+                return AuditService._serialize_metadata(obj.model_dump())
+            except Exception:
+                pass
+        if hasattr(obj, "dict"):
+            try:
+                return AuditService._serialize_metadata(obj.dict())
+            except Exception:
+                pass
+        try:
+            return obj
+        except Exception:
+            return str(obj)
+
+    @staticmethod
     def extract_client_info(
         request: Optional[Request] = None,
     ) -> tuple[Optional[str], Optional[str]]:
@@ -86,13 +124,16 @@ class AuditService:
             if not description.strip():
                 raise ValueError("description cannot be empty")
 
+            # Ensure metadata is JSON serializable (convert datetimes, enums, pydantic models)
+            safe_metadata = AuditService._serialize_metadata(metadata or {})
+
             audit_log = AuditLog(
                 action=action.value,
                 entity_type=entity_type.value,
                 entity_id=entity_id,
                 user_id=user_id,
                 description=description.strip(),
-                meta_data=metadata or {},
+                meta_data=safe_metadata,
                 ip_address=ip_address,
                 user_agent=user_agent,
             )
