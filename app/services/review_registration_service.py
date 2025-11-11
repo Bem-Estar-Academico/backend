@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.logging_config import get_logger
+from app.models.registration import StudentRegistration
 from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.models.user import User
 from app.schemas.email_notification import EmailNotificationData
@@ -119,7 +120,7 @@ class ReviewRegistrationService:
             .options(
                 selectinload(ReviewRegistrationModel.social_worker),
                 selectinload(ReviewRegistrationModel.student_registration).selectinload(
-                    StudentRegistrationService.student
+                    StudentRegistration.student
                 ),
             )
             .where(ReviewRegistrationModel.id == review_id)
