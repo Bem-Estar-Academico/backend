@@ -74,18 +74,16 @@ class ReviewRegistrationService:
             raise HTTPException(
                 status_code=404, detail="Student registration not found."
             )
-        now = datetime.now(timezone.utc)
-        if not (
-            registration.notice.registration_start_date
-            and registration.notice.registration_end_date
-            and registration.notice.registration_start_date
-            <= now
-            <= registration.notice.registration_end_date
-        ):
-            raise HTTPException(
-                status_code=400,
-                detail="Reviews can only be created during the notice's active registration period.",
-            )
+        # now = datetime.now(timezone.utc)
+        # if (
+        #     registration.notice.registration_start_date
+        #     and registration.notice.registration_end_date is not None
+        #     and registration.notice.registration_start_date > now or now < registration.notice.registration_end_date
+        # ):
+        #     raise HTTPException(
+        #         status_code=400,
+        #         detail="Reviews can only be created during the notice's active registration period.",
+        #     )
 
         existing_review = (
             await ReviewRegistrationService.get_review_by_student_registration_id(
@@ -109,6 +107,7 @@ class ReviewRegistrationService:
 
         try:
             await audit_review_created(
+                notice_title=registration.notice.title,
                 db=db,
                 review_id=db_review.id,
                 user_id=social_worker.id,
@@ -378,6 +377,7 @@ class ReviewRegistrationService:
             )
 
             await audit_review_deleted(
+                
                 db=db,
                 review_id=review.id,
                 user_id=current_user.id,
