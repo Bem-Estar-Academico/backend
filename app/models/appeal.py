@@ -64,5 +64,3 @@ class Appeal(Base):
         nullable=True,
         comment="Timestamp of when the student fulfilled the appeal requirements.",
     )
-
-    model_config = {"from_attributes": True}

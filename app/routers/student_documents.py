@@ -1,5 +1,5 @@
 from typing import Any, Dict, List
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -158,11 +158,54 @@ async def upload_document_for_appeal(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """
+    Upload documents for an appeal request.
+    Allows students to upload requested documents for their appeals.
+    Automatically marks appeals as fulfilled when all requested documents are uploaded.
+    Parameters:
+        appeal_id (int): The ID of the appeal to upload documents for.
+        files (List[UploadFile]): List of files to upload.
+        description (str, optional): Additional description for the documents.
+        db (AsyncSession): Database session dependency.
+        current_user (User): The current authenticated user.
+    Returns:
+        List[StudentDocumentResponse]: List of uploaded document responses.
+    """
     appeal = await AppealService.get_appeal_by_id(db, appeal_id)
     if not appeal:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Recurso não encontrado"
         )
+
+    for file in files:
+        if not file.filename:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Nome do arquivo é obrigatório",
+            )
+
+        allowed_types = [
+            "application/pdf",
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ]
+
+        if file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Tipo de arquivo não permitido. Tipos aceitos: {', '.join(allowed_types)}",
+            )
+
+        max_size = 5 * 1024 * 1024  # 5MB
+        file_content = await file.read()
+        if len(file_content) > max_size:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Arquivo muito grande. Tamanho máximo: 5MB",
+            )
 
     if (
         appeal.review_registration.student_registration.student_id != current_user.id
@@ -216,7 +259,6 @@ async def upload_document_for_appeal(
             # Update requested documents in appeal to remove the uploaded document
             requested_docs = appeal.requested_documents or {}
 
-            print("requested_docs: ", requested_docs, document_data.name)
             # Get doc key removing leading/trailing spaces and extension
             doc_key = document_data.name.strip().rsplit(".", 1)[0]
 
@@ -225,11 +267,10 @@ async def upload_document_for_appeal(
                 appeal.requested_documents = requested_docs
                 # Mark the field as modified so SQLAlchemy knows to update it
                 flag_modified(appeal, "requested_documents")
-                print("updated requested_docs: ", requested_docs)
 
         # If no more documents are requested, consider the appeal fulfilled
         if appeal.requested_documents is not None and not appeal.requested_documents:
-            appeal.fulfilled_at = datetime.utcnow()
+            appeal.fulfilled_at = datetime.now(timezone.utc)
             # Update review status to PENDING so it can be re-evaluated
             review = appeal.review_registration
             review.status = RegistrationStatus.PENDING

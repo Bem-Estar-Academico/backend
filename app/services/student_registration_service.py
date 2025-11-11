@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager, selectinload
 
 from app.models.notice import Notice
-from app.models.review import ReviewRegistrationModel
 from app.models.registration import StudentRegistration
 from app.models.review import RegistrationStatus, ReviewRegistrationModel
 from app.models.user import User, UserType
@@ -522,6 +521,7 @@ class StudentRegistrationService:
                         )
 
                 review_details = ReviewDetailsForRegistration.model_validate(reg.review)
+                review_details.expires_at = expires_at
 
             response_list.append(
                 StudentRegistrationWithReviewResponse(

@@ -92,8 +92,6 @@ class S3Manager(StorageInterface):
                 HttpMethod="GET",
             )
 
-            print("Generated presigned URL:", url)
-
             if settings.S3_ENDPOINT_URL and "supabase" in settings.S3_ENDPOINT_URL:
                 if not url or "Missing signature" in url:
                     encoded_key = urllib.parse.quote(clean_file_key, safe="/")

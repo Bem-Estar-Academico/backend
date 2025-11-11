@@ -10,8 +10,6 @@ from app.models.registration import StudentRegistration
 from app.models.review import RegistrationStatus
 from app.schemas.notice import NoticeInfo
 from app.schemas.user import UserInfo
-
-
 from app.schemas.appeal import AppealResponse
 
 

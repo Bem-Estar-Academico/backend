@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.models.form_draft import FormSketchType
 
@@ -29,8 +29,7 @@ class FormDraftInDBBase(FormDraftBase):
     user_id: int
     type: FormSketchType
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Properties to return to client
@@ -38,6 +37,6 @@ class FormDraft(FormDraftInDBBase):
     pass
 
 
-# Properties properties stored in DB
+# Properties stored in DB
 class FormDraftInDB(FormDraftInDBBase):
     pass

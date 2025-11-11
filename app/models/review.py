@@ -134,7 +134,6 @@ class ReviewRegistrationModel(Base):
     appeals: Mapped[List["Appeal"]] = relationship(
         back_populates="review_registration",
         cascade="all, delete-orphan",
-        lazy="selectin",
     )
 
     model_config = {"from_attributes": True}
