@@ -94,7 +94,7 @@ class AuditService:
                 description=description.strip(),
                 meta_data=metadata or {},
                 ip_address=ip_address,
-                user_agent=user_agent
+                user_agent=user_agent,
             )
 
             db.add(audit_log)
