@@ -169,12 +169,12 @@ class StudentRegistrationService:
         now = datetime.now(timezone.utc)
         start_date = getattr(notice, "registration_start_date", None)
         end_date = getattr(notice, "registration_end_date", None)
-        if (start_date is not None and now < start_date) or (
-            end_date is not None and now > end_date
-        ):
-            raise HTTPException(
-                status_code=400, detail="Período de inscrições não está ativo"
-            )
+        #if (start_date is not None and now < start_date) or (
+        #    end_date is not None and now > end_date
+        #):
+        #    raise HTTPException(
+        #        status_code=400, detail="Período de inscrições não está ativo"
+        #    )
 
         existing_query = select(StudentRegistration).where(
             and_(
