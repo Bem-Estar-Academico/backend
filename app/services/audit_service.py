@@ -446,3 +446,55 @@ async def audit_team_member_assigned(
         ip_address=ip_address,
         user_agent=user_agent,
     )
+
+
+async def audit_review_created(
+    db: AsyncSession,
+    review_id: int,
+    user_id: int,
+    student_name: str,
+    notice_title: str,
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None,
+):
+    """Audit when a review is created."""
+    await AuditService.create_audit_log(
+        db=db,
+        action=AuditAction.REVIEW_CREATED,
+        entity_type=AuditEntityType.REVIEW,
+        entity_id=review_id,
+        user_id=user_id,
+        description=f"Análise criada para '{student_name}' no edital '{notice_title}'",
+        metadata={
+            "student_name": student_name,
+            "notice_title": notice_title,
+        },
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+
+
+async def audit_review_deleted(
+    db: AsyncSession,
+    review_id: int,
+    user_id: int,
+    student_name: str,
+    notice_title: str,
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None,
+):
+    """Audit when a review is deleted."""
+    await AuditService.create_audit_log(
+        db=db,
+        action=AuditAction.REVIEW_DELETED,
+        entity_type=AuditEntityType.REVIEW,
+        entity_id=review_id,
+        user_id=user_id,
+        description=f"Análise removida para '{student_name}' no edital '{notice_title}'",
+        metadata={
+            "student_name": student_name,
+            "notice_title": notice_title,
+        },
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )

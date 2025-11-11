@@ -108,18 +108,14 @@ class ReviewRegistrationService:
         await db.refresh(db_review)
 
         try:
-            await AuditService.create_audit_log(
+            await audit_review_created(
                 db=db,
-                action=AuditAction.REVIEW_STARTED,
-                entity_type=AuditEntityType.REVIEW,
-                entity_id=db_review.id,
+                review_id=db_review.id,
                 user_id=social_worker.id,
-                description=f"Análise iniciada para inscrição do estudante '{registration.student.full_name}' no edital '{registration.notice.title}'",
+                student_name=registration.student.full_name,
                 metadata={
                     "student_registration_id": student_registration_id,
-                    "student_name": registration.student.full_name,
-                    "notice_title": registration.notice.title,
-                    "social_worker_name": social_worker.full_name,
+                    "notice_code": registration.notice.code,
                 },
             )
         except Exception as e:
