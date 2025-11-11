@@ -19,6 +19,7 @@ from app.routers.notices import router as notices_router
 from app.routers.student_documents import router as student_documents_router
 from app.routers.student_registrations import router as student_registrations_router
 from app.routers.users import router as users_router
+from app.routers.form_drafts import router as form_drafts_router
 from app.routers.period import router as periodo_router
 from app.routers.statistics import router as statistics_router
 from app.schemas.review_registration import ReviewRegistrationResponseWithDetails
@@ -62,6 +63,7 @@ app.include_router(
     prefix=f"{settings.API_V1_STR}/student-documents",
     tags=["student-documents"],
 )
+app.include_router(form_drafts_router, prefix=f"{settings.API_V1_STR}")
 app.include_router(
     periodo_router,
     prefix=f"{settings.API_V1_STR}/period",

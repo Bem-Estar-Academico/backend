@@ -487,7 +487,9 @@ class StudentRegistrationService:
             select(StudentRegistration)
             .options(
                 selectinload(StudentRegistration.notice),
-                selectinload(StudentRegistration.review),
+                selectinload(StudentRegistration.review).selectinload(
+                    ReviewRegistrationModel.appeals
+                ),
             )
             .where(StudentRegistration.student_id == student_id)
             .order_by(StudentRegistration.created_at.desc())
@@ -518,12 +520,8 @@ class StudentRegistrationService:
                             year=reg.notice.registration_end_date.year + 2, day=28
                         )
 
-                review_details = ReviewDetailsForRegistration(
-                    id=reg.review.id,
-                    status=reg.review.status,
-                    ivs=reg.review.ivs,
-                    expires_at=expires_at,
-                )
+                review_details = ReviewDetailsForRegistration.model_validate(reg.review)
+                review_details.expires_at = expires_at
 
             response_list.append(
                 StudentRegistrationWithReviewResponse(

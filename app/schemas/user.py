@@ -18,6 +18,7 @@ user-related data throughout the application. It includes schemas for base user
 information, user creation, user updates, user responses, and authentication tokens.
 """
 
+
 class UserBase(BaseModel):
     """
     Base schema for user data.
@@ -207,4 +208,4 @@ class TeamMemberResponse(BaseModel):
     is_active: bool
     user_type: UserType
     last_review: Optional[Any] = None
-    progress: int
+    progress: float

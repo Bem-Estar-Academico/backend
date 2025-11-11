@@ -118,6 +118,7 @@ async def get_notice(
         NoticeSchema: The notice object.
     """
     notice = await NoticeService.get_notice_by_id(db, notice_id)
+
     if not notice:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Notice not found"
@@ -256,7 +257,9 @@ async def add_team_member_to_notice(
         )
 
     try:
-        team_member = await NoticeService.add_team_member_to_notice(db, notice_id, user_id)
+        team_member = await NoticeService.add_team_member_to_notice(
+            db, notice_id, user_id
+        )
         if not team_member:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

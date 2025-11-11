@@ -1,5 +1,5 @@
-from typing import Any, Dict
-
+from typing import Any, Dict, List
+from datetime import datetime, timezone
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -11,10 +11,12 @@ from fastapi import (
     status,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.dependencies import require_staff
 from app.db.database import get_db
 from app.models.notice import OCRStatus
+from app.models.review import RegistrationStatus
 from app.models.user import User, UserType
 from app.routers.auth import get_current_user
 from app.schemas.student_document import (
@@ -24,6 +26,7 @@ from app.schemas.student_document import (
 )
 from app.services.student_document_service import StudentDocumentService
 from app.services.student_registration_service import StudentRegistrationService
+from app.services.appeal_service import AppealService
 
 router = APIRouter()
 
@@ -144,6 +147,146 @@ async def upload_document(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao fazer upload do documento: {str(e)}",
         )
+
+
+# Upload document for appeal requests
+@router.post("/appeal/{appeal_id}/upload", response_model=List[StudentDocumentResponse])
+async def upload_document_for_appeal(
+    appeal_id: int,
+    files: List[UploadFile] = File(...),
+    description: str = Form(None, description="Descrição adicional"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Upload documents for an appeal request.
+    Allows students to upload requested documents for their appeals.
+    Automatically marks appeals as fulfilled when all requested documents are uploaded.
+    Parameters:
+        appeal_id (int): The ID of the appeal to upload documents for.
+        files (List[UploadFile]): List of files to upload.
+        description (str, optional): Additional description for the documents.
+        db (AsyncSession): Database session dependency.
+        current_user (User): The current authenticated user.
+    Returns:
+        List[StudentDocumentResponse]: List of uploaded document responses.
+    """
+    appeal = await AppealService.get_appeal_by_id(db, appeal_id)
+    if not appeal:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Recurso não encontrado"
+        )
+
+    for file in files:
+        if not file.filename:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Nome do arquivo é obrigatório",
+            )
+
+        allowed_types = [
+            "application/pdf",
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ]
+
+        if file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Tipo de arquivo não permitido. Tipos aceitos: {', '.join(allowed_types)}",
+            )
+
+        max_size = 5 * 1024 * 1024  # 5MB
+        file_content = await file.read()
+        if len(file_content) > max_size:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Arquivo muito grande. Tamanho máximo: 5MB",
+            )
+
+    if (
+        appeal.review_registration.student_registration.student_id != current_user.id
+        and not current_user.is_staff
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você só pode fazer upload de documentos para seus próprios recursos",
+        )
+
+    uploaded_documents = []
+
+    try:
+        for file in files:
+            document_data = StudentDocumentCreate(
+                name=file.filename, description=description
+            )
+
+            # Check if a document with the same name already exists
+            existing_document = (
+                await StudentDocumentService.get_document_by_name_and_registration(
+                    db=db,
+                    registration_id=appeal.review_registration.student_registration.id,
+                    document_name=file.filename,
+                )
+            )
+
+            # If exists, delete the old one before uploading the new one
+            if existing_document:
+                await StudentDocumentService.delete_document(
+                    db=db, document_id=existing_document.id
+                )
+
+            document = await StudentDocumentService.upload_document(
+                db=db,
+                registration_id=appeal.review_registration.student_registration.id,
+                file_content=file_content,
+                filename=file.filename,
+                content_type=file.content_type,
+                document_data=document_data,
+            )
+
+            if not document:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Falha ao fazer upload do documento {file.filename}",
+                )
+
+            uploaded_documents.append(document)
+
+            # Update requested documents in appeal to remove the uploaded document
+            requested_docs = appeal.requested_documents or {}
+
+            # Get doc key removing leading/trailing spaces and extension
+            doc_key = document_data.name.strip().rsplit(".", 1)[0]
+
+            if doc_key in requested_docs:
+                del requested_docs[doc_key]
+                appeal.requested_documents = requested_docs
+                # Mark the field as modified so SQLAlchemy knows to update it
+                flag_modified(appeal, "requested_documents")
+
+        # If no more documents are requested, consider the appeal fulfilled
+        if appeal.requested_documents is not None and not appeal.requested_documents:
+            appeal.fulfilled_at = datetime.now(timezone.utc)
+            # Update review status to PENDING so it can be re-evaluated
+            review = appeal.review_registration
+            review.status = RegistrationStatus.PENDING
+            db.add(review)
+
+        db.add(appeal)
+        await db.commit()
+        await db.refresh(appeal)
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao fazer upload do documento: {str(e)}",
+        )
+
+    return [StudentDocumentResponse.from_model(doc) for doc in uploaded_documents]
 
 
 @router.delete("/{document_id}")
