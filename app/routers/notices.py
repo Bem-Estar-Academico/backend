@@ -142,7 +142,7 @@ async def create_notice(
     request: Request = Request,
 ):
     notice = await NoticeService.create_notice(
-        db=db, notice_data=notice_data, user_id=current_user.id
+        db=db, notice_data=notice_data, created_by_user_id=current_user.id
     )
 
     ip_address, user_agent = AuditService.extract_client_info(request)

@@ -5,7 +5,7 @@ Router for audit log endpoints.
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -68,7 +68,7 @@ async def get_audit_logs(
 @router.get("/entity/{entity_type}/{entity_id}", response_model=List[AuditLogResponse])
 async def get_audit_logs_for_entity(
     entity_type: AuditEntityType,
-    entity_id: int = Query(..., ge=1, description="Entity ID must be positive"),
+    entity_id: int = Path(..., ge=1, description="Entity ID must be positive"),
     limit: int = Query(
         50, ge=1, le=200, description="Maximum number of records to return"
     ),
