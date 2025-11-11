@@ -24,7 +24,6 @@ from app.schemas.student_document import (
     StudentDocumentResponse,
 )
 from app.services.audit_service import (
-    AuditService,
     audit_document_deleted,
     audit_document_uploaded,
 )
