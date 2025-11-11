@@ -78,12 +78,16 @@ async def create_student_registration(
         notice = await NoticeService.get_notice_by_id(db, notice_id)
         notice_title = notice.title if notice else f"Edital ID {notice_id}"
 
+        ip_address, user_agent = AuditService.extract_client_info(request)
+
         await audit_registration_submitted(
             db=db,
             registration_id=registration.id,
             user_id=current_user.id,
             notice_title=notice_title,
             student_name=current_user.full_name,
+            ip_address=ip_address,
+            user_agent=user_agent,
         )
     except Exception as e:
         print(f"Warning: Failed to log audit for registration {registration.id}: {e}")
@@ -506,9 +510,9 @@ async def update_review_registration(
                 student_name=student_name,
                 metadata={
                     "review_changes": review_data.model_dump(exclude_unset=True),
-                    "ip_address": ip_address,
-                    "user_agent": user_agent,
                 },
+                ip_address=ip_address,
+                user_agent=user_agent,
             )
         except Exception as e:
             print(f"Warning: Failed to log audit for review {review_id}: {e}")

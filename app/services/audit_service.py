@@ -195,8 +195,12 @@ class AuditService:
 
 
 async def audit_notice_created(
-    db: AsyncSession, notice_id: int, user_id: int, notice_title: str,
-    ip_address: Optional[str] = None, user_agent: Optional[str] = None
+    db: AsyncSession,
+    notice_id: int,
+    user_id: int,
+    notice_title: str,
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None,
 ):
     """Audit when a notice is created."""
     await AuditService.create_audit_log(
@@ -218,8 +222,8 @@ async def audit_notice_updated(
     user_id: int,
     notice_title: str,
     updated_fields: Optional[Dict[str, Any]] = None,
-    ip_address: Optional[str] = None, 
-    user_agent: Optional[str] = None
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None,
 ):
     """Audit when a notice is updated."""
     await AuditService.create_audit_log(
@@ -236,8 +240,12 @@ async def audit_notice_updated(
 
 
 async def audit_notice_deleted(
-    db: AsyncSession, notice_id: int, user_id: int, notice_title: str,
-    ip_address: Optional[str] = None, user_agent: Optional[str] = None
+    db: AsyncSession,
+    notice_id: int,
+    user_id: int,
+    notice_title: str,
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None,
 ):
     """Audit when a notice is deleted."""
     await AuditService.create_audit_log(
@@ -261,8 +269,8 @@ async def audit_review_status_changed(
     new_status: str,
     student_name: str,
     metadata: Optional[Dict[str, Any]] = None,
-    ip_address: Optional[str] = None, 
-    user_agent: Optional[str] = None
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None,
 ):
     """Audit when a review status changes."""
     action_map = {
@@ -308,8 +316,8 @@ async def audit_registration_submitted(
     user_id: int,
     notice_title: str,
     student_name: str,
-    ip_address: Optional[str] = None, 
-    user_agent: Optional[str] = None
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None,
 ):
     """Audit when a student registration is submitted."""
     await AuditService.create_audit_log(
@@ -331,8 +339,8 @@ async def audit_document_uploaded(
     user_id: int,
     document_name: str,
     entity_type: str,
-    ip_address: Optional[str] = None, 
-    user_agent: Optional[str] = None
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None,
 ):
     """Audit when a document is uploaded."""
     await AuditService.create_audit_log(
@@ -354,8 +362,8 @@ async def audit_document_deleted(
     user_id: int,
     document_name: str,
     entity_type: str,
-    ip_address: Optional[str] = None, 
-    user_agent: Optional[str] = None
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None,
 ):
     """Audit when a document is deleted."""
     await AuditService.create_audit_log(
@@ -378,8 +386,8 @@ async def audit_team_member_assigned(
     user_id: int,
     notice_title: str,
     team_member_name: str,
-    ip_address: Optional[str] = None, 
-    user_agent: Optional[str] = None
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None,
 ):
     """Audit when a team member is assigned to a notice."""
     await AuditService.create_audit_log(
@@ -389,7 +397,11 @@ async def audit_team_member_assigned(
         entity_id=notice_id,
         user_id=user_id,
         description=f"Membro '{team_member_name}' atribuído ao edital '{notice_title}'",
-        metadata={"team_member_user_id": team_member_user_id, "notice_title": notice_title, "team_member_name": team_member_name},
+        metadata={
+            "team_member_user_id": team_member_user_id,
+            "notice_title": notice_title,
+            "team_member_name": team_member_name,
+        },
         ip_address=ip_address,
         user_agent=user_agent,
     )

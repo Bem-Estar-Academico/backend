@@ -145,12 +145,16 @@ async def upload_document(
             )
 
         try:
+            ip_address, user_agent = AuditService.extract_client_info(request)
+
             await audit_document_uploaded(
                 db=db,
                 document_id=document.id,
                 user_id=current_user.id,
                 document_name=file.filename,
                 entity_type="student_registration",
+                ip_address=ip_address,
+                user_agent=user_agent,
             )
         except Exception as e:
             print(f"Warning: Failed to log audit for document {document.id}: {e}")
@@ -184,12 +188,16 @@ async def delete_document(
         )
 
     try:
+        ip_address, user_agent = AuditService.extract_client_info(request)
+
         await audit_document_deleted(
             db=db,
             document_id=document_id,
             user_id=current_user.id,
             document_name=document.name,
             entity_type="student_registration",
+            ip_address=ip_address,
+            user_agent=user_agent,
         )
     except Exception as e:
         print(f"Warning: Failed to log audit for document deletion {document_id}: {e}")
